@@ -61,5 +61,5 @@ global:
       labels: [automerge]
     production:
       workflows: [production]
-      enabled: false
+      enabled: true
       labels: [automerge]
