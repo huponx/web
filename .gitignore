@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+playwright-report/
+test-results/
+
+# helm dependencies (helm dependency build)
+charts/*/charts/
+charts/*/*.tgz
+charts/*/*.lock

@@ -1,0 +1,86 @@
+# Values of the web-application chart live under `application:` (alias of the dependency).
+# image.tag is written at release time (update-deployment-values); the default only keeps `helm template` working.
+#
+# The image is the same in every environment. What changes is config.js (window.__env__), rendered by the
+# chart from application.config.runtime.data into the ConfigMap `<release>-runtime-config`; the chart does
+# not mount it, so this chart does: over /usr/share/nginx/html/config.js with subPath. mm-deploy sets
+# API_BASE (the gateway, e.g. https://api.example.com), the host and the TLS secret.
+#
+# nginx-unprivileged runs as uid 101 with a read-only root filesystem, so the three directories it writes
+# to (/tmp holds the headers file written at start, the cache and the pid) are emptyDirs.
+#
+# NOTE: the volume name `runtime-config` refers to the ConfigMap `<release-name>-runtime-config`; the
+# release name is the app name (dict), so mm-deploy must keep releaseName equal to the file name.
+application:
+  deployment:
+    container:
+      image:
+        repository: huponx/dict
+        tag: "0.0.0"
+      port: 8080
+      startupProbe:
+        httpGet:
+          path: /
+          port: 8080
+        failureThreshold: 30
+        periodSeconds: 2
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 8080
+        periodSeconds: 20
+      readinessProbe:
+        httpGet:
+          path: /
+          port: 8080
+        periodSeconds: 10
+      resources:
+        limits:
+          cpu: 200m
+          memory: 128Mi
+        requests:
+          cpu: 50m
+          memory: 64Mi
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
+      volumeMounts:
+        - name: runtime-config
+          mountPath: /usr/share/nginx/html/config.js
+          subPath: config.js
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /var/run
+    volumes:
+      - name: runtime-config
+        configMap:
+          name: dict-runtime-config
+      - name: tmp
+        emptyDir: {}
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
+  service:
+    enabled: true
+    port: 80
+  config:
+    runtime:
+      data:
+        # The gateway (shared gatekeeper). mm-deploy overrides it per environment.
+        API_BASE: "https://api.example.com"
+  ingress:
+    enabled: false
+    tls: true
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
