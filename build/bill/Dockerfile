@@ -3,7 +3,9 @@
 #   docker build -f build/bill/Dockerfile -t bill:dev .
 # The image is the same for every environment: API_BASE comes from /config.js (ConfigMap of the chart).
 ARG NODE_VERSION=20
-ARG NGINX_VERSION=1.27
+# alpine-slim is rebuilt upstream on every Alpine/nginx fix; versioned tags (1.27-alpine, 1.28-alpine-slim) go stale
+# (Alpine 3.21 is end of life, 200+ CVEs). The slim image has no curl and no extra modules.
+ARG NGINX_TAG=alpine-slim
 
 FROM node:${NODE_VERSION}-alpine AS build
 WORKDIR /src
@@ -16,7 +18,10 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --offli
 # the app and the packages it depends on
 RUN pnpm --filter @huponx/bill... build
 
-FROM nginxinc/nginx-unprivileged:${NGINX_VERSION}-alpine
+FROM nginxinc/nginx-unprivileged:${NGINX_TAG}
+# pick up the Alpine fixes published after the base image was built (openssl, musl, zlib)
+USER root
+RUN apk upgrade --no-cache
 ARG VERSION=dev
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="bill" \
