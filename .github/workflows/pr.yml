@@ -1,0 +1,19 @@
+name: PR
+
+on:
+  pull_request:
+    branches: [main, "release*"]
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr:
+    uses: huponx/actions/.github/workflows/service-pr.yml@v1
+    secrets: inherit

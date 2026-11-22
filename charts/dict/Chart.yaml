@@ -1,0 +1,12 @@
+apiVersion: v2
+name: dict
+description: Dict web app (React SPA served by nginx), deployed with the web-application chart.
+type: application
+# Replaced at release time (update-chart-metadata): version and appVersion carry the release version.
+version: 0.0.0
+appVersion: "0.0.0"
+dependencies:
+  - name: web-application
+    version: 1.0.0
+    repository: oci://ghcr.io/huponx/charts
+    alias: application

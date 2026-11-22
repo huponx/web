@@ -1,0 +1,31 @@
+{
+  "name": "web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:dict": "pnpm --filter @huponx/dict dev",
+    "dev:bill": "pnpm --filter @huponx/bill dev",
+    "dev:admin": "pnpm --filter @huponx/admin dev",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r --if-present typecheck && tsc -p e2e/tsconfig.json",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "ci": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "e2e": "bash e2e/run.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.16.0",
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^20",
+    "eslint": "^9.16.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^15.13.0",
+    "typescript": "~5.6.3",
+    "typescript-eslint": "^8.18.0"
+  }
+}

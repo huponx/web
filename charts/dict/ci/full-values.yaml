@@ -1,0 +1,15 @@
+application:
+  deployment:
+    replicas: 2
+    container:
+      image:
+        tag: "v2026.08.1-release-e1f4018"
+  ingress:
+    enabled: true
+    host: dict.example.com
+    tls: true
+    tlsSecretName: dict-example-tls
+  config:
+    runtime:
+      data:
+        API_BASE: https://api.example.com

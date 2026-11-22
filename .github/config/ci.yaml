@@ -1,0 +1,65 @@
+# Three apps built from one repository: each has its own image, chart and deployment file in mm-deploy.
+# language node: lint-test runs `pnpm lint`, `pnpm typecheck` and `pnpm test` once for the whole workspace.
+apps:
+  - name: dict
+    language: node
+    cicd:
+      jobs:
+        containerize-and-package:
+          image-name: dict
+          dockerfile-path: build/dict/Dockerfile
+          chart-path: charts/dict
+          image-tag-paths:
+            - .application.deployment.container.image.tag
+          trivy:
+            severity: "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"
+            ignore-unfixed: true
+            exit-code: 0   # report only: the CVEs are listed in the PR comment, the build does not fail
+  - name: bill
+    language: node
+    cicd:
+      jobs:
+        containerize-and-package:
+          image-name: bill
+          dockerfile-path: build/bill/Dockerfile
+          chart-path: charts/bill
+          image-tag-paths:
+            - .application.deployment.container.image.tag
+          trivy:
+            severity: "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"
+            ignore-unfixed: true
+            exit-code: 0   # report only: the CVEs are listed in the PR comment, the build does not fail
+  - name: admin
+    language: node
+    cicd:
+      jobs:
+        containerize-and-package:
+          image-name: admin
+          dockerfile-path: build/admin/Dockerfile
+          chart-path: charts/admin
+          image-tag-paths:
+            - .application.deployment.container.image.tag
+          trivy:
+            severity: "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"
+            ignore-unfixed: true
+            exit-code: 0   # report only: the CVEs are listed in the PR comment, the build does not fail
+global:
+  deploy:
+    repo: huponx/mm-deploy
+    base-branch: main
+    file: "applications/{env}/{app}.yaml"
+    set:
+      - .spec.source.targetRevision
+  environments:
+    dev:
+      workflows: [main]
+      enabled: false
+      labels: [automerge]
+    staging:
+      workflows: [staging]
+      enabled: false
+      labels: [automerge]
+    production:
+      workflows: [production]
+      enabled: false
+      labels: [automerge]
