@@ -91,7 +91,7 @@ the deployment PR in `huponx/mm-deploy` (`applications/<env>/{dict,bill,admin}.y
 `web-application` chart published to `oci://ghcr.io/huponx/charts`; run `helm dependency build charts/<app>`
 before `helm lint`/`helm template` (use `-f charts/<app>/ci/full-values.yaml`).
 
-Images (distroless-like, `nginx-unprivileged`, port 8080): `make docker` builds `ghcr.io/huponx/{dict,bill,admin}` from `build/<app>/Dockerfile`. The charts `charts/{dict,bill,admin}` wrap the `web-application` chart (dependency alias `application`, values under `application:`). `version`, `appVersion` and `image.tag` are written at release time by the CI; the committed values only keep `helm template` working.
+Images (`nginxinc/nginx-unprivileged:alpine-slim` plus `apk upgrade` at build time, uid 101, port 8080; no known CVE at the last scan, rebuild regularly to keep it so): `make docker` builds `ghcr.io/huponx/{dict,bill,admin}` from `build/<app>/Dockerfile`. The charts `charts/{dict,bill,admin}` wrap the `web-application` chart (dependency alias `application`, values under `application:`). `version`, `appVersion` and `image.tag` are written at release time by the CI; the committed values only keep `helm template` working.
 
 ## CI/CD
 
