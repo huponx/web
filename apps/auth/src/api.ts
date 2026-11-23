@@ -77,7 +77,9 @@ const q = (params: Record<string, string>) => `?${new URLSearchParams(params)}`;
 export type AppsInfo = { apps: { name: string; url: string; icon?: string }[]; name: string; email: string; theme?: string; mfa: boolean };
 
 export const authApi = {
-  login: (email: string, password: string, returnTo: string) => post<Next & { theme?: string }>("/auth-api/login", { email, password, return_to: returnTo }),
+  /** `theme` and `locale` are what the user picked on the sign in page (empty: not touched); the account keeps them. */
+  login: (email: string, password: string, returnTo: string, prefs: { theme?: string; locale?: string } = {}) =>
+    post<Next & { theme?: string; locale?: string }>("/auth-api/login", { email, password, return_to: returnTo, ...prefs }),
   /** Resolves when the challenge of the second factor is still valid. */
   checkMfa: (c: string) => call<unknown>("GET", `/auth-api/login/mfa${q({ c })}`),
   verifyMfa: (c: string, code: string) => post<Next>("/auth-api/login/mfa", { c, code }),
@@ -86,6 +88,10 @@ export const authApi = {
   forgot: (email: string) => post<unknown>("/auth-api/password/forgot", { email }),
   checkReset: (token: string) => call<unknown>("GET", `/auth-api/password/reset${q({ token })}`),
   reset: (token: string, password: string) => post<unknown>("/auth-api/password/reset", { token, password }),
+  /** The theme and the language of the account of the signed in user. */
+  preferences: () => call<{ theme?: string; locale?: string }>("GET", "/auth-api/preferences"),
+  /** Saves the theme and/or the language the user picked while signed in. */
+  setPreferences: (p: { theme?: string; locale?: string }) => post<unknown>("/auth-api/preferences", p),
   apps: () => call<AppsInfo>("GET", "/auth-api/apps"),
   mfaStatus: () => call<MfaStatus>("GET", "/auth-api/account/mfa"),
   /** `redirect` is where the recovery codes page continues (the return_to of the sign in, checked by the server). */

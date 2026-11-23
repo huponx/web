@@ -50,6 +50,9 @@ export type { Page } from "./hooks/usePaged";
 
 export { applyTheme, THEME_STORAGE_KEY, ThemeProvider, useTheme } from "./theme/ThemeProvider";
 export type { ResolvedTheme, Theme } from "./theme/ThemeProvider";
+export { applyAccountLocale, useAccountProfile, useAccountLocale, rememberLanguageChoice } from "./account/useAccount";
+export type { AccountProfile } from "./account/useAccount";
+export { useAccountTheme } from "./theme/useAccountTheme";
 export { ThemeSwitch } from "./theme/ThemeSwitch";
 export type { ThemeSwitchLabels } from "./theme/ThemeSwitch";
 
