@@ -1,4 +1,4 @@
-import { ThemeProvider } from "@huponx/ui-kit";
+import { StyleProvider, ThemeProvider } from "@huponx/ui-kit";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -13,6 +13,7 @@ interface Call {
 type Answer = { status?: number; json?: unknown } | undefined;
 
 const assign = vi.fn();
+let systemStyle = "saas";
 
 /** Stands in for identity: `answer` gets every call (the CSRF fetch is answered here) and returns the response. */
 function renderAt(path: string, answer: (c: Call) => Answer = () => ({ json: {} })) {
@@ -22,6 +23,8 @@ function renderAt(path: string, answer: (c: Call) => Answer = () => ({ json: {} 
     vi.fn((url: string, init?: RequestInit) => {
       const c: Call = { method: init?.method ?? "GET", url, body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : undefined };
       if (url === "/auth-api/csrf") return Promise.resolve(new Response(JSON.stringify({ csrf: "tok" }), { status: 200 }));
+      // the look of the system is read by every page; it is not a call the tests count
+      if (url === "/auth-api/ui-style") return Promise.resolve(new Response(JSON.stringify({ uiStyle: systemStyle, uiPalettes: { saas: "aurora", glass: "ocean", mono: "aurora" } }), { status: 200 }));
       calls.push(c);
       const a = answer(c) ?? { json: {} };
       return Promise.resolve(new Response(JSON.stringify(a.json ?? {}), { status: a.status ?? 200 }));
@@ -29,9 +32,11 @@ function renderAt(path: string, answer: (c: Call) => Answer = () => ({ json: {} 
   );
   render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <App />
-      </MemoryRouter>
+      <StyleProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <App />
+        </MemoryRouter>
+      </StyleProvider>
     </ThemeProvider>,
   );
   return calls;
@@ -40,11 +45,25 @@ function renderAt(path: string, answer: (c: Call) => Answer = () => ({ json: {} 
 const fail = (status: number, code: string): Answer => ({ status, json: { code, message: "server text" } });
 
 beforeEach(() => {
+  systemStyle = "saas";
+  localStorage.clear();
   resetCsrf();
   assign.mockReset();
   Object.defineProperty(window, "location", { value: { ...window.location, assign }, writable: true, configurable: true });
 });
 afterEach(() => vi.unstubAllGlobals());
+
+describe("system style", () => {
+  it("applies the style an administrator picked, before any sign in", async () => {
+    systemStyle = "glass";
+    renderAt("/login");
+    await waitFor(() => expect(document.documentElement.dataset.style).toBe("glass"));
+    expect(localStorage.getItem("ui-style")).toBe("glass");
+    // the palette of the style in use
+    await waitFor(() => expect(document.documentElement.dataset.palette).toBe("ocean"));
+    expect(localStorage.getItem("ui-palette")).toBe("ocean");
+  });
+});
 
 describe("account MFA page", () => {
   it("has a way back: to return_to, to the applications without one", async () => {

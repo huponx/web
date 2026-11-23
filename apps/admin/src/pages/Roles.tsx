@@ -103,7 +103,7 @@ function PermissionCatalog() {
               </Button>
             </Actions>
             <ErrorAlert error={add.error} />
-            <DoneAlert>{add.done}</DoneAlert>
+            <DoneAlert watch={add.doneId}>{add.done}</DoneAlert>
           </form>
         </Can>
         <SearchBar label={t("roles.perm.search")} hint={t("roles.perm.searchHint")} onSearch={setQuery} />
@@ -146,7 +146,7 @@ function PermissionCatalog() {
         ) : null}
         <LoadMore paged={paged} />
         <ErrorAlert error={del.error} />
-        <DoneAlert>{updated ?? del.done}</DoneAlert>
+        <DoneAlert watch={updated ?? del.doneId}>{updated ?? del.done}</DoneAlert>
       </CardContent>
       {editing ? <EditDescription permission={editing} onClose={() => setEditing(undefined)} onDone={(n) => (del.clear(), setUpdated(t("roles.perm.updated", { name: n })), reload())} /> : null}
       {dialog}
@@ -197,7 +197,7 @@ export function Roles() {
               <SearchBar label={t("roles.search")} hint={t("roles.searchHint")} onSearch={setQuery} />
               <ErrorAlert error={error} />
               <ErrorAlert error={del.error} />
-              <DoneAlert>{del.done ?? (gone ? t("roles.form.deleted", { name: gone }) : undefined)}</DoneAlert>
+              <DoneAlert watch={del.doneId}>{del.done ?? (gone ? t("roles.form.deleted", { name: gone }) : undefined)}</DoneAlert>
               {loading ? <Loading /> : null}
               {data ? (
                 <DataTable

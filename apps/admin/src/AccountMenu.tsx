@@ -1,22 +1,13 @@
 import { useAuth } from "@huponx/auth-client";
 import {
-  DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  UserMenu,
+  AccountMenuView,
   rememberLanguageChoice,
   useAccountLocale,
   useAccountProfile,
   useAccountTheme,
 }
  from "@huponx/ui-kit";
-import { Languages, LogOut, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
 import { useIdentity } from "./api";
 import { AVATAR_CHANGED } from "./lib/avatarEvents";
 import { LANGUAGE_STORAGE_KEY, languages } from "./i18n";
@@ -67,33 +58,13 @@ export function AccountMenu() {
   const profile = useMyProfile();
   const { language, setLanguage } = useLanguage();
   return (
-    <UserMenu name={profile.name || user?.name || user?.email || user?.sub || ""} image={profile.avatar || undefined} label={t("shell.userMenu")}>
-      <DropdownMenuItem asChild>
-        <Link to="/settings">
-          <Settings aria-hidden="true" />
-          {t("nav.settings")}
-        </Link>
-      </DropdownMenuItem>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger>
-          <Languages aria-hidden="true" />
-          {t("shell.language")}
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent>
-          <DropdownMenuRadioGroup value={language} onValueChange={setLanguage}>
-            {languages.map((l) => (
-              <DropdownMenuRadioItem key={l.code} value={l.code}>
-                {l.label}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem data-testid="logout" onSelect={() => void logout()}>
-        <LogOut aria-hidden="true" />
-        {t("shell.signOut")}
-      </DropdownMenuItem>
-    </UserMenu>
+    <AccountMenuView
+      name={profile.name || user?.name || user?.email || user?.sub || ""}
+      image={profile.avatar || undefined}
+      label={t("shell.userMenu")}
+      settings={{ to: "/settings", label: t("nav.settings") }}
+      language={{ label: t("shell.language"), value: language, options: languages.map((l) => ({ value: l.code, label: l.label })), onChange: setLanguage }}
+      signOut={{ label: t("shell.signOut"), onSelect: () => void logout() }}
+    />
   );
 }

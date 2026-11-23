@@ -66,7 +66,7 @@ function Editor({ role, catalog, reload, createdNote }: { role?: Role; catalog?:
           </CardContent>
         </Card>
         <ErrorAlert error={a.error} />
-        {editing ? <DoneAlert>{a.done}</DoneAlert> : null}
+        {editing ? <DoneAlert watch={a.doneId}>{a.done}</DoneAlert> : null}
         <Actions>
           {canWrite ? (
             <Button type="submit" busy={a.busy}>

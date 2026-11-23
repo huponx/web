@@ -50,6 +50,7 @@
     "clients": "Ứng dụng khách",
     "exchange": "Chính sách đổi token",
     "dictionary": "Từ điển",
+    "system": "Cài đặt hệ thống",
     "settings": "Cài đặt",
     "userNew": "Thêm",
     "userEdit": "Sửa",
@@ -104,6 +105,29 @@
         "Missing": "Thiếu",
         "Unknown": "Không rõ"
       }
+    }
+  },
+  "systemSettings": {
+    "title": "Cài đặt hệ thống",
+    "description": "Cài đặt áp dụng cho mọi người dùng và mọi ứng dụng.",
+    "uiStyle": {
+      "title": "Giao diện hệ thống",
+      "description": "Kiểu giao diện của mọi ứng dụng (quản trị, từ điển, đăng nhập) cho mọi người dùng. Sáng/tối vẫn là lựa chọn của từng người.",
+      "save": "Lưu giao diện",
+      "saved": "Đã lưu giao diện hệ thống.",
+      "saas": { "name": "SaaS tinh gọn", "hint": "Đổ bóng mềm, thẻ bo tròn, màu nhấn tím." },
+      "glass": { "name": "Kính", "hint": "Nền gradient, thẻ mờ kính, nút dạng viên thuốc." },
+      "mono": { "name": "Mono tối giản", "hint": "Phẳng, đen trắng, góc vuông." }
+    },
+    "palette": {
+      "title": "Màu sắc",
+      "description": "Bộ màu của giao diện đang chọn. Mỗi giao diện nhớ bộ màu riêng.",
+      "aurora": "Aurora",
+      "ocean": "Đại dương",
+      "sunset": "Hoàng hôn",
+      "mint": "Bạc hà",
+      "rose": "Hồng",
+      "graphite": "Than chì"
     }
   },
   "settings": {

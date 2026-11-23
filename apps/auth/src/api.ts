@@ -1,3 +1,6 @@
+import { systemStyleOf } from "@huponx/ui-kit";
+import type { SystemStyleReply } from "@huponx/ui-kit";
+
 /** An error answer of /auth-api: the HTTP status, a stable `code` (the text comes from i18n) and the server message. */
 export class ApiError extends Error {
   constructor(
@@ -77,6 +80,8 @@ const q = (params: Record<string, string>) => `?${new URLSearchParams(params)}`;
 export type AppsInfo = { apps: { name: string; url: string; icon?: string }[]; name: string; email: string; theme?: string; mfa: boolean };
 
 export const authApi = {
+  /** The look of the web apps (set by an administrator); readable before the sign in. */
+  uiStyle: () => call<SystemStyleReply>("GET", "/auth-api/ui-style").then(systemStyleOf),
   /** `theme` and `locale` are what the user picked on the sign in page (empty: not touched); the account keeps them. */
   login: (email: string, password: string, returnTo: string, prefs: { theme?: string; locale?: string } = {}) =>
     post<Next & { theme?: string; locale?: string }>("/auth-api/login", { email, password, return_to: returnTo, ...prefs }),
