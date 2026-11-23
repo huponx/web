@@ -1,0 +1,12 @@
+apiVersion: v2
+name: auth-ui
+description: The auth pages (sign in, MFA, password reset) as static files in an nginx image. identity serves them (its image copies them out of this one); this chart only exists because the CI publishes a chart per app.
+type: application
+# Replaced at release time (update-chart-metadata): version and appVersion carry the release version.
+version: 0.0.0
+appVersion: "0.0.0"
+dependencies:
+  - name: web-application
+    version: 1.0.0
+    repository: oci://ghcr.io/huponx/charts
+    alias: application

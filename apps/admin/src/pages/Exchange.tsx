@@ -1,79 +1,141 @@
 import { Can } from "@huponx/auth-client";
-import { Actions, Button, Card, DataTable, ErrorNotice, Loading, Notice, PageTitle, TextField } from "@huponx/ui";
+import { Button, Card, CardContent } from "@huponx/ui-kit";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useIdentity, useAction, useLoad } from "../api";
+import { useTranslation } from "react-i18next";
+import { Link, useLocation } from "react-router-dom";
+import { useAction, useIdentity, usePaged } from "../api";
 import type { ExchangePolicy } from "../api";
+import { useConfirm } from "../components/ConfirmDialog";
+import { ActionLabel, Actions, DataTable, DoneAlert, ErrorAlert, LoadMore, Loading, PageTitle, ROW_ACTION, TextField } from "../components/common";
+
+/** The page of a policy: the key is (client, audience), and an audience can hold `/` or `:`, so it goes in the query. */
+export function policyPath(p: Pick<ExchangePolicy, "clientId" | "audience">): string {
+  return `/exchange/edit?${new URLSearchParams({ client: p.clientId, audience: p.audience })}`;
+}
+
+interface Filter {
+  query: string;
+  audience: string;
+}
 
 export function Exchange() {
+  const { t } = useTranslation();
   const api = useIdentity();
-  const { data, error, loading, reload } = useLoad(() => api.listPolicies(), [api]);
-  const [clientId, setClientId] = useState("");
-  const [audience, setAudience] = useState("");
-  const [maxScope, setMaxScope] = useState("");
-  const [depth, setDepth] = useState("1");
-  const a = useAction();
-
-  async function save(ev: React.FormEvent) {
-    ev.preventDefault();
-    const p: ExchangePolicy = { clientId, audience, maxScope, maxChainDepth: Number(depth) };
-    const r = await a.run(() => api.setPolicy(p), "Policy saved.");
-    if (r !== undefined) reload();
-  }
+  // the fields of the form, and the filter applied by Search
+  const [draft, setDraft] = useState<Filter>({ query: "", audience: "" });
+  const [filter, setFilter] = useState<Filter>({ query: "", audience: "" });
+  const paged = usePaged((token) => api.listPoliciesPage(filter, token), [api, filter.query, filter.audience]);
+  const { items: data, error, loading, reload } = paged;
+  const notice = (useLocation().state as { deleted?: boolean } | null)?.deleted ? t("exchange.deleted") : undefined;
+  const del = useAction();
+  const { confirm, dialog } = useConfirm();
 
   async function remove(p: ExchangePolicy) {
-    if (!window.confirm(`Delete the policy of ${p.clientId} for ${p.audience}? Exchanges stop working (deny by default).`)) return;
-    const r = await a.run(() => api.setPolicy(p, true), "Policy deleted.");
+    if (!(await confirm({ title: t("common.delete"), message: t("exchange.confirmDelete", { client: p.clientId, audience: p.audience }), confirmLabel: t("common.delete") }))) return;
+    const r = await del.run(() => api.setPolicy(p, true), t("exchange.deleted"));
     if (r !== undefined) reload();
   }
 
   return (
     <>
-      <PageTitle>Exchange policies</PageTitle>
-      <Card>
-        <p className="ui-field-hint">Token exchange is denied unless a policy allows the calling client to obtain a token for the audience.</p>
-        <ErrorNotice error={error} />
-        {loading ? <Loading /> : null}
-        {data ? (
-          <DataTable
-            rows={data}
-            rowKey={(p) => `${p.clientId}/${p.audience}`}
-            columns={[
-              { header: "Client", cell: (p) => <strong>{p.clientId}</strong> },
-              { header: "Audience", cell: (p) => p.audience },
-              { header: "Max scope", cell: (p) => p.maxScope || "(none)" },
-              { header: "Chain depth", cell: (p) => p.maxChainDepth },
-              {
-                header: "",
-                cell: (p) => (
-                  <Can perm="identity:exchange:write">
-                    <Button variant="danger" onClick={() => void remove(p)}>
-                      Delete
-                    </Button>
-                  </Can>
-                ),
-              },
-            ]}
-          />
-        ) : null}
-      </Card>
+      {dialog}
+      <PageTitle description={t("exchange.intro")}>{t("exchange.title")}</PageTitle>
       <Can perm="identity:exchange:write">
-        <Card>
-          <h2>Set a policy</h2>
-          <form onSubmit={(ev) => void save(ev)}>
-            <TextField label="Client id" value={clientId} onChange={(e) => setClientId(e.target.value)} required />
-            <TextField label="Audience" value={audience} onChange={(e) => setAudience(e.target.value)} required />
-            <TextField label="Max scope" value={maxScope} onChange={(e) => setMaxScope(e.target.value)} hint="Space separated" />
-            <TextField label="Max chain depth" type="number" min={1} max={5} value={depth} onChange={(e) => setDepth(e.target.value)} />
+        <Actions>
+          <Button asChild>
+            <Link to="/exchange/new">
+              <Plus aria-hidden="true" />
+              {t("exchange.add")}
+            </Link>
+          </Button>
+        </Actions>
+      </Can>
+      <Card>
+        <CardContent className="flex flex-col gap-4">
+          <form
+            role="search"
+            className="flex flex-col gap-4"
+            onSubmit={(ev) => {
+              ev.preventDefault();
+              setFilter({ query: draft.query.trim(), audience: draft.audience.trim() });
+            }}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label={t("exchange.search")}
+                value={draft.query}
+                onChange={(e) => setDraft((d) => ({ ...d, query: e.target.value }))}
+                onClear={() => setDraft((d) => ({ ...d, query: "" }))}
+                hint={t("exchange.searchHint")}
+              />
+              <TextField
+                label={t("exchange.filter.audience")}
+                value={draft.audience}
+                onChange={(e) => setDraft((d) => ({ ...d, audience: e.target.value }))}
+                onClear={() => setDraft((d) => ({ ...d, audience: "" }))}
+                hint={t("exchange.filter.audienceHint")}
+              />
+            </div>
             <Actions>
-              <Button type="submit" variant="primary" busy={a.busy}>
-                Save policy
+              <Button type="submit" variant="outline">
+                {t("common.search")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setDraft({ query: "", audience: "" });
+                  setFilter({ query: "", audience: "" });
+                }}
+              >
+                {t("common.clearSearch")}
               </Button>
             </Actions>
           </form>
-          <ErrorNotice error={a.error} />
-          {a.done ? <Notice>{a.done}</Notice> : null}
-        </Card>
-      </Can>
+          <ErrorAlert error={error} />
+          <ErrorAlert error={del.error} />
+          <DoneAlert>{del.done ?? notice}</DoneAlert>
+          {loading ? <Loading /> : null}
+          {data ? (
+            <DataTable
+              rows={data}
+              rowKey={(p) => `${p.clientId}/${p.audience}`}
+              columns={[
+                { header: t("exchange.col.client"), cell: (p) => <strong>{p.clientId}</strong> },
+                { header: t("exchange.col.audience"), cell: (p) => p.audience },
+                { header: t("exchange.col.maxScope"), cell: (p) => p.maxScope || t("common.noneParen") },
+                { header: t("exchange.col.depth"), cell: (p) => p.maxChainDepth },
+                {
+                  header: <span className="sr-only">{t("exchange.col.actions")}</span>,
+                  className: "text-right",
+                  cell: (p) => (
+                    <Actions>
+                      <Button asChild variant="outline" size="sm" className={ROW_ACTION}>
+                        <Link to={policyPath(p)} aria-label={t("exchange.manageAria", { client: p.clientId, audience: p.audience })}>
+                          <ActionLabel icon={Pencil}>{t("exchange.manage")}</ActionLabel>
+                        </Link>
+                      </Button>
+                      <Can perm="identity:exchange:write">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className={ROW_ACTION}
+                          onClick={() => void remove(p)}
+                          aria-label={t("exchange.deleteAria", { client: p.clientId, audience: p.audience })}
+                        >
+                          <ActionLabel icon={Trash2}>{t("common.delete")}</ActionLabel>
+                        </Button>
+                      </Can>
+                    </Actions>
+                  ),
+                },
+              ]}
+            />
+          ) : null}
+          <LoadMore paged={paged} />
+        </CardContent>
+      </Card>
     </>
   );
 }

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="MM">
+  <title>MM</title>
+  <defs>
+    <linearGradient id="mm-bg" x1="3" y1="2" x2="29" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="0.55" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#db2777"/>
+    </linearGradient>
+    <linearGradient id="mm-fg" x1="5" y1="9" x2="27" y2="23" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e0e7ff"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="30" height="30" rx="8.5" fill="url(#mm-bg)"/>
+  <path d="M3 5.5c6-4 20-4 26 0" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="1.4" stroke-linecap="round"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5.8 24.2V10.2L11 18l5.2-7.8L21.4 18l5.2-7.8v14M16.2 10.2v14" stroke="#fbbf24" stroke-width="2.6" stroke-opacity=".95"/>
+    <path d="M5 23V9l5.5 8L16 9l5.5 8L27 9v14M16 9v14" stroke="url(#mm-fg)" stroke-width="2.6"/>
+  </g>
+</svg>
