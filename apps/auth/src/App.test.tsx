@@ -102,6 +102,22 @@ describe("login", () => {
     });
   });
 
+  it("sends the theme and the language picked on this page, so the account keeps them", async () => {
+    const calls = renderAt("/login?return_to=%2Fx", () => ({ json: { redirect: "/x", theme: "light", locale: "en" } }));
+    const user = userEvent.setup();
+    const theme = await screen.findByTestId("theme-switch");
+    const before = theme.getAttribute("data-theme");
+    await user.click(theme);
+    const picked = screen.getByTestId("theme-switch").getAttribute("data-theme");
+    expect(picked).not.toBe(before);
+    await user.type(screen.getByLabelText("E-mail"), "a@example.com");
+    await user.type(screen.getByLabelText("Password"), "pw");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("/x"));
+    expect(calls[0]?.body).toMatchObject({ theme: expect.any(String) });
+    expect(calls[0]?.body).not.toHaveProperty("locale"); // not touched
+  });
+
   it("shows a wrong password and does not navigate", async () => {
     renderAt("/login", () => fail(401, "invalid_credentials"));
     const user = userEvent.setup();
@@ -359,10 +375,27 @@ describe("apps", () => {
   });
 
   it("applies the theme of the account", async () => {
-    renderAt("/apps", () => ({ json: { apps: [], name: "Ann", email: "a@example.com", theme: "dark", mfa: false } }));
+    renderAt("/apps", (c) =>
+      c.url === "/auth-api/preferences" ? { json: { theme: "dark", locale: "en" } } : { json: { apps: [], name: "Ann", email: "a@example.com", mfa: false } },
+    );
     await screen.findByText("Signed in as Ann");
     await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
     expect(window.localStorage.getItem("theme")).toBe("dark"); // kept for the next visit of the pages
+  });
+
+  it("saves to the account a theme and a language picked while signed in", async () => {
+    window.localStorage.setItem("theme", "light");
+    const calls = renderAt("/apps", (c) =>
+      c.url === "/auth-api/preferences" ? { json: { theme: "light", locale: "en" } } : { json: { apps: [], name: "Ann", email: "a@example.com", mfa: false } },
+    );
+    const user = userEvent.setup();
+    await screen.findByText("Signed in as Ann");
+    await waitFor(() => expect(calls.some((c) => c.url === "/auth-api/preferences")).toBe(true));
+    await user.click(screen.getByTestId("language-switch"));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url === "/auth-api/preferences" && c.body?.locale === "vi")).toBe(true));
+    await user.click(screen.getByTestId("language-switch")); // back to the language the other tests expect
+    await user.click(screen.getByTestId("theme-switch"));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url === "/auth-api/preferences" && typeof c.body?.theme === "string")).toBe(true));
   });
 
   it("goes to the login when there is no session", async () => {

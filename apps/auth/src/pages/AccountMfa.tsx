@@ -55,7 +55,7 @@ export function AccountMfa() {
   if (missing) return <ErrorPage code="not_found" />;
   if (codes)
     return (
-      <AuthLayout title={t("account.codesTitle")}>
+      <AuthLayout signedIn title={t("account.codesTitle")}>
         <Alert variant="warning">{t("account.codesText")}</Alert>
         <ul className="grid grid-cols-2 gap-2">
           {codes.list.map((c) => (
@@ -71,7 +71,7 @@ export function AccountMfa() {
 
   if (status.enabled)
     return (
-      <AuthLayout title={t("account.title")} description={t("account.on", { count: status.codesLeft ?? 0 })}>
+      <AuthLayout signedIn title={t("account.title")} description={t("account.on", { count: status.codesLeft ?? 0 })}>
         {status.forced ? (
           <Alert>{t("account.forced")}</Alert>
         ) : (
@@ -91,7 +91,7 @@ export function AccountMfa() {
     );
 
   return (
-    <AuthLayout title={t("account.enrollTitle")} description={t("account.scan")}>
+    <AuthLayout signedIn title={t("account.enrollTitle")} description={t("account.scan")}>
       <img className="mx-auto size-56 rounded bg-white p-2" src={status.qr} alt={t("account.qrAlt")} width={224} height={224} />
       <p className="text-center text-sm text-muted-foreground">
         {t("account.typeKey")} <code className="break-all">{status.secret}</code>
