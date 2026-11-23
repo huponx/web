@@ -108,6 +108,8 @@
   }
   html {
     @apply font-sans antialiased;
+    /* the shell is a fixed frame: a sideways overscroll must not become the browser's back/forward gesture */
+    overscroll-behavior-x: none;
   }
   body {
     @apply bg-background text-foreground;

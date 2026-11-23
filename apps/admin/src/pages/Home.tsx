@@ -1,10 +1,10 @@
 import { useAuth } from "@huponx/auth-client";
-import { Badge, Button, Card, CardContent, buttonVariants, cn } from "@huponx/ui-kit";
+import { Badge, Button, buttonVariants, Card, CardContent, cn, useLoad } from "@huponx/ui-kit";
 import { Plus, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { useIdentity, useLoad } from "../api";
+import { useIdentity } from "../api";
 import type { SystemApp } from "../api";
 import { ErrorAlert, Loading, PageTitle } from "../components/common";
 import { formatDateTime } from "../lib/date";
@@ -52,7 +52,7 @@ function Stats() {
   const active = num(s?.active);
   const percent = total === 0 ? 0 : Math.round((active / total) * 100);
   return (
-    <section aria-label={t("home.stats.users")} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <section aria-label={t("home.stats.users")} className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
       {users.error ? <ErrorAlert error={users.error} /> : null}
       {s ? (
         <>
@@ -154,12 +154,9 @@ function SystemStatus() {
   return (
     <section className="flex flex-col gap-3" aria-label={t("home.system.title")} data-testid="system-status">
       <div className="flex items-center justify-between gap-2">
-        <div>
-          <h2 className="text-sm font-medium text-muted-foreground">{t("home.system.title")}</h2>
-          <p className="text-sm" data-testid="system-summary">
-            {t("home.system.summary", { count: apps.length })}
-          </p>
-        </div>
+        <h2 className="text-sm font-medium text-muted-foreground" data-testid="system-summary">
+          {t("home.system.summary", { count: apps.length })}
+        </h2>
         <Button variant="ghost" size="sm" onClick={status.reload} aria-label={t("home.system.refresh")}>
           <RefreshCw aria-hidden="true" />
           {t("home.system.refresh")}

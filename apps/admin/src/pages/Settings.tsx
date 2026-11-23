@@ -1,11 +1,11 @@
 import { useAuth } from "@huponx/auth-client";
 import type { Me } from "@huponx/auth-client";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label, ThemeSwitch } from "@huponx/ui-kit";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label, ThemeSwitch, useAction, useLoad } from "@huponx/ui-kit";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "../AccountMenu";
-import { useAction, useIdentity, useLoad } from "../api";
+import { useIdentity } from "../api";
 import { AvatarUpload } from "../components/AvatarUpload";
 import type { AvatarChange } from "../components/AvatarUpload";
 import { DoneAlert, ErrorAlert, Loading, PageTitle, SelectField, TextField } from "../components/common";

@@ -1,7 +1,7 @@
 import { Can } from "@huponx/auth-client";
-import { Button } from "@huponx/ui-kit";
+import { Button, useAction, useLoad } from "@huponx/ui-kit";
 import { Trans, useTranslation } from "react-i18next";
-import { useAction, useIdentity, useLoad } from "../api";
+import { useIdentity } from "../api";
 import type { User } from "../api";
 import { useConfirm } from "../components/ConfirmDialog";
 import { Actions, DoneAlert, ErrorAlert, Loading } from "../components/common";

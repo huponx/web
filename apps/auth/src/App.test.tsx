@@ -58,6 +58,22 @@ describe("account MFA page", () => {
 });
 
 describe("login", () => {
+  it("sends a user who is already signed in to the applications", async () => {
+    renderAt("/login", (c) => (c.url === "/auth-api/apps" ? { json: { apps: [{ name: "Admin", url: "/admin/" }], name: "Ann", email: "a@x.io", mfa: false } } : undefined));
+    expect(await screen.findByText("Admin")).toBeTruthy(); // the applications page
+    expect(screen.queryByLabelText("Password")).toBeNull();
+  });
+  it("shows the form when nobody is signed in, and when a return_to is waiting", async () => {
+    const calls = renderAt("/login", (c) => (c.url === "/auth-api/apps" ? fail(401, "unauthenticated") : undefined));
+    expect(await screen.findByLabelText("Password")).toBeTruthy();
+    await waitFor(() => expect(calls.some((c) => c.url === "/auth-api/apps")).toBe(true));
+    expect(screen.getByLabelText("Password")).toBeTruthy();
+  });
+  it("does not check the session when a return_to is waiting", async () => {
+    const calls = renderAt("/login?return_to=%2Fauthorize%3Fx%3D1");
+    expect(await screen.findByLabelText("Password")).toBeTruthy();
+    expect(calls.some((c) => c.url === "/auth-api/apps")).toBe(false);
+  });
   it("has switches for the theme and the language on every page", async () => {
     renderAt("/login");
     const user = userEvent.setup();
@@ -108,7 +124,7 @@ describe("login", () => {
 
   it("fetches a new CSRF token and retries once when the form expired", async () => {
     let n = 0;
-    const calls = renderAt("/login", () => (n++ === 0 ? fail(403, "csrf_expired") : { json: { redirect: "/account/mfa" } }));
+    const calls = renderAt("/login", (c) => (c.method !== "POST" ? undefined : n++ === 0 ? fail(403, "csrf_expired") : { json: { redirect: "/account/mfa" } }));
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText("E-mail"), "a@example.com");
     await user.type(screen.getByLabelText("Password"), "pw");
@@ -302,6 +318,7 @@ describe("logout and error pages", () => {
     renderAt("/logout?done=1");
     expect(await screen.findByText("You have been signed out.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Back to sign in" })).toHaveAttribute("href", "/login");
   });
 
   it("says so when there is nowhere to go back to", async () => {
@@ -309,6 +326,7 @@ describe("logout and error pages", () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Sign out" }));
     expect(await screen.findByText("You have been signed out.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to sign in" })).toHaveAttribute("href", "/login");
   });
 
   it("explains an error code and ignores an unknown one", async () => {

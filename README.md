@@ -5,10 +5,12 @@ Web clients of the platform: a pnpm workspace (React 18, TypeScript, Vite).
 ```
 packages/auth-client   @huponx/auth-client  session client of the gateway: createClient, AuthProvider, useAuth,
                                             RequireAuth, Can, permission matcher
-packages/ui            @huponx/ui           layout, tables, forms, notices, modal (plain CSS; dict and bill)
+packages/ui            @huponx/ui           layout, tables, forms, notices, modal (plain CSS; bill)
 packages/ui-kit        @huponx/ui-kit       shadcn/ui + Tailwind + Radix: components, light/dark/system theme, app shell
-                                            (collapsible sidebar, header with breadcrumb and avatar menu); admin only
-apps/dict              frame app: login, header with user and sign out, permission gated menu, sample page
+                                            (collapsible sidebar, header with breadcrumb and avatar menu); admin and dict
+apps/dict              dictionary: look words up (English, English-Vietnamese), save words, export an Anki deck,
+                                            copy input or result as an Anki card (routes `/api/dictionary/...`, permissions
+                                            `dictionary:word:read` and `:write`)
 apps/bill              same frame for the bill service
 apps/admin             administration of identity: users, roles, clients, exchange policies, MFA per user
 apps/auth              the pages of sign in (login, MFA, forced password change, forgot/reset password, account MFA,

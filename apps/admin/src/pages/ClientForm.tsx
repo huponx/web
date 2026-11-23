@@ -1,10 +1,10 @@
 import { Can, useAuth } from "@huponx/auth-client";
-import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@huponx/ui-kit";
+import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { useAction, useIdentity, useLoad, words } from "../api";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useIdentity, words } from "../api";
 import type { ClientType, IdentityClient } from "../api";
 import { Actions, DoneAlert, ErrorAlert, Loading, Modal, PageTitle, SelectField, TextAreaField, TextField } from "../components/common";
 import { useConfirm } from "../components/ConfirmDialog";
@@ -282,8 +282,7 @@ export function ClientForm() {
   const { id } = useParams();
   const { t } = useTranslation();
   const api = useIdentity();
-  const location = useLocation();
-  const state = location.state as { created?: string } | null;
+  const state = useFlash<{ created?: string }>();
   const clients = useLoad(() => (id ? api.listClients() : Promise.resolve(undefined)), [api, id]);
 
   if (!id) return <Editor reload={() => undefined} />;

@@ -36,6 +36,8 @@ export interface ShellLabels {
   expand: string;
   openMenu: string;
   closeMenu: string;
+  /** aria-label of the button that scrolls the page back to the top (default "Back to top"). */
+  backToTop?: string;
   breadcrumb: string;
   theme: { group: string; light: string; dark: string; system: string };
 }

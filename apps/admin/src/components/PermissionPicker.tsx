@@ -1,10 +1,10 @@
 import { useAuth } from "@huponx/auth-client";
-import { Checkbox } from "@huponx/ui-kit";
+import { Checkbox, useLoad } from "@huponx/ui-kit";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Permission } from "../api";
-import { useIdentity, useLoad, words } from "../api";
+import { useIdentity, words } from "../api";
 import { TextAreaField } from "./common";
 
 const WILDCARDS = "*";

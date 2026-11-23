@@ -1,7 +1,7 @@
 import { useTheme } from "@huponx/ui-kit";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { authApi } from "../api";
 import { AuthLayout, ErrorAlert, Field, Form, SubmitButton, go, isTheme, useSubmit } from "../components/common";
 
@@ -14,6 +14,23 @@ export function Login() {
   const [password, setPassword] = useState("");
   const s = useSubmit();
   const { setTheme } = useTheme();
+  const navigate = useNavigate();
+  const returnTo = params.get("return_to");
+
+  // already signed in: the applications, not the form (a return_to means a flow is under way: leave it alone)
+  useEffect(() => {
+    if (returnTo) return;
+    let live = true;
+    authApi.apps().then(
+      (i) => {
+        if (live && Array.isArray(i.apps)) navigate("/apps", { replace: true });
+      },
+      () => undefined, // no session (401) or the check failed: the form is shown anyway
+    );
+    return () => {
+      live = false;
+    };
+  }, [returnTo, navigate]);
 
   async function submit() {
     const r = await s.run(() => authApi.login(email, password, params.get("return_to") ?? ""));

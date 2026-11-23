@@ -58,7 +58,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       aria-busy={busy || undefined}
     >
       {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
-      {children}
+      {/* an icon button shows only the spinner while busy, else the spinner and the icon would sit side by side */}
+      {busy && (size === "icon" || size === "icon-sm") ? null : children}
     </button>
   );
 });
