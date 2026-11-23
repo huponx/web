@@ -7,6 +7,8 @@ export { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 export { Button, buttonVariants } from "./components/ui/button";
 export type { ButtonProps } from "./components/ui/button";
 export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./components/ui/card";
+export { AutoAlert, NOTICE_MS } from "./components/auto-alert";
+export { ClearButton } from "./components/clear-button";
 export { Checkbox } from "./components/ui/checkbox";
 export { useConfirm } from "./components/confirm-dialog";
 export type { ConfirmLabels, ConfirmOptions } from "./components/confirm-dialog";
@@ -32,11 +34,19 @@ export { Label } from "./components/ui/label";
 export { ScrollArea } from "./components/ui/scroll-area";
 export { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select";
 export { Separator } from "./components/ui/separator";
+export { Switch } from "./components/ui/switch";
+export type { SwitchProps } from "./components/ui/switch";
 export { Skeleton } from "./components/ui/skeleton";
 export { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "./components/ui/table";
 export { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 export { ToggleGroup, ToggleGroupItem } from "./components/ui/toggle-group";
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
+
+export { useAction } from "./hooks/useAction";
+export { useFlash } from "./hooks/useFlash";
+export { useLoad } from "./hooks/useLoad";
+export { usePaged } from "./hooks/usePaged";
+export type { Page } from "./hooks/usePaged";
 
 export { applyTheme, THEME_STORAGE_KEY, ThemeProvider, useTheme } from "./theme/ThemeProvider";
 export type { ResolvedTheme, Theme } from "./theme/ThemeProvider";

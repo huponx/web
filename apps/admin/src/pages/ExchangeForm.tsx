@@ -1,10 +1,10 @@
 import { Can, useAuth } from "@huponx/auth-client";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@huponx/ui-kit";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useAction, useIdentity, useLoad } from "../api";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useIdentity } from "../api";
 import type { ExchangePolicy } from "../api";
 import { ScopeField } from "../components/ClientAccess";
 import { Actions, DoneAlert, ErrorAlert, Loading, PageTitle, TextField } from "../components/common";
@@ -156,7 +156,7 @@ export function ExchangeForm() {
   const client = params.get("client") ?? "";
   const audience = params.get("audience") ?? "";
   const editing = Boolean(client || audience);
-  const state = useLocation().state as { created?: boolean } | null;
+  const state = useFlash<{ created?: boolean }>();
   const policies = useLoad(() => (editing ? api.listPolicies({ clientId: client }) : Promise.resolve(undefined)), [api, editing, client]);
 
   if (!editing) return <Editor reload={() => undefined} />;

@@ -31,6 +31,7 @@
     "expand": "Expand sidebar",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
+    "backToTop": "Back to top",
     "breadcrumb": "Breadcrumb",
     "userMenu": "User menu",
     "signOut": "Sign out",
@@ -48,6 +49,7 @@
     "roles": "Roles & Permissions",
     "clients": "Clients",
     "exchange": "Exchange policies",
+    "dictionary": "Dictionary",
     "settings": "Settings",
     "userNew": "Add",
     "userEdit": "Edit",
@@ -81,7 +83,7 @@
     },
     "system": {
       "title": "System status",
-      "summary": "{{count}} applications",
+      "summary": "System status of {{count}} applications",
       "outOfSyncCount": "{{count}} out of sync",
       "synced": "Synced",
       "outOfSync": "Out of sync",
@@ -245,6 +247,26 @@
       "collapse": "Show fewer statistics"
     }
   },
+  "dictionary": {
+    "title": "Dictionary",
+    "intro": "Settings of the dictionary for every user.",
+    "limits": "Saved words",
+    "maxSaved": "Max saved words per user",
+    "maxSavedHint": "From 1 to 1000. Words a user saved above a lower limit stay; only saving a new word is refused.",
+    "export": "Export",
+    "exportDeck": "Export as Anki deck",
+    "exportDeckHint": "Users can download the saved words as an .apkg file.",
+    "exportLink": "Export as link",
+    "exportLinkHint": "Users can get a one-time link to the deck for Anki on a phone.",
+    "dictionaries": "Dictionaries",
+    "english": "English",
+    "englishHint": "English definitions.",
+    "englishVi": "English-Vietnamese",
+    "englishViHint": "Vietnamese definitions of English words.",
+    "oneOn": "At least one dictionary must stay enabled.",
+    "save": "Save settings",
+    "saved": "Dictionary settings saved."
+  },
   "roles": {
     "title": "Roles & Permissions",
     "col": {
@@ -281,6 +303,7 @@
       "confirmDelete": "Delete the permission {{name}}?",
       "created": "Permission {{name}} added.",
       "deleted": "Permission {{name}} deleted.",
+      "updated": "Permission {{name}} updated.",
       "new": "Add a permission",
       "nameHint": "For example bill:invoice:read, or a wildcard such as bill:*.",
       "add": "Add permission",

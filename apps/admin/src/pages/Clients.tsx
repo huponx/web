@@ -1,10 +1,10 @@
 import { Can } from "@huponx/auth-client";
-import { Badge, Button, Card, CardContent } from "@huponx/ui-kit";
+import { Badge, Button, Card, CardContent, useFlash, usePaged } from "@huponx/ui-kit";
 import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation } from "react-router-dom";
-import { useIdentity, usePaged } from "../api";
+import { Link } from "react-router-dom";
+import { useIdentity } from "../api";
 import type { ClientType } from "../api";
 import { ActionLabel, Actions, BadgeList, DataTable, DoneAlert, ErrorAlert, LoadMore, Loading, PageTitle, ROW_ACTION, SelectField, TextField } from "../components/common";
 
@@ -26,7 +26,7 @@ export function Clients() {
     [api, filter.query, filter.type],
   );
   const { items: data, error, loading } = paged;
-  const deleted = (useLocation().state as { deleted?: string } | null)?.deleted;
+  const deleted = useFlash<{ deleted?: string }>()?.deleted;
 
   return (
     <>

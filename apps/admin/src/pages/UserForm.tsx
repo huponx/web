@@ -1,9 +1,9 @@
 import { Can, useAuth } from "@huponx/auth-client";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@huponx/ui-kit";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { statusOf, useAction, useIdentity, useLoad } from "../api";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { statusOf, useIdentity } from "../api";
 import type { User } from "../api";
 import { AvatarUpload } from "../components/AvatarUpload";
 import type { AvatarChange } from "../components/AvatarUpload";
@@ -195,8 +195,7 @@ export function UserForm() {
   const { id } = useParams();
   const { t } = useTranslation();
   const api = useIdentity();
-  const location = useLocation();
-  const state = location.state as { created?: string; avatarFailed?: boolean } | null;
+  const state = useFlash<{ created?: string; avatarFailed?: boolean }>();
   const { data, error, loading, reload } = useLoad(() => (id ? api.getUser(id) : Promise.resolve(undefined)), [api, id]);
 
   if (!id) return <Editor reload={() => undefined} />;

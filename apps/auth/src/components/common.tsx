@@ -1,6 +1,6 @@
-import { Alert, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, ThemeSwitch, TooltipProvider } from "@huponx/ui-kit";
+import { Alert, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, ThemeSwitch, TooltipProvider, useAction } from "@huponx/ui-kit";
 import type { ButtonProps } from "@huponx/ui-kit";
-import { useId, useState } from "react";
+import { useId } from "react";
 import type { FormEvent, InputHTMLAttributes, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../api";
@@ -79,24 +79,11 @@ export function go(next: Next | undefined, external = false) {
   if (path || (external && /^https?:\/\//i.test(to))) window.location.assign(to);
 }
 
-/** Runs a submit: busy while it runs, the error text when it fails. */
+/** Runs a submit: busy while it runs, the error text (translated) when it fails. A thin layer over `useAction` of the kit. */
 export function useSubmit() {
   const errorText = useErrorText();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-  async function run<T>(fn: () => Promise<T>): Promise<T | undefined> {
-    setBusy(true);
-    setError(undefined);
-    try {
-      return await fn();
-    } catch (err) {
-      setError(errorText(err));
-      return undefined;
-    } finally {
-      setBusy(false);
-    }
-  }
-  return { busy, error, setError, run };
+  const { busy, error, run } = useAction();
+  return { busy, error: error === undefined ? undefined : errorText(error), run };
 }
 
 export function ErrorAlert({ message }: { message?: string }) {

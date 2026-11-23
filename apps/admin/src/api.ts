@@ -1,6 +1,7 @@
 import type { AuthClient } from "@huponx/auth-client";
 import { useAuth } from "@huponx/auth-client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Page } from "@huponx/ui-kit";
+import { useMemo } from "react";
 
 // The gateway answers with protojson: camelCase names, int64 as strings, enums by name.
 
@@ -122,6 +123,15 @@ export interface AvatarImage {
   mime_type: string;
 }
 
+/** The settings of the dictionary for the whole system (gateway: /api/dictionary/settings). */
+export interface DictionarySettings {
+  maxSavedWords: number;
+  allowExportDeck: boolean;
+  allowExportLink: boolean;
+  englishEnabled: boolean;
+  englishViEnabled: boolean;
+}
+
 export interface UserMfa {
   enabled: boolean;
   enforced: boolean;
@@ -143,12 +153,6 @@ export interface NewClient {
 }
 
 const e = encodeURIComponent;
-
-/** One page of a list: the items and the token of the next page ("" on the last one). */
-export interface Page<T> {
-  items: T[];
-  next: string;
-}
 
 /** Page size of the list pages of the admin. */
 const PAGE_SIZE = 25;
@@ -240,6 +244,21 @@ export function identityApi(c: AuthClient) {
     rotateSecret: (id: string) =>
       c.api<{ clientSecret: string }>("POST", `/api/clients/${e(id)}/rotate-secret`).then((r) => r.clientSecret),
 
+    // dictionary settings
+    getDictionarySettings: () => c.api<{ settings: DictionarySettings }>("GET", "/api/dictionary/settings").then((r) => r.settings),
+    updateDictionarySettings: (s: DictionarySettings) =>
+      c
+        .api<{ settings: DictionarySettings }>("PUT", "/api/dictionary/settings", {
+          settings: {
+            max_saved_words: s.maxSavedWords,
+            allow_export_deck: s.allowExportDeck,
+            allow_export_link: s.allowExportLink,
+            english_enabled: s.englishEnabled,
+            english_vi_enabled: s.englishViEnabled,
+          },
+        })
+        .then((r) => r.settings),
+
     // token exchange
     listPolicies: (f: { clientId?: string; query?: string; audience?: string } = {}) => drain((t) => policiesPage(f, t)),
     listPoliciesPage: (f: { clientId?: string; query?: string; audience?: string } = {}, token = "") =>
@@ -305,75 +324,4 @@ export function words(text: string): string[] {
     .split(/[\s,]+/)
     .map((w) => w.trim())
     .filter(Boolean);
-}
-
-/** Loads data on mount and whenever `reload` is called. */
-export function useLoad<T>(load: () => Promise<T>, deps: readonly unknown[]) {
-  const [data, setData] = useState<T>();
-  const [error, setError] = useState<unknown>();
-  const [tick, setTick] = useState(0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const fn = useCallback(load, deps);
-  useEffect(() => {
-    let live = true;
-    setError(undefined);
-    fn().then(
-      (d) => live && setData(d),
-      (err) => live && setError(err),
-    );
-    return () => {
-      live = false;
-    };
-  }, [fn, tick]);
-  const reload = useCallback(() => setTick((t) => t + 1), []);
-  return { data, error, loading: data === undefined && error === undefined, reload };
-}
-
-/**
- * A list read page by page with page tokens: the first page reloads with `deps` (the search), loadMore appends the
- * next one. `next` is empty when everything is loaded.
- */
-export function usePaged<T>(load: (token: string) => Promise<Page<T>>, deps: readonly unknown[]) {
-  const first = useLoad(() => load(""), deps);
-  const [more, setMore] = useState<T[]>([]);
-  // the token of the page after the last loaded one; undefined while only the first page is loaded
-  const [token, setToken] = useState<string>();
-  const action = useAction();
-  useEffect(() => {
-    setMore([]);
-    setToken(undefined);
-  }, [first.data]);
-  const next = token ?? first.data?.next ?? "";
-  const items = first.data ? [...first.data.items, ...more] : undefined;
-  async function loadMore() {
-    const r = await action.run(() => load(next));
-    if (r) {
-      setMore((m) => [...m, ...r.items]);
-      setToken(r.next);
-    }
-  }
-  return { items, loading: first.loading, error: first.error, reload: first.reload, next, loadMore, moreBusy: action.busy, moreError: action.error };
-}
-
-/** Runs an action and tracks busy, error and a success message. */
-export function useAction() {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>();
-  const [done, setDone] = useState<string>();
-  const run = useCallback(async <T,>(fn: () => Promise<T>, message?: string): Promise<T | undefined> => {
-    setBusy(true);
-    setError(undefined);
-    setDone(undefined);
-    try {
-      const r = await fn();
-      if (message) setDone(message);
-      return r;
-    } catch (err) {
-      setError(err);
-      return undefined;
-    } finally {
-      setBusy(false);
-    }
-  }, []);
-  return { busy, error, done, run, clear: () => (setError(undefined), setDone(undefined)) };
 }

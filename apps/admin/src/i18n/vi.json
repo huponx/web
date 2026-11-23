@@ -31,6 +31,7 @@
     "expand": "Mở rộng thanh bên",
     "openMenu": "Mở menu",
     "closeMenu": "Đóng menu",
+    "backToTop": "Về đầu trang",
     "breadcrumb": "Đường dẫn",
     "userMenu": "Menu người dùng",
     "signOut": "Đăng xuất",
@@ -48,6 +49,7 @@
     "roles": "Vai trò & Quyền",
     "clients": "Ứng dụng khách",
     "exchange": "Chính sách đổi token",
+    "dictionary": "Từ điển",
     "settings": "Cài đặt",
     "userNew": "Thêm",
     "userEdit": "Sửa",
@@ -81,7 +83,7 @@
     },
     "system": {
       "title": "Trạng thái hệ thống",
-      "summary": "{{count}} ứng dụng",
+      "summary": "Trạng thái hệ thống của {{count}} ứng dụng",
       "outOfSyncCount": "{{count}} lệch cấu hình",
       "synced": "Đã đồng bộ",
       "outOfSync": "Lệch cấu hình",
@@ -245,6 +247,26 @@
       "collapse": "Thu gọn thống kê"
     }
   },
+  "dictionary": {
+    "title": "Từ điển",
+    "intro": "Cài đặt của từ điển cho mọi người dùng.",
+    "limits": "Từ đã lưu",
+    "maxSaved": "Số từ lưu tối đa mỗi người dùng",
+    "maxSavedHint": "Từ 1 đến 1000. Từ đã lưu vượt mức khi hạ giới hạn vẫn được giữ; chỉ việc lưu từ mới bị từ chối.",
+    "export": "Xuất",
+    "exportDeck": "Xuất thành bộ thẻ Anki",
+    "exportDeckHint": "Người dùng có thể tải các từ đã lưu thành tệp .apkg.",
+    "exportLink": "Xuất thành liên kết",
+    "exportLinkHint": "Người dùng có thể lấy liên kết dùng một lần tới bộ thẻ để nhập vào Anki trên điện thoại.",
+    "dictionaries": "Từ điển",
+    "english": "Tiếng Anh",
+    "englishHint": "Định nghĩa tiếng Anh.",
+    "englishVi": "Anh-Việt",
+    "englishViHint": "Định nghĩa tiếng Việt của từ tiếng Anh.",
+    "oneOn": "Phải còn ít nhất một từ điển được bật.",
+    "save": "Lưu cài đặt",
+    "saved": "Đã lưu cài đặt từ điển."
+  },
   "roles": {
     "title": "Vai trò & Quyền",
     "col": {
@@ -281,6 +303,7 @@
       "confirmDelete": "Xoá quyền {{name}}?",
       "created": "Đã thêm quyền {{name}}.",
       "deleted": "Đã xoá quyền {{name}}.",
+      "updated": "Đã cập nhật quyền {{name}}.",
       "new": "Thêm quyền",
       "nameHint": "Ví dụ bill:invoice:read, hoặc wildcard như bill:*.",
       "add": "Thêm quyền",

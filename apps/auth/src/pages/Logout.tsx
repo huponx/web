@@ -1,7 +1,7 @@
 import { Alert } from "@huponx/ui-kit";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { authApi } from "../api";
 import { AuthLayout, ErrorAlert, Form, SubmitButton, go, useSubmit } from "../components/common";
 
@@ -29,6 +29,9 @@ export function Logout() {
     return (
       <AuthLayout title={t("logout.doneTitle")}>
         <Alert variant="success">{t("logout.done")}</Alert>
+        <Link className="text-center text-sm text-primary underline-offset-4 hover:underline" to="/login">
+          {t("common.backToSignIn")}
+        </Link>
       </AuthLayout>
     );
   return (
