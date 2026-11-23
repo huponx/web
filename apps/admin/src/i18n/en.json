@@ -50,6 +50,7 @@
     "clients": "Clients",
     "exchange": "Exchange policies",
     "dictionary": "Dictionary",
+    "system": "System settings",
     "settings": "Settings",
     "userNew": "Add",
     "userEdit": "Edit",
@@ -104,6 +105,29 @@
         "Missing": "Missing",
         "Unknown": "Unknown"
       }
+    }
+  },
+  "systemSettings": {
+    "title": "System settings",
+    "description": "Settings that apply to every user and every app.",
+    "uiStyle": {
+      "title": "System style",
+      "description": "The look of every app (admin, dictionary, sign in) for every user. Light and dark stay a personal choice.",
+      "save": "Save style",
+      "saved": "System style saved.",
+      "saas": { "name": "Refined SaaS", "hint": "Soft shadows, rounded cards, violet accent." },
+      "glass": { "name": "Glass", "hint": "Gradient background, frosted cards, pill buttons." },
+      "mono": { "name": "Minimal mono", "hint": "Flat, black and white, square corners." }
+    },
+    "palette": {
+      "title": "Colours",
+      "description": "The colour set of the selected style. Each style keeps its own.",
+      "aurora": "Aurora",
+      "ocean": "Ocean",
+      "sunset": "Sunset",
+      "mint": "Mint",
+      "rose": "Rose",
+      "graphite": "Graphite"
     }
   },
   "settings": {

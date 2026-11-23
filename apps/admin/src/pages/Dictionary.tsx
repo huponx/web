@@ -88,7 +88,7 @@ function Editor({ initial }: { initial: DictionarySettings }) {
         </CardContent>
       </Card>
       <ErrorAlert error={a.error} />
-      <DoneAlert>{a.done}</DoneAlert>
+      <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
       <Can perm="dictionary:settings:write">
         <Actions>
           <Button type="submit" busy={a.busy} disabled={!oneOn}>

@@ -74,7 +74,7 @@ export function UserMfa({ user, onChanged }: { user: User; onChanged: () => void
         <p className="text-xs text-muted-foreground">{t("users.mfa.hint")}</p>
       </Can>
       <ErrorAlert error={a.error} />
-      <DoneAlert>{a.done}</DoneAlert>
+      <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
       {dialog}
     </section>
   );

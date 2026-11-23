@@ -1,6 +1,6 @@
 import { RequireAuth, useAuth } from "@huponx/auth-client";
-import { AppShell, Button } from "@huponx/ui-kit";
-import type { Crumb, NavItem, ShellLabels, ShellLink } from "@huponx/ui-kit";
+import { AppShell, Button, UiMessagesProvider, systemStyleOf, useSystemStyle } from "@huponx/ui-kit";
+import type { Crumb, SystemStyleReply, NavItem, ShellLabels, ShellLink } from "@huponx/ui-kit";
 import { useTranslation } from "react-i18next";
 import { matchPath, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { AccountMenu } from "./AccountMenu";
@@ -20,6 +20,13 @@ function Guarded({ route }: { route: AppRoute }) {
   const { t } = useTranslation();
   if (route.perm && !can(route.perm)) return <Message>{t("common.notAllowed")}</Message>;
   return route.element;
+}
+
+/** Applies the style the administrator picked for the whole system (the cached one is used until it arrives). */
+function SystemStyle() {
+  const { client } = useAuth();
+  useSystemStyle(() => client.api<SystemStyleReply>("GET", "/api/ui-style").then(systemStyleOf));
+  return null;
 }
 
 function Shell() {
@@ -79,7 +86,21 @@ function Shell() {
 
 export function App() {
   const { t } = useTranslation();
+  // the texts of the shared components of the kit (loading, field errors, ...) in the language of the app
+  const messages = {
+    loading: t("common.loading"),
+    somethingWrong: t("common.somethingWrong"),
+    required: t("common.required"),
+    invalidEmail: t("common.invalidEmail"),
+    invalidFormat: t("common.invalidFormat"),
+    clearField: (label: string) => t("common.clearField", { label }),
+    empty: t("common.empty"),
+    close: t("common.close"),
+    loadMore: t("common.loadMore"),
+    none: t("common.none"),
+  };
   return (
+    <UiMessagesProvider value={messages}>
     <RequireAuth
       loading={<Loading label={t("common.signingIn")} />}
       error={({ message, retry }) => (
@@ -89,7 +110,9 @@ export function App() {
         </div>
       )}
     >
+      <SystemStyle />
       <Shell />
     </RequireAuth>
+    </UiMessagesProvider>
   );
 }

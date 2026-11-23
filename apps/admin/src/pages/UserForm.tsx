@@ -79,7 +79,7 @@ function AccountCard({ user, onChanged }: { user: User; onChanged: () => void })
           </Actions>
         </Can>
         <ErrorAlert error={a.error} />
-        <DoneAlert>{a.done}</DoneAlert>
+        <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
       </CardContent>
     </Card>
   );
@@ -174,7 +174,7 @@ function Editor({ user, reload, createdNote }: { user?: User; reload: () => void
           </Card>
         </Can>
         <ErrorAlert error={a.error} />
-        {editing ? <DoneAlert>{a.done}</DoneAlert> : null}
+        {editing ? <DoneAlert watch={a.doneId}>{a.done}</DoneAlert> : null}
         <Actions>
           {canWrite ? (
             <Button type="submit" busy={a.busy}>

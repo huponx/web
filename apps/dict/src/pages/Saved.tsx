@@ -2,6 +2,8 @@ import { useAuth } from "@huponx/auth-client";
 import {
   Alert,
   AutoAlert,
+  Loading,
+  Progress,
   Button,
   Card,
   ClearButton,
@@ -184,9 +186,7 @@ export function SavedList({ compact = false, version = 0, onChanged }: SavedList
         <AutoAlert variant="success">{notice}</AutoAlert>
         <div className="space-y-1.5">
           <p className="text-sm text-muted-foreground">{t("saved.count", { count: total, limit })}</p>
-          <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, (total / limit) * 100)}%` }} />
-          </div>
+          <Progress value={total} max={limit} className="h-1.5" aria-label={t("saved.title")} />
         </div>
         {write && (allowExportDeck || allowExportLink) ? (
           <div className="flex items-end gap-3 sm:flex-wrap">
@@ -206,7 +206,7 @@ export function SavedList({ compact = false, version = 0, onChanged }: SavedList
               className="max-sm:size-9 max-sm:px-0"
               onClick={() => void exportDeck()}
             >
-              {exporting ? null : <Download aria-hidden="true" />}
+              <Download aria-hidden="true" />
               <span className="max-sm:sr-only">{t("saved.export")}</span>
             </Button>
             ) : null}
@@ -221,7 +221,7 @@ export function SavedList({ compact = false, version = 0, onChanged }: SavedList
               className="max-sm:size-9 max-sm:px-0"
               onClick={() => void exportLink()}
             >
-              {linking ? null : <Link2 aria-hidden="true" />}
+              <Link2 aria-hidden="true" />
               <span className="max-sm:sr-only">{t("saved.exportLink")}</span>
             </Button>
             ) : null}
@@ -252,7 +252,7 @@ export function SavedList({ compact = false, version = 0, onChanged }: SavedList
           {query ? <ClearButton label={t("saved.clearSearch")} onClick={() => setQuery("")} /> : null}
         </div>
         {loading ? (
-          <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
+          <Loading label={t("common.loading")} />
         ) : words.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">{t("saved.empty")}</p>
         ) : shown.length === 0 ? (

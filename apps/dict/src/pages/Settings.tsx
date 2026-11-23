@@ -1,4 +1,4 @@
-import { AutoAlert, Alert, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Switch, ToggleGroup, ToggleGroupItem } from "@huponx/ui-kit";
+import { AutoAlert, Alert, Button, Loading, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Switch, ToggleGroup, ToggleGroupItem } from "@huponx/ui-kit";
 import { useId, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -159,7 +159,7 @@ export function Settings() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-4">
       <h1 className="text-2xl font-semibold">{t("settings.title")}</h1>
-      {loaded ? <SettingsForm /> : <p className="text-sm text-muted-foreground">{t("common.loading")}</p>}
+      {loaded ? <SettingsForm /> : <Loading label={t("common.loading")} />}
     </div>
   );
 }

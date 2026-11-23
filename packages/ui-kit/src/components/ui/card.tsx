@@ -2,7 +2,7 @@ import type { HTMLAttributes } from "react";
 import { cn } from "../../lib/cn";
 
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <section className={cn("flex flex-col gap-4 rounded-xl border bg-card py-5 text-card-foreground shadow-xs", className)} {...props} />;
+  return <section className={cn("flex flex-col gap-4 ui-glass rounded-xl border bg-card py-5 text-card-foreground shadow-(--shadow-card)", className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {

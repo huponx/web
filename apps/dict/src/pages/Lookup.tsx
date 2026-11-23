@@ -99,7 +99,6 @@ export function Lookup() {
 
   async function submit(e?: FormEvent, dict: Dictionary = dictionary) {
     e?.preventDefault();
-    setError(undefined);
     const list = parseWords(input);
     if (list.length === 0) return setError(t("lookup.empty"));
     if (list.length > maxWords) return setError(t("lookup.tooMany", { max: maxWords }));
@@ -111,16 +110,19 @@ export function Lookup() {
           setWords([await api.lookup(list[0]!, dict)]);
           setShownDict(dict);
           setNotFound([]);
+          setError(undefined);
         } catch (err) {
           if (!(err instanceof ApiError && err.code === "not_found")) throw err;
           setWords([]);
           setNotFound(list);
+          setError(undefined);
         }
       } else {
         const r = await api.lookupMany(list, dict);
         setWords(r.words);
         setShownDict(dict);
         setNotFound(r.notFound);
+        setError(undefined);
       }
     } catch (err) {
       setWords([]);
@@ -260,7 +262,7 @@ export function Lookup() {
                   <span className="max-sm:sr-only">{t("lookup.copyInput")}</span>
                 </Button>
                 <Button type="submit" busy={busy} aria-label={t("lookup.submit")} title={t("lookup.submit")} className="max-sm:size-9 max-sm:px-0">
-                  {busy ? null : <Search aria-hidden="true" />}
+                  <Search aria-hidden="true" />
                   <span className="max-sm:sr-only">{t("lookup.submit")}</span>
                 </Button>
               </div>
@@ -283,7 +285,7 @@ export function Lookup() {
           </Button>
           {can("dictionary:word:write") ? (
             <Button type="button" variant="outline" size="sm" busy={savingAll} disabled={saving !== undefined} onClick={() => void saveAll()}>
-              {savingAll ? null : <Save aria-hidden="true" />}
+              <Save aria-hidden="true" />
               {t("lookup.saveAll")}
             </Button>
           ) : null}

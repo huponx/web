@@ -1,6 +1,6 @@
 import { AuthProvider, createClient } from "@huponx/auth-client";
 import type { Me } from "@huponx/auth-client";
-import { ThemeProvider } from "@huponx/ui-kit";
+import { StyleProvider, ThemeProvider } from "@huponx/ui-kit";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -31,6 +31,8 @@ function setup(perms: string[], route: (c: Call) => { status?: number; body: unk
     fetch: async (input, init) => {
       const url = new URL(String(input));
       if (url.pathname === "/auth/me") return new Response(JSON.stringify(me), { status: 200 });
+      // read at start-up by every user, not a call the tests count
+      if (url.pathname === "/api/ui-style") return new Response(JSON.stringify({ uiStyle: "saas", uiPalettes: {} }), { status: 200 });
       const call: Call = { method: init?.method ?? "GET", path: url.pathname + url.search, body: init?.body ? JSON.parse(String(init.body)) : undefined };
       calls.push(call);
       const r = route(call);
@@ -42,11 +44,13 @@ function setup(perms: string[], route: (c: Call) => { status?: number; body: unk
   });
   render(
     <ThemeProvider>
-      <AuthProvider client={client}>
-        <MemoryRouter initialEntries={[start]}>
-          <App />
-        </MemoryRouter>
-      </AuthProvider>
+      <StyleProvider>
+        <AuthProvider client={client}>
+          <MemoryRouter initialEntries={[start]}>
+            <App />
+          </MemoryRouter>
+        </AuthProvider>
+      </StyleProvider>
     </ThemeProvider>,
   );
   return calls;

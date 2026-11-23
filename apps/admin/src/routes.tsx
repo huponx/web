@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BookOpen, KeyRound, LayoutDashboard, Settings as SettingsIcon, Shield, Users as UsersIcon } from "lucide-react";
+import { ArrowLeftRight, BookOpen, KeyRound, LayoutDashboard, Settings as SettingsIcon, Shield, SlidersHorizontal, Users as UsersIcon } from "lucide-react";
 import type { ComponentType, ReactElement } from "react";
 import { ClientForm } from "./pages/ClientForm";
 import { Clients } from "./pages/Clients";
@@ -9,6 +9,7 @@ import { Home } from "./pages/Home";
 import { RoleForm } from "./pages/RoleForm";
 import { Roles } from "./pages/Roles";
 import { Settings } from "./pages/Settings";
+import { SystemSettings } from "./pages/SystemSettings";
 import { UserForm } from "./pages/UserForm";
 import { Users } from "./pages/Users";
 
@@ -54,6 +55,14 @@ export const routes: AppRoute[] = [
     perm: "dictionary:settings:read",
     element: <Dictionary />,
     testId: "nav-dictionary",
+  },
+  {
+    path: "/system",
+    labelKey: "nav.system",
+    icon: SlidersHorizontal,
+    perm: "identity:settings:write",
+    element: <SystemSettings />,
+    testId: "nav-system",
   },
 ];
 

@@ -1,5 +1,5 @@
 import { Can, useAuth } from "@huponx/auth-client";
-import { Badge, Button, Card, CardContent, useLoad, usePaged } from "@huponx/ui-kit";
+import { Badge, Button, Card, CardContent, cn, useLoad, usePaged } from "@huponx/ui-kit";
 import { ChevronDown, ChevronUp, KeyRound, Plus, ShieldCheck, UserCheck, UserMinus, UserX, Users as UsersIcon, Clock, LogIn, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,26 +32,39 @@ function Stats() {
     { key: "signedIn30d", icon: LogIn, value: n(s.signedIn30d) },
     { key: "neverSignedIn", icon: UserMinus, value: n(s.neverSignedIn) },
   ];
-  // one line: the first four (the first two on a narrow screen); the icon at the right shows all of them
-  const shown = expanded ? items : items.slice(0, 4);
+  // one line: the first four (the first two on a narrow screen); the icon at the right shows all of them.
+  // Every card is always rendered: a hidden one has a row of 0 height (grid-template-rows 0fr -> 1fr), which animates
+  // where display:none could not.
+  const hiddenWhenCollapsed = (i: number) => (i >= 4 ? "grid-rows-[0fr] opacity-0" : i >= 2 ? "max-md:grid-rows-[0fr] max-md:opacity-0" : "");
   const Toggle = expanded ? ChevronUp : ChevronDown;
   return (
-    <section aria-label={t("users.stats.title")} className="flex flex-col gap-1 pt-3" data-testid="user-stats">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-4">
-        {shown.map(({ key, icon: Icon, value }, i) => (
-          <div key={key} className={`relative ${!expanded && i >= 2 ? "hidden md:block" : ""}`}>
-            {/* the round badge sits on the top left corner of the card */}
-            <span className="absolute -left-2 -top-3 z-10 flex size-10 items-center justify-center rounded-full border bg-card shadow-md">
-              <Icon className="size-4" aria-hidden="true" />
-            </span>
-            <Card className="shadow-md">
-              <CardContent className="flex flex-col items-center gap-1 py-5 text-center">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t(`users.stats.${key}`)}</span>
-                <span className="text-3xl font-semibold" data-testid={`stat-${key}`}>
-                  {value}
+    <section aria-label={t("users.stats.title")} className="flex flex-col gap-1" data-testid="user-stats">
+      <div className="grid grid-cols-2 gap-x-4 md:grid-cols-4">
+        {items.map(({ key, icon: Icon, value }, i) => (
+          <div
+            key={key}
+            aria-hidden={!expanded && i >= 2 ? true : undefined}
+            className={cn(
+              "grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none",
+              !expanded && hiddenWhenCollapsed(i),
+            )}
+          >
+            <div className="min-h-0 overflow-hidden pt-3 pb-3 pl-2">
+              <div className="relative">
+                {/* the round badge sits on the top left corner of the card */}
+                <span className="absolute -left-2 -top-3 z-10 flex size-10 items-center justify-center rounded-full border bg-popover shadow-md">
+                  <Icon className="size-4" aria-hidden="true" />
                 </span>
-              </CardContent>
-            </Card>
+                <Card className="shadow-md">
+                  <CardContent className="flex flex-col items-center gap-1 py-5 text-center">
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t(`users.stats.${key}`)}</span>
+                    <span className="text-3xl font-semibold" data-testid={`stat-${key}`}>
+                      {value}
+                    </span>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
         ))}
       </div>

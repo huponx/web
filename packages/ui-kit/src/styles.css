@@ -3,72 +3,446 @@
  * of the app, and add `@source` for this package so Tailwind sees the classes used by the components.
  */
 @import "tw-animate-css";
+/* fonts are self-hosted (the CSP only allows 'self'): one per style, `--font-body` picks it */
+@import "@fontsource-variable/inter/index.css";
+@import "@fontsource-variable/plus-jakarta-sans/index.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
 
 @custom-variant dark (&:is(.dark *));
+/* style-specific looks of a component: `glass:rounded-full`, `mono:uppercase` (the style is data-style on <html>) */
+@custom-variant glass (&:where([data-style="glass"] *));
+@custom-variant mono (&:where([data-style="mono"] *));
 
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.488 0.2 264);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.45 0 0);
-  --accent: oklch(0.96 0.01 264);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --success: oklch(0.527 0.154 150);
-  --warning: oklch(0.555 0.163 48);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.488 0.2 264);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.955 0.012 264);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  color-scheme: light;
+/* ---- the three styles; the default (no data-style yet) is saas. Light/dark is the `dark` class, independent. ---- */
+:where(:root), :where([data-style="saas"]) {
+  --radius: 0.875rem;
+  --background: #fbfbfd;
+  --foreground: #15151f;
+  --card: #ffffff;
+  --card-foreground: #15151f;
+  --popover: #ffffff;
+  --popover-foreground: #15151f;
+  --primary: var(--pal-primary, #5b4bf5);
+  --primary-foreground: #ffffff;
+  --secondary: #f1f1f6;
+  --secondary-foreground: #15151f;
+  --muted: #f1f1f6;
+  --muted-foreground: #6b6b80;
+  --accent: var(--pal-accent, #eeecff);
+  --accent-foreground: var(--pal-afg, #3d30c9);
+  --destructive: #d92d4a;
+  --destructive-foreground: #ffffff;
+  --success: #0e9f6e;
+  --warning: #b45309;
+  --border: #e7e7ef;
+  --input: #e7e7ef;
+  --ring: var(--pal-primary, #5b4bf5);
+  --sidebar: #f5f5fa;
+  --sidebar-foreground: #15151f;
+  --sidebar-accent: var(--pal-accent, #eeecff);
+  --sidebar-accent-foreground: var(--pal-afg, #3d30c9);
+  --sidebar-border: #e7e7ef;
+  --shadow-card: 0 1px 2px rgb(20 20 40 / 0.05), 0 8px 24px -8px rgb(40 30 120 / 0.12);
+  --shadow-btn: 0 1px 2px color-mix(in srgb, var(--pal-primary, #3c28c8) 35%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.18);
+  --btn-bg: none;
+  --grad-from: var(--pal-primary, #5b4bf5);
+  --grad-to: var(--pal-primary, #5b4bf5);
+  --card-blur: 0px;
+  --page-bg: #fbfbfd;
+  --page-image: none;
+  --font-body: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --heading-weight: 600;
+  --heading-tracking: -0.015em;
+  --color-scheme: light;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.65 0.19 264);
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.72 0 0);
-  --accent: oklch(0.29 0.03 264);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.145 0 0);
-  --success: oklch(0.72 0.17 150);
-  --warning: oklch(0.8 0.15 75);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.65 0.19 264);
-  --sidebar: oklch(0.18 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.27 0.03 264);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  color-scheme: dark;
+:where(:root).dark, :where([data-style="saas"]).dark {
+  --radius: 0.875rem;
+  --background: #0f0f16;
+  --foreground: #ededf6;
+  --card: #16161f;
+  --card-foreground: #ededf6;
+  --popover: #1c1c27;
+  --popover-foreground: #ededf6;
+  --primary: var(--pal-primary, #7b6cff);
+  --primary-foreground: #0c0c12;
+  --secondary: #1c1c27;
+  --secondary-foreground: #ededf6;
+  --muted: #1c1c27;
+  --muted-foreground: #9a9ab2;
+  --accent: var(--pal-accent, #23213f);
+  --accent-foreground: var(--pal-afg, #b9b1ff);
+  --destructive: #ff6b81;
+  --destructive-foreground: #0c0c12;
+  --success: #3ddc97;
+  --warning: #f5b454;
+  --border: #272735;
+  --input: #272735;
+  --ring: var(--pal-primary, #7b6cff);
+  --sidebar: #12121a;
+  --sidebar-foreground: #ededf6;
+  --sidebar-accent: var(--pal-accent, #23213f);
+  --sidebar-accent-foreground: var(--pal-afg, #b9b1ff);
+  --sidebar-border: #272735;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -10px rgb(0 0 0 / 0.6);
+  --shadow-btn: 0 1px 2px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.25);
+  --btn-bg: none;
+  --grad-from: var(--pal-primary, #7b6cff);
+  --grad-to: var(--pal-primary, #7b6cff);
+  --card-blur: 0px;
+  --page-bg: #0f0f16;
+  --page-image: none;
+  --font-body: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --heading-weight: 600;
+  --heading-tracking: -0.015em;
+  --color-scheme: dark;
+}
+
+[data-style="glass"] {
+  --radius: 1.125rem;
+  --background: transparent;
+  --foreground: var(--pal-fg, #1d1a3b);
+  --card: rgb(255 255 255 / 0.62);
+  --card-foreground: var(--pal-fg, #1d1a3b);
+  --popover: var(--pal-pop, #f6f3ff);
+  --popover-foreground: var(--pal-fg, #1d1a3b);
+  --primary: var(--pal-primary, #6a4cff);
+  --primary-foreground: #ffffff;
+  --secondary: rgb(255 255 255 / 0.55);
+  --secondary-foreground: var(--pal-fg, #1d1a3b);
+  --muted: rgb(255 255 255 / 0.55);
+  --muted-foreground: var(--pal-mfg, #5f5b86);
+  --accent: color-mix(in srgb, var(--pal-primary, #6a4cff) 12%, transparent);
+  --accent-foreground: var(--pal-afg, #4a2fe0);
+  --destructive: #d6336c;
+  --destructive-foreground: #ffffff;
+  --success: #0f9d73;
+  --warning: #b7650b;
+  --border: rgb(255 255 255 / 0.75);
+  --input: color-mix(in srgb, var(--pal-primary, #6a4cff) 22%, transparent);
+  --ring: var(--pal-primary, #6a4cff);
+  --sidebar: rgb(255 255 255 / 0.5);
+  --sidebar-foreground: var(--pal-fg, #1d1a3b);
+  --sidebar-accent: color-mix(in srgb, var(--pal-primary, #6a4cff) 12%, transparent);
+  --sidebar-accent-foreground: var(--pal-afg, #4a2fe0);
+  --sidebar-border: rgb(255 255 255 / 0.75);
+  --shadow-card: 0 10px 40px -12px color-mix(in srgb, var(--pal-primary, #5040c8) 35%, transparent);
+  --shadow-btn: 0 6px 18px -6px color-mix(in srgb, var(--pal-primary, #6a4cff) 70%, transparent);
+  --btn-bg: linear-gradient(135deg, var(--pal-from, #7c5cff), var(--pal-to, #e052d6));
+  --grad-from: var(--pal-from, #7c5cff);
+  --grad-to: var(--pal-to, #e052d6);
+  --card-blur: 18px;
+  --page-bg: var(--pal-bg, #e9e6ff);
+  --page-image: radial-gradient(60% 50% at 15% 10%, var(--pal-b1, #c9b8ff) 0%, transparent 70%), radial-gradient(50% 50% at 90% 20%, var(--pal-b2, #ffc7ec) 0%, transparent 70%), radial-gradient(60% 60% at 70% 100%, var(--pal-b3, #b6e3ff) 0%, transparent 70%);
+  --font-body: "Plus Jakarta Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --heading-weight: 700;
+  --heading-tracking: -0.02em;
+  --color-scheme: light;
+}
+
+[data-style="glass"].dark {
+  --radius: 1.125rem;
+  --background: transparent;
+  --foreground: var(--pal-fg, #f1eeff);
+  --card: rgb(255 255 255 / 0.07);
+  --card-foreground: var(--pal-fg, #f1eeff);
+  --popover: var(--pal-pop, #1c1738);
+  --popover-foreground: var(--pal-fg, #f1eeff);
+  --primary: var(--pal-primary, #9a82ff);
+  --primary-foreground: #120d2c;
+  --secondary: rgb(255 255 255 / 0.07);
+  --secondary-foreground: var(--pal-fg, #f1eeff);
+  --muted: rgb(255 255 255 / 0.07);
+  --muted-foreground: var(--pal-mfg, #a9a3d6);
+  --accent: color-mix(in srgb, var(--pal-primary, #9a82ff) 18%, transparent);
+  --accent-foreground: var(--pal-afg, #cfc3ff);
+  --destructive: #ff7aa8;
+  --destructive-foreground: #120d2c;
+  --success: #4be0b0;
+  --warning: #f6c065;
+  --border: rgb(255 255 255 / 0.14);
+  --input: rgb(255 255 255 / 0.18);
+  --ring: var(--pal-primary, #9a82ff);
+  --sidebar: rgb(255 255 255 / 0.05);
+  --sidebar-foreground: var(--pal-fg, #f1eeff);
+  --sidebar-accent: color-mix(in srgb, var(--pal-primary, #9a82ff) 18%, transparent);
+  --sidebar-accent-foreground: var(--pal-afg, #cfc3ff);
+  --sidebar-border: rgb(255 255 255 / 0.14);
+  --shadow-card: 0 12px 44px -12px rgb(0 0 0 / 0.7);
+  --shadow-btn: 0 6px 22px -6px color-mix(in srgb, var(--pal-primary, #9a82ff) 70%, transparent);
+  --btn-bg: linear-gradient(135deg, var(--pal-from, #7c5cff), var(--pal-to, #e052d6));
+  --grad-from: var(--pal-from, #7c5cff);
+  --grad-to: var(--pal-to, #e052d6);
+  --card-blur: 18px;
+  --page-bg: var(--pal-bg, #100d24);
+  --page-image: radial-gradient(55% 50% at 12% 8%, var(--pal-b1, #4a2fb8) 0%, transparent 70%), radial-gradient(50% 50% at 92% 18%, var(--pal-b2, #8a2a86) 0%, transparent 70%), radial-gradient(60% 60% at 70% 100%, var(--pal-b3, #1b4d8f) 0%, transparent 70%);
+  --font-body: "Plus Jakarta Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --heading-weight: 700;
+  --heading-tracking: -0.02em;
+  --color-scheme: dark;
+}
+
+[data-style="mono"] {
+  --radius: 0.25rem;
+  --background: color-mix(in srgb, #ffffff 95%, var(--pal-primary, #ffffff));
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #0a0a0a;
+  --primary-foreground: #ffffff;
+  --secondary: color-mix(in srgb, #f4f4f3 86%, var(--pal-primary, #f4f4f3));
+  --secondary-foreground: #0a0a0a;
+  --muted: color-mix(in srgb, #f4f4f3 86%, var(--pal-primary, #f4f4f3));
+  --muted-foreground: #6b6b68;
+  --accent: color-mix(in srgb, #f0f0ee 86%, var(--pal-primary, #f0f0ee));
+  --accent-foreground: #0a0a0a;
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+  --success: #1a7f4b;
+  --warning: #9a5b00;
+  --border: color-mix(in srgb, #e2e2df 86%, var(--pal-primary, #e2e2df));
+  --input: color-mix(in srgb, #e2e2df 86%, var(--pal-primary, #e2e2df));
+  --ring: #0a0a0a;
+  --sidebar: color-mix(in srgb, #fafaf9 86%, var(--pal-primary, #fafaf9));
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-accent: color-mix(in srgb, #f0f0ee 86%, var(--pal-primary, #f0f0ee));
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-border: color-mix(in srgb, #e2e2df 86%, var(--pal-primary, #e2e2df));
+  --shadow-card: none;
+  --shadow-btn: none;
+  --btn-bg: none;
+  --grad-from: #0a0a0a;
+  --grad-to: #0a0a0a;
+  --card-blur: 0px;
+  --page-bg: color-mix(in srgb, #ffffff 95%, var(--pal-primary, #ffffff));
+  --page-image: none;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --heading-weight: 600;
+  --heading-tracking: -0.01em;
+  --color-scheme: light;
+}
+
+[data-style="mono"].dark {
+  --radius: 0.25rem;
+  --background: color-mix(in srgb, #0a0a0a 95%, var(--pal-primary, #0a0a0a));
+  --foreground: #f4f4f2;
+  --card: #0a0a0a;
+  --card-foreground: #f4f4f2;
+  --popover: #141413;
+  --popover-foreground: #f4f4f2;
+  --primary: #f4f4f2;
+  --primary-foreground: #0a0a0a;
+  --secondary: color-mix(in srgb, #171716 86%, var(--pal-primary, #171716));
+  --secondary-foreground: #f4f4f2;
+  --muted: color-mix(in srgb, #171716 86%, var(--pal-primary, #171716));
+  --muted-foreground: #9a9a96;
+  --accent: color-mix(in srgb, #1c1c1a 86%, var(--pal-primary, #1c1c1a));
+  --accent-foreground: #f4f4f2;
+  --destructive: #ff7b72;
+  --destructive-foreground: #0a0a0a;
+  --success: #5fd08f;
+  --warning: #f0b85a;
+  --border: color-mix(in srgb, #2a2a28 86%, var(--pal-primary, #2a2a28));
+  --input: color-mix(in srgb, #2a2a28 86%, var(--pal-primary, #2a2a28));
+  --ring: #f4f4f2;
+  --sidebar: color-mix(in srgb, #0e0e0d 86%, var(--pal-primary, #0e0e0d));
+  --sidebar-foreground: #f4f4f2;
+  --sidebar-accent: color-mix(in srgb, #1c1c1a 86%, var(--pal-primary, #1c1c1a));
+  --sidebar-accent-foreground: #f4f4f2;
+  --sidebar-border: color-mix(in srgb, #2a2a28 86%, var(--pal-primary, #2a2a28));
+  --shadow-card: none;
+  --shadow-btn: none;
+  --btn-bg: none;
+  --grad-from: #f4f4f2;
+  --grad-to: #f4f4f2;
+  --card-blur: 0px;
+  --page-bg: color-mix(in srgb, #0a0a0a 95%, var(--pal-primary, #0a0a0a));
+  --page-image: none;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --heading-weight: 600;
+  --heading-tracking: -0.01em;
+  --color-scheme: dark;
+}
+
+/*
+ * Palettes: the same six for every style (aurora is the default and has no block: the style blocks above carry its
+ * values as var() fallbacks). A palette only sets the core `--pal-*` values; each style maps them its own way
+ * (glass: background, gradient, text; saas: accent colour; mono: a slight tint of the greys).
+ */
+
+[data-palette="ocean"] {
+  --pal-primary: #0b72d9;
+  --pal-from: #1a8cff;
+  --pal-to: #18c5b0;
+  --pal-fg: #0f2a3d;
+  --pal-mfg: #4a6b80;
+  --pal-bg: #e3f2fb;
+  --pal-b1: #a8d8ff;
+  --pal-b2: #b9f0e8;
+  --pal-b3: #c9d6ff;
+  --pal-pop: #f1f9ff;
+  --pal-accent: color-mix(in srgb, var(--pal-primary) 12%, #ffffff);
+  --pal-afg: color-mix(in srgb, var(--pal-primary) 82%, #000000);
+}
+
+[data-palette="ocean"].dark {
+  --pal-primary: #5cb6ff;
+  --pal-from: #1a8cff;
+  --pal-to: #18c5b0;
+  --pal-fg: #e8f4ff;
+  --pal-mfg: #8fb0c8;
+  --pal-bg: #07141f;
+  --pal-b1: #0f4c8a;
+  --pal-b2: #0d6b66;
+  --pal-b3: #1b3a8f;
+  --pal-pop: #0f2233;
+  --pal-accent: color-mix(in srgb, var(--pal-primary) 22%, #16161f);
+  --pal-afg: color-mix(in srgb, var(--pal-primary) 55%, #ffffff);
+}
+
+[data-palette="sunset"] {
+  --pal-primary: #e0551f;
+  --pal-from: #ff7a33;
+  --pal-to: #e8328a;
+  --pal-fg: #3a1f14;
+  --pal-mfg: #86594a;
+  --pal-bg: #fff0e6;
+  --pal-b1: #ffd0a8;
+  --pal-b2: #ffc2d6;
+  --pal-b3: #ffe3a3;
+  --pal-pop: #fff8f3;
+  --pal-accent: color-mix(in srgb, var(--pal-primary) 12%, #ffffff);
+  --pal-afg: color-mix(in srgb, var(--pal-primary) 82%, #000000);
+}
+
+[data-palette="sunset"].dark {
+  --pal-primary: #ff9a66;
+  --pal-from: #ff7a33;
+  --pal-to: #e8328a;
+  --pal-fg: #fff0e8;
+  --pal-mfg: #c9a392;
+  --pal-bg: #1c0f0b;
+  --pal-b1: #8a3a12;
+  --pal-b2: #8a1f55;
+  --pal-b3: #6b4a0f;
+  --pal-pop: #2a1812;
+  --pal-accent: color-mix(in srgb, var(--pal-primary) 22%, #16161f);
+  --pal-afg: color-mix(in srgb, var(--pal-primary) 55%, #ffffff);
+}
+
+[data-palette="mint"] {
+  --pal-primary: #0f9d6b;
+  --pal-from: #17b978;
+  --pal-to: #1fb6c9;
+  --pal-fg: #0f3326;
+  --pal-mfg: #4d7565;
+  --pal-bg: #e4f7ee;
+  --pal-b1: #b4ecd0;
+  --pal-b2: #c9f2f0;
+  --pal-b3: #e1f5b8;
+  --pal-pop: #f2fcf7;
+  --pal-accent: color-mix(in srgb, var(--pal-primary) 12%, #ffffff);
+  --pal-afg: color-mix(in srgb, var(--pal-primary) 82%, #000000);
+}
+
+[data-palette="mint"].dark {
+  --pal-primary: #4be0a8;
+  --pal-from: #17b978;
+  --pal-to: #1fb6c9;
+  --pal-fg: #e6fff3;
+  --pal-mfg: #8bb8a2;
+  --pal-bg: #07160f;
+  --pal-b1: #0e5a3a;
+  --pal-b2: #0c5560;
+  --pal-b3: #3a5a10;
+  --pal-pop: #0f2519;
+  --pal-accent: color-mix(in srgb, var(--pal-primary) 22%, #16161f);
+  --pal-afg: color-mix(in srgb, var(--pal-primary) 55%, #ffffff);
+}
+
+[data-palette="rose"] {
+  --pal-primary: #d6336c;
+  --pal-from: #f0508a;
+  --pal-to: #b44cf0;
+  --pal-fg: #3a1226;
+  --pal-mfg: #86506a;
+  --pal-bg: #ffe9f1;
+  --pal-b1: #ffc2d9;
+  --pal-b2: #ffd9ec;
+  --pal-b3: #e6c9ff;
+  --pal-pop: #fff5f9;
+  --pal-accent: color-mix(in srgb, var(--pal-primary) 12%, #ffffff);
+  --pal-afg: color-mix(in srgb, var(--pal-primary) 82%, #000000);
+}
+
+[data-palette="rose"].dark {
+  --pal-primary: #ff7aa8;
+  --pal-from: #f0508a;
+  --pal-to: #b44cf0;
+  --pal-fg: #fff0f6;
+  --pal-mfg: #caa0b4;
+  --pal-bg: #1c0a14;
+  --pal-b1: #8a1f4f;
+  --pal-b2: #6a2a8a;
+  --pal-b3: #8a3a5a;
+  --pal-pop: #2a1220;
+  --pal-accent: color-mix(in srgb, var(--pal-primary) 22%, #16161f);
+  --pal-afg: color-mix(in srgb, var(--pal-primary) 55%, #ffffff);
+}
+
+[data-palette="graphite"] {
+  --pal-primary: #3b4a6b;
+  --pal-from: #4a5d86;
+  --pal-to: #6f7fa6;
+  --pal-fg: #151b2b;
+  --pal-mfg: #5a6580;
+  --pal-bg: #eceef3;
+  --pal-b1: #cfd6e4;
+  --pal-b2: #dfe3ee;
+  --pal-b3: #d6dbea;
+  --pal-pop: #f6f7fa;
+  --pal-accent: color-mix(in srgb, var(--pal-primary) 12%, #ffffff);
+  --pal-afg: color-mix(in srgb, var(--pal-primary) 82%, #000000);
+}
+
+[data-palette="graphite"].dark {
+  --pal-primary: #9db0dc;
+  --pal-from: #4a5d86;
+  --pal-to: #6f7fa6;
+  --pal-fg: #eef1f8;
+  --pal-mfg: #98a3bd;
+  --pal-bg: #0c0f16;
+  --pal-b1: #2a3350;
+  --pal-b2: #1f2740;
+  --pal-b3: #33405e;
+  --pal-pop: #161b28;
+  --pal-accent: color-mix(in srgb, var(--pal-primary) 22%, #16161f);
+  --pal-afg: color-mix(in srgb, var(--pal-primary) 55%, #ffffff);
+}
+
+/* aurora: no values of its own; `initial` also clears the ones a parent palette passed down (a preview inside a page) */
+[data-palette="aurora"], [data-palette="aurora"].dark {
+  --pal-primary: initial;
+  --pal-from: initial;
+  --pal-to: initial;
+  --pal-fg: initial;
+  --pal-mfg: initial;
+  --pal-bg: initial;
+  --pal-b1: initial;
+  --pal-b2: initial;
+  --pal-b3: initial;
+  --pal-pop: initial;
+  --pal-accent: initial;
+  --pal-afg: initial;
 }
 
 @theme inline {
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-body);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -108,12 +482,48 @@
   }
   html {
     @apply font-sans antialiased;
+    background-color: var(--page-bg);
     /* the shell is a fixed frame: a sideways overscroll must not become the browser's back/forward gesture */
     overscroll-behavior-x: none;
   }
   body {
     @apply bg-background text-foreground;
   }
+  h1, h2, h3, h4 {
+    font-weight: var(--heading-weight);
+    letter-spacing: var(--heading-tracking);
+  }
+  /* mono: code-like numbers and labels */
+  [data-style="mono"] code, [data-style="mono"] kbd { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+}
+
+@keyframes progress-slide {
+  0% { transform: translateX(-100%) scaleX(0.4); }
+  50% { transform: translateX(60%) scaleX(0.7); }
+  100% { transform: translateX(250%) scaleX(0.4); }
+}
+@keyframes progress-spin {
+  to { transform: rotate(360deg); }
+}
+
+/*
+ * The gradient of the glass style is a fixed layer of its own, not `background-attachment: fixed`: that one makes the
+ * browser repaint the whole gradient (and re-blur every glass card above it) on each frame of any animation.
+ */
+html::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--page-image);
+  transform: translateZ(0);
+}
+
+/* glass: cards, sidebar and header blur what is behind them (the class is on those components; no blur elsewhere) */
+[data-style="glass"] .ui-glass {
+  backdrop-filter: blur(var(--card-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--card-blur)) saturate(1.4);
 }
 
 /*
