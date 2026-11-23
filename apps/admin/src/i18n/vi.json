@@ -81,7 +81,8 @@
     },
     "system": {
       "title": "Trạng thái hệ thống",
-      "summary": "{{healthy}}/{{total}} ứng dụng khoẻ mạnh",
+      "summary": "{{count}} ứng dụng",
+      "outOfSyncCount": "{{count}} lệch cấu hình",
       "synced": "Đã đồng bộ",
       "outOfSync": "Lệch cấu hình",
       "unknown": "Không rõ",

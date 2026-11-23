@@ -573,8 +573,8 @@ describe("home", () => {
     if (c.url.endsWith("/api/system/status"))
       return {
         apps: [
-          { name: "identity", sync: "Synced", health: "Healthy", revision: "abcdef0123456789", syncedAt: "2026-11-22T10:00:00Z" },
-          { name: "gatekeeper", sync: "OutOfSync", health: "Degraded" },
+          { name: "identity", sync: "Synced", health: "Healthy", revision: "v2026.11.5-release-463f6d9", syncedAt: "2026-11-22T10:00:00Z" },
+          { name: "gatekeeper", sync: "OutOfSync", health: "Degraded", revision: "b5a535e5a5bc9e1f2d3c4b5a69788796a5b4c3d2" },
         ],
       };
     return {};
@@ -619,11 +619,21 @@ describe("home", () => {
 
   it("summarises the applications of the system status", async () => {
     renderApp(["system:status:read"], "/", answer);
-    expect((await screen.findByTestId("system-summary")).textContent).toBe("1 of 2 applications healthy");
+    expect((await screen.findByTestId("system-summary")).textContent).toBe("2 applications");
+    // one chip per health status that occurs (Healthy always), each with its own colour, and the out of sync count
+    expect(screen.getByTestId("health-count-Healthy").getAttribute("data-count")).toBe("1");
+    expect(screen.getByTestId("health-count-Degraded").getAttribute("data-count")).toBe("1");
+    expect(screen.queryByTestId("health-count-Unknown")).toBeNull();
+    expect(screen.getByTestId("health-count-Healthy").className).toContain("emerald");
+    expect(screen.getByTestId("health-count-Degraded").className).toContain("red");
+    expect(screen.getByTestId("out-of-sync-count").textContent).toBe("1 out of sync");
     const rows = screen.getAllByTestId("system-app");
     expect(rows).toHaveLength(2);
     expect(within(rows[0]!).getByTestId("health-badge").getAttribute("data-health")).toBe("Healthy");
     expect(within(rows[1]!).getByTestId("health-badge").getAttribute("data-health")).toBe("Degraded");
     expect(within(rows[1]!).getByText("Out of sync")).toBeTruthy();
+    // a chart version is shown whole, a git commit is shortened to 7 characters
+    expect(within(rows[0]!).getByText("v2026.11.5-release-463f6d9")).toBeTruthy();
+    expect(within(rows[1]!).getByText("b5a535e")).toBeTruthy();
   });
 });
