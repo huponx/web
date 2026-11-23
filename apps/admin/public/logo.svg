@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Admin Portal">
+  <title>Identity admin</title>
+  <path d="M16 2.5 4.5 6.8v8.1c0 7.1 4.8 12.4 11.5 14.6 6.7-2.2 11.5-7.5 11.5-14.6V6.8L16 2.5Z" fill="#3b4fd8"/>
+  <circle cx="16" cy="13.2" r="3.4" fill="#ffffff"/>
+  <path d="M14.4 15.6h3.2l1 7.2h-5.2l1-7.2Z" fill="#ffffff"/>
+</svg>

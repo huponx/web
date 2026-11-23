@@ -1,73 +1,90 @@
-import { Can, RequireAuth, useAuth } from "@huponx/auth-client";
-import { Button, Center, Layout, Loading } from "@huponx/ui";
-import { NavLink, Route, Routes } from "react-router-dom";
-import { Clients } from "./pages/Clients";
-import { Exchange } from "./pages/Exchange";
-import { Home } from "./pages/Home";
-import { Roles } from "./pages/Roles";
-import { Session } from "./pages/Session";
-import { Users } from "./pages/Users";
+import { RequireAuth, useAuth } from "@huponx/auth-client";
+import { AppShell, Button } from "@huponx/ui-kit";
+import type { Crumb, NavItem, ShellLabels, ShellLink } from "@huponx/ui-kit";
+import { useTranslation } from "react-i18next";
+import { matchPath, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { AccountMenu } from "./AccountMenu";
+import { Loading } from "./components/common";
+import { allRoutes, routes, settingsRoute } from "./routes";
+import type { AppRoute } from "./routes";
 
-/** A page of the app: shown in the menu and served only with the permission (the gateway and identity check it again). */
-const pages = [
-  { path: "/users", label: "Users", perm: "identity:user:read", element: <Users /> },
-  { path: "/roles", label: "Roles", perm: "identity:role:read", element: <Roles /> },
-  { path: "/clients", label: "Clients", perm: "identity:client:read", element: <Clients /> },
-  { path: "/exchange", label: "Exchange policies", perm: "identity:exchange:read", element: <Exchange /> },
-];
+// NavLink of React Router fits the link of the shell
+const link = NavLink as unknown as ShellLink;
+
+function Message({ children }: { children: React.ReactNode }) {
+  return <p className="py-12 text-center text-muted-foreground">{children}</p>;
+}
+
+function Guarded({ route }: { route: AppRoute }) {
+  const { can } = useAuth();
+  const { t } = useTranslation();
+  if (route.perm && !can(route.perm)) return <Message>{t("common.notAllowed")}</Message>;
+  return route.element;
+}
 
 function Shell() {
-  const { user, logout } = useAuth();
+  const { t } = useTranslation();
+  const { can } = useAuth();
+  const { pathname } = useLocation();
+
+  const toItem = (r: AppRoute): NavItem => ({ to: r.path, label: t(r.labelKey), icon: r.icon, end: r.end, testId: r.testId });
+  const items = routes.filter((r) => !r.perm || can(r.perm)).map(toItem);
+
+  // Home > parent > ... > this page; every crumb but the last is a link
+  const current = allRoutes.find((r) => r.path !== "/" && matchPath({ path: r.path, end: true }, pathname));
+  const chain: AppRoute[] = [];
+  for (let r: AppRoute | undefined = current; r; r = r.parent ? allRoutes.find((p) => p.path === r?.parent) : undefined) chain.unshift(r);
+  const breadcrumbs: Crumb[] = [
+    { label: t("nav.home"), to: current ? "/" : undefined },
+    ...chain.map((r, i): Crumb => ({ label: t(r.labelKey), to: i < chain.length - 1 ? r.path : undefined })),
+  ];
+
+  const labels: ShellLabels = {
+    navigation: t("shell.navigation"),
+    collapse: t("shell.collapse"),
+    expand: t("shell.expand"),
+    openMenu: t("shell.openMenu"),
+    closeMenu: t("shell.closeMenu"),
+    breadcrumb: t("shell.breadcrumb"),
+    theme: {
+      group: t("shell.theme.group"),
+      light: t("shell.theme.light"),
+      dark: t("shell.theme.dark"),
+      system: t("shell.theme.system"),
+    },
+  };
+
   return (
-    <Layout
-      brand="Identity admin"
-      user={user?.sub}
-      onLogout={() => void logout()}
-      nav={
-        <>
-          <NavLink to="/" end>
-            Home
-          </NavLink>
-          {pages.map((p) => (
-            <Can key={p.path} perm={p.perm}>
-              <NavLink to={p.path}>{p.label}</NavLink>
-            </Can>
-          ))}
-          <NavLink to="/session">Session</NavLink>
-        </>
-      }
+    <AppShell
+      brand={t("shell.brand")}
+      items={items}
+      bottomItems={[toItem(settingsRoute)]}
+      breadcrumbs={breadcrumbs}
+      link={link}
+      labels={labels}
+      userMenu={<AccountMenu />}
     >
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/session" element={<Session />} />
-        {pages.map((p) => (
-          <Route
-            key={p.path}
-            path={p.path}
-            element={
-              <Can perm={p.perm} fallback={<Center>You are not allowed to see this page.</Center>}>
-                {p.element}
-              </Can>
-            }
-          />
+        {allRoutes.map((r) => (
+          <Route key={r.path} path={r.path} element={<Guarded route={r} />} />
         ))}
-        <Route path="*" element={<Center>Page not found.</Center>} />
+        <Route path="/session" element={<Navigate to={settingsRoute.path} replace />} />
+        <Route path="*" element={<Message>{t("common.notFound")}</Message>} />
       </Routes>
-    </Layout>
+    </AppShell>
   );
 }
 
 export function App() {
+  const { t } = useTranslation();
   return (
     <RequireAuth
-      loading={<Loading label="Signing in..." />}
+      loading={<Loading label={t("common.signingIn")} />}
       error={({ message, retry }) => (
-        <Center>
-          <div>
-            <p>{message}</p>
-            <Button onClick={retry}>Try again</Button>
-          </div>
-        </Center>
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+          <p>{message}</p>
+          <Button onClick={retry}>{t("common.tryAgain")}</Button>
+        </div>
       )}
     >
       <Shell />

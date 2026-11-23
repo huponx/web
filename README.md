@@ -5,15 +5,42 @@ Web clients of the platform: a pnpm workspace (React 18, TypeScript, Vite).
 ```
 packages/auth-client   @huponx/auth-client  session client of the gateway: createClient, AuthProvider, useAuth,
                                             RequireAuth, Can, permission matcher
-packages/ui            @huponx/ui           layout, tables, forms, notices, modal (plain CSS)
+packages/ui            @huponx/ui           layout, tables, forms, notices, modal (plain CSS; dict and bill)
+packages/ui-kit        @huponx/ui-kit       shadcn/ui + Tailwind + Radix: components, light/dark/system theme, app shell
+                                            (collapsible sidebar, header with breadcrumb and avatar menu); admin only
 apps/dict              frame app: login, header with user and sign out, permission gated menu, sample page
 apps/bill              same frame for the bill service
 apps/admin             administration of identity: users, roles, clients, exchange policies, MFA per user
+apps/auth              the pages of sign in (login, MFA, forced password change, forgot/reset password, account MFA,
+                       sign out confirmation) with the same ui-kit; served by identity, see "Auth pages" below
 build/<app>/Dockerfile one image per app (nginx-unprivileged, port 8080); build/nginx has the shared config
 charts/<app>           Helm chart: the `web-application` chart as dependency (alias `application`)
 e2e/                   Playwright against a real identity + gatekeeper
-.github/               ci.yaml (3 apps, language node) and the four workflows of huponx/actions
+.github/               ci.yaml (4 apps, language node) and the four workflows of huponx/actions
 ```
+
+## Auth pages (`apps/auth`)
+
+The pages people see while signing in are not a service of their own: the identity service serves them from the
+same origin (so the `sid` and `csrf` cookies, the CSRF check and the redirects of the OAuth flow keep working with
+no CORS) and answers their JSON calls under `/auth-api/*`.
+
+- The paths are the ones identity always had (`/login`, `/login/mfa`, `/login/password`, `/password/forgot`,
+  `/password/reset`, `/account/mfa`) plus `/logout` (confirmation) and `/error?e=<code>`.
+- The CI builds the image `ghcr.io/huponx/auth-ui:<tag>`; the identity Dockerfile copies its
+  `/usr/share/nginx/html` into `/ui` (`ARG AUTH_UI_IMAGE`). A new version of the pages reaches users with the next
+  identity release: bump the tag in `identity/build/identity/Dockerfile` (`identity/scripts/check-auth-ui.sh` fails the
+  identity PR when the tag does not exist). Release order: web (publishes `auth-ui`), then the tag bump, then identity.
+  `auth-ui` is never deployed on its own: all its environments are disabled in `.github/config/ci.yaml`
+  (`create-deployment-pr`), so there is no deployment PR and no file in mm-deploy. The package must be readable by the
+  identity repository's workflows (public, or "Manage Actions access" on the package).
+- No runtime config and no gateway: the app talks to `/auth-api` on its own origin. `make dev-auth` starts Vite on
+  :3003 and proxies `/auth-api` to a local identity (`IDENTITY_URL`, default http://localhost:8080) with that
+  identity's Origin; or build (`pnpm --filter @huponx/auth build`) and start identity with
+  `IDENTITY_UI_DIR=<web>/apps/auth/dist`.
+- The e2e run (`make e2e`) builds the app and starts identity with `IDENTITY_UI_DIR` pointing at the build.
+
+**Theme per account.** The theme (light/dark/system) lives in `identity_users.theme` (migration V12), so every app shows the same one although each origin has its own `localStorage`. The sign in pages take it from the answer of `/auth-api/login` and `/auth-api/apps`; the admin app applies it when the profile is first read (`GetMe`) and saves a change of the switch with `UpdateMe`. A change reaches another app at its next load. Before sign in the pages use what this origin saved last. A new app with a theme switch does the same as `useMyProfile` in `apps/admin/src/AccountMenu.tsx`.
 
 ## How the apps talk to the backend
 
@@ -62,25 +89,62 @@ and the routes of the chart (`make routes` in `gatekeeper`).
 
 ## Admin app
 
+**Home.** Greets the user by name and shows four numbers (users with `+N this month`, active users with their share of all users, roles with the number of catalog permissions, pending users), quick actions (add user, create role, add client, add exchange policy) and the system status (ArgoCD applications, health and sync, through `GET /api/system/status` of gatekeeper). Each card, action and the status card appear only for a user who holds the permission to read or write what they stand for (`identity:user:read`, `identity:role:read`, `identity:permission:read`, `identity:*:write`, `system:status:read`); without that permission nothing is called. The status card stays hidden when gatekeeper has no ArgoCD configured (404). The cards of users link to `/users`, `/users?status=active`, `/users?status=pending` and `/roles`.
+
 | Page | Needs | Does |
 | --- | --- | --- |
-| Users | `identity:user:read` (+ write, role, mfa) | search by email prefix, create, disable/enable, set password, send reset, assign/revoke roles, MFA of the user |
-| Roles | `identity:role:read` (+ write) | list, create, replace the permissions of a role |
-| Clients | `identity:client:read` (+ write) | list, create (secret shown once), rotate the secret |
-| Exchange policies | `identity:exchange:read` (+ write) | list, set, delete |
+| Users | `identity:user:read` (+ write, role, mfa) | list with search by email prefix; **Add** (`/users/new`) and **Edit** (`/users/:id`) are pages of their own (breadcrumb Home > Users > Add/Edit): profile with a picture, language, roles as cards with a checkbox, disable/enable, resend welcome email, send password reset, MFA of the user |
+| Settings | none (any signed-in user) | **Profile**: own name and picture (`GET/PUT /api/me`, `PUT /api/me/avatar`; identity takes the user from the token), theme, language, session. The header reads the picture and name from `/api/me`. Changing the language also writes `identity_users.locale`; at the first load the language of the account is used unless this browser already has a choice (`lang-chosen` in localStorage) |
+| Roles & Permissions | `identity:role:read` (+ write); `identity:permission:read` (+ write) | two tabs. **Roles**: list with how many users/clients hold each role, **Add role** (`/roles/new`) and **Manage** (`/roles/:name`, breadcrumb Home > Roles & Permissions > Add/Edit) are pages of their own: description and permissions as checkboxes of the **permission catalog** (`identity_permissions`, grouped by prefix, wildcards such as `*` or `identity:*:read` included; without `identity:permission:read` the permissions are typed as text); a role can be deleted (list or its page) only while no user and no client holds it. **Permissions** (needs `identity:permission:read`): the add form on top, then the catalog; with `identity:permission:write` add, describe and delete entries (a permission held by a role cannot be deleted, a role cannot get a permission that is not in the catalog) |
+| Clients | `identity:client:read` (+ write) | list; **Add client** (`/clients/new`, secret shown once) and **Manage** (`/clients/:id`) are pages of their own: name, redirect and logout URIs, grants, scopes, resource and roles (cards, like the user page) can be changed, the id and the type cannot; rotate the secret; **Disable/Enable** and **Delete** (only a disabled client, typing its id; roles and exchange policies of the client go with it; never the client of your own session) |
+| Exchange policies | `identity:exchange:read` (+ write) | list with a search (client, audience or scope) and an Audience filter, both answered by the backend; **Add policy** (`/exchange/new`) and **Manage** (`/exchange/edit?client=&audience=`) are pages of their own: max scope and chain depth can be changed, the client and the audience (the key) cannot; delete from the list or from the page |
 
-Limits that come from the identity API: a client cannot be edited after creation (use
-the identity setup Job (`post_logout_uris` in `SETUP_CONFIG`)), an admin cannot enroll an authenticator for a user (an admin can require MFA,
-turn it off or reset it; the user enrolls on their own device), and there is no get-user route: users are found
-with the search (`GET /api/users?query=`). The routes the app uses are in `gatekeeper/routes.yaml`
+Limits that come from the identity API: the id and the type of a client cannot be changed (create a new client), an admin cannot enroll an authenticator for a user (an admin can require MFA,
+turn it off or reset it; the user enrolls on their own device), and an admin never sets or sees a password: a new user
+gets a welcome email with a link (valid 7 days) to choose their own, and stays **Pending** until they do (then **Active**; the
+Edit page can resend the mail). The profile picture is cropped to a square and resized to 256x256 (WebP, JPEG as fallback, about 40 KB at
+most) in the browser before it is saved; identity validates it again (png/jpeg/webp, at most 64 KiB, 512x512) and stores it in the
+database. Lists show the first letter of the name; the Edit page loads the picture of one user (`GET /api/users/{user_id}`).
+Users are found with the search (`GET /api/users?query=`). The routes the app uses are in `gatekeeper/routes.yaml`
 (in the cluster: the ConfigMap `gatekeeper-routes` rendered by the gatekeeper chart).
+
+### UI of the admin
+
+shadcn/ui components (new-york style, copied as source into `packages/ui-kit/src/components/ui`) on Tailwind v4
+(`@tailwindcss/vite`) and Radix, icons from lucide-react. Colors, radius and the sidebar tokens are CSS variables
+in `packages/ui-kit/src/styles.css` (`:root` and `.dark`).
+
+- **Shell** (`AppShell`): the sidebar has the logo on top, the menu items (icon, then text) and Settings pinned at
+  the bottom; a round button on its right edge collapses it to icons (state in `localStorage` key
+  `sidebar-collapsed`; a drawer below `md`). The header has the breadcrumb on the left and, on the right, the theme
+  button, then the name of the user with the avatar; a click on them opens a menu with Settings, Language and
+  Sign out.
+- **Theme**: light, dark or system; one icon button, each click moves on (system, light, dark) (`localStorage` key `theme`, class `dark` on `<html>`). `public/theme-init.js`
+  sets it before the first paint.
+- **i18n**: i18next, English and Vietnamese (`apps/admin/src/i18n/{en,vi}.json`). The language comes from the
+  user's choice (`localStorage` key `lang`), then from the browser, then English; `<html lang>` follows. Messages
+  that the server returns are shown as they are.
+- **CSP**: the apps send `script-src 'self'; style-src 'self'` (no inline script or style, no external font), so
+  the kit has its own `ThemeProvider` (no next-themes), no toast library, a system font stack, and an alias of
+  `react-remove-scroll-bar` (it injects a `<style>`; see `packages/ui-kit/src/csp`). Do not add a library that
+  injects styles or scripts at runtime without checking it against the CSP in a browser.
+- **Add a page**: one entry in `apps/admin/src/routes.tsx` (`path`, `labelKey`, `icon`, `perm`, `element`); the
+  sidebar, the breadcrumb and the permission guard all read that table. Add the `nav.<name>` text to both
+  language files.
+- **Add a language**: `apps/admin/src/i18n/<code>.json` (same keys as `en.json`; a test compares them) and an entry
+  in `languages` of `apps/admin/src/i18n/index.ts`.
+- **Add a shadcn component**: `components.json` of `packages/ui-kit` is set up for the shadcn CLI (Vite, no RSC),
+  but the kit imports with relative paths, not the `@/` alias (the alias belongs to the admin app). After adding a
+  component with the CLI, change its `@/` imports to relative ones and export it from `src/index.ts`.
+- `@huponx/ui` (dict and bill) is unchanged; moving them to the kit later is a separate step.
 
 ## Tests
 
-- `make test`: vitest (jsdom) in every package: permission matcher, client, components, menu per permission.
+- `make test`: vitest (jsdom) in every package: permission matcher, client, components, menu per permission, shell
+  (collapse, breadcrumb, avatar menu), theme and language switch, same keys in both language files.
 - `make e2e`: builds identity and gatekeeper from the sibling checkouts, starts them with the shipped routes and
-  drives Chromium: sign in, create a role, list, sign out, create a user, and a user without permissions who
-  sees no menu entries and gets 403. Needs Postgres with the identity schema and Redis
+  drives Chromium: sign in, create a role, list, sign out (from the avatar menu), create a user, theme and
+  language switch, sidebar collapse, and a user without permissions who sees no menu entries and gets 403. Needs Postgres with the identity schema and Redis
   (`POSTGRES_*`, `REDIS_*`), Go, openssl and `pnpm exec playwright install chromium`.
 
 ## Deploy

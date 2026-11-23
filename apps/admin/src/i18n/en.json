@@ -1,0 +1,453 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "signingIn": "Signing in...",
+    "tryAgain": "Try again",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "copy": "Copy",
+    "delete": "Delete",
+    "none": "none",
+    "noneParen": "(none)",
+    "empty": "Nothing to show.",
+    "somethingWrong": "Something went wrong.",
+    "notAllowed": "You are not allowed to see this page.",
+    "notFound": "Page not found.",
+    "clearField": "Clear {{label}}",
+    "confirmTitle": "Are you sure?",
+    "confirm": "Confirm",
+    "required": "This field is required.",
+    "invalidEmail": "Enter a valid email address.",
+    "invalidFormat": "Use the format shown below the field.",
+    "search": "Search",
+    "clearSearch": "Clear",
+    "loadMore": "Load more"
+  },
+  "shell": {
+    "brand": "Admin Portal",
+    "navigation": "Main",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "breadcrumb": "Breadcrumb",
+    "userMenu": "User menu",
+    "signOut": "Sign out",
+    "language": "Language",
+    "theme": {
+      "group": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "users": "Users",
+    "roles": "Roles & Permissions",
+    "clients": "Clients",
+    "exchange": "Exchange policies",
+    "settings": "Settings",
+    "userNew": "Add",
+    "userEdit": "Edit",
+    "roleNew": "Add",
+    "roleEdit": "Edit",
+    "clientNew": "Add",
+    "clientEdit": "Edit",
+    "exchangeNew": "Add",
+    "exchangeEdit": "Edit"
+  },
+  "home": {
+    "title": "Admin Portal",
+    "hello": "Hello, {{name}}",
+    "subtitle": "What is going on in your identity system.",
+    "stats": {
+      "users": "Users",
+      "newThisMonth": "+{{count}} this month",
+      "active": "Active users",
+      "activeShare": "{{percent}}% of all users",
+      "roles": "Roles",
+      "permissions": "{{count}} permissions",
+      "pending": "Pending users",
+      "pendingHint": "Waiting to set a password"
+    },
+    "quick": {
+      "title": "Quick actions",
+      "addUser": "Add user",
+      "createRole": "Create role",
+      "addClient": "Add client",
+      "addExchange": "Add exchange policy"
+    },
+    "system": {
+      "title": "System status",
+      "summary": "{{healthy}} of {{total}} applications healthy",
+      "synced": "Synced",
+      "outOfSync": "Out of sync",
+      "unknown": "Unknown",
+      "refresh": "Refresh",
+      "app": "Application",
+      "sync": "Sync",
+      "health": "Health",
+      "revision": "Revision",
+      "syncedAt": "Last sync",
+      "none": "No application found.",
+      "error": "The status could not be read.",
+      "health_": {
+        "Healthy": "Healthy",
+        "Progressing": "Progressing",
+        "Degraded": "Degraded",
+        "Suspended": "Suspended",
+        "Missing": "Missing",
+        "Unknown": "Unknown"
+      }
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": {
+      "title": "Appearance",
+      "description": "Choose how the admin looks and which language it uses. The language is also saved on your account.",
+      "theme": "Theme",
+      "language": "Language"
+    },
+    "session": {
+      "title": "Session",
+      "description": "A call through the gateway with your session cookie.",
+      "subject": "Subject",
+      "methods": "Authentication methods",
+      "expires": "Expires",
+      "refresh": "Refresh"
+    },
+    "profile": {
+      "title": "Profile",
+      "description": "Your name and picture. They show in the header; you can change them without any permission.",
+      "saved": "Profile saved."
+    }
+  },
+  "users": {
+    "title": "Users",
+    "search": {
+      "label": "Email",
+      "hint": "Emails that start with this text",
+      "button": "Search",
+      "name": "Name",
+      "nameHint": "Names that contain this text",
+      "status": "Status",
+      "role": "Role",
+      "any": "Any",
+      "clear": "Clear"
+    },
+    "col": {
+      "user": "User",
+      "roles": "Roles",
+      "status": "Status",
+      "mfa": "MFA",
+      "lastLogin": "Last login",
+      "added": "Date added"
+    },
+    "status": {
+      "active": "Active",
+      "pending": "Pending",
+      "disabled": "Disabled"
+    },
+    "mfaState": {
+      "required": "required",
+      "enrolled": "enrolled"
+    },
+    "manage": "Manage",
+    "manageAria": "Manage {{email}}",
+    "loadMore": "Load more",
+    "new": {
+      "title": "Add user",
+      "description": "The user gets a welcome email with a link to set their own password.",
+      "create": "Create user",
+      "created": "User {{email}} created.",
+      "welcomeSent": "A welcome email with a link to set the password was sent.",
+      "welcomeNote": "A welcome email with a link to set the password (valid 7 days) is sent to the user. The account stays Pending until the password is set."
+    },
+    "roles": {
+      "title": "Roles",
+      "none": "There are no roles yet.",
+      "more": "+{{count}} more"
+    },
+    "account": {
+      "title": "Account",
+      "enable": "Enable account",
+      "disable": "Disable account",
+      "enabled": "Account enabled.",
+      "disabled": "Account disabled.",
+      "sendReset": "Send password reset",
+      "resetSent": "Password reset email sent.",
+      "status": "Status",
+      "pendingHint": "The user has not set a password yet. The account becomes active when they do, through the link in the welcome email.",
+      "resendWelcome": "Resend welcome email",
+      "welcomeSent": "Welcome email sent.",
+      "lastLogin": "Last login:"
+    },
+    "mfa": {
+      "title": "Multi-factor authentication",
+      "state": "Server mode: <strong>{{mode}}</strong>. This user: {{enrolled}}, {{required}}, recovery codes left: {{left}}.",
+      "enrolledYes": "authenticator enrolled",
+      "enrolledNo": "not enrolled",
+      "requiredYes": "required",
+      "requiredNo": "not required",
+      "require": "Require MFA",
+      "stopRequire": "Stop requiring MFA",
+      "required": "MFA is required for this user.",
+      "notRequired": "MFA no longer required.",
+      "turnOff": "Turn off",
+      "turnedOff": "MFA turned off.",
+      "reset": "Reset",
+      "resetDone": "MFA reset.",
+      "confirmReset": "Reset MFA? The authenticator and the recovery codes are deleted.",
+      "hint": "An admin cannot enroll an authenticator for a user: the user does it on their own device."
+    },
+    "add": "Add user",
+    "form": {
+      "profile": "Profile",
+      "email": "Email",
+      "name": "Name",
+      "locale": "Language",
+      "localeHint": "Language of the emails sent to the user."
+    },
+    "edit": {
+      "save": "Save changes",
+      "saved": "Changes saved."
+    },
+    "avatar": {
+      "file": "Picture file",
+      "upload": "Upload picture",
+      "remove": "Remove picture",
+      "hint": "PNG, JPEG or WebP. It is cropped to a square and resized to {{side}}x{{side}} in your browser before it is saved.",
+      "size": "Resized picture: {{kb}} KB.",
+      "failedAfterCreate": "The picture could not be saved: upload it again.",
+      "error": {
+        "type": "Choose a PNG, JPEG or WebP file.",
+        "size": "The file is larger than 5 MB.",
+        "decode": "The file could not be read as a picture.",
+        "encode": "The picture could not be prepared."
+      }
+    },
+    "never": "Never",
+    "stats": {
+      "title": "User statistics",
+      "total": "Users",
+      "active": "Active",
+      "pending": "Pending",
+      "disabled": "Disabled",
+      "mfaEnabled": "MFA enabled",
+      "mfaEnforced": "MFA required",
+      "signedIn30d": "Signed in, last 30 days",
+      "neverSignedIn": "Never signed in",
+      "expand": "Show all statistics",
+      "collapse": "Show fewer statistics"
+    }
+  },
+  "roles": {
+    "title": "Roles & Permissions",
+    "col": {
+      "role": "Role",
+      "description": "Description",
+      "permissions": "Permissions",
+      "assigned": "Assigned",
+      "actions": "Actions"
+    },
+    "editPermissions": "Edit permissions",
+    "new": {
+      "title": "New role",
+      "name": "Name",
+      "nameHint": "lower case, e.g. support",
+      "description": "Description",
+      "permissions": "Permissions",
+      "permissionsHint": "Separated by spaces or new lines, e.g. identity:user:read bill:*",
+      "create": "Create role",
+      "created": "Role {{name}} created.",
+      "pickHint": "Tick the permissions the role gets."
+    },
+    "perm": {
+      "title": "Permissions",
+      "intro": "The catalog of permissions that roles can be given. A permission in use by a role cannot be deleted.",
+      "name": "Permission",
+      "description": "Description",
+      "roles": "Roles",
+      "actions": "Actions",
+      "edit": "Edit",
+      "editAria": "Edit {{name}}",
+      "deleteAria": "Delete {{name}}",
+      "editTitle": "Edit {{name}}",
+      "inUse": "In use by a role",
+      "confirmDelete": "Delete the permission {{name}}?",
+      "created": "Permission {{name}} added.",
+      "deleted": "Permission {{name}} deleted.",
+      "new": "Add a permission",
+      "nameHint": "For example bill:invoice:read, or a wildcard such as bill:*.",
+      "add": "Add permission",
+      "empty": "No permissions in the catalog.",
+      "wildcards": "Wildcards",
+      "unknown": "Not in the catalog",
+      "search": "Search permissions",
+      "searchHint": "Name or description"
+    },
+    "tab": {
+      "roles": "Roles",
+      "permissions": "Permissions"
+    },
+    "add": "Add role",
+    "manage": "Manage",
+    "editAria": "Manage {{name}}",
+    "deleteAria": "Delete {{name}}",
+    "form": {
+      "addTitle": "Add role",
+      "addIntro": "Give the role a name and tick what it allows.",
+      "details": "Role",
+      "nameFixed": "The name of a role cannot be changed.",
+      "save": "Save changes",
+      "saved": "Changes saved.",
+      "deleteTitle": "Delete role",
+      "deleteHint": "No user and no client holds this role, so it can be deleted.",
+      "heldBy": "Held by {{count}} user(s) or client(s); take the role away from them first.",
+      "delete": "Delete role",
+      "confirmDelete": "Delete the role {{name}}?",
+      "deleted": "Role {{name}} deleted.",
+      "notFound": "There is no role {{name}}."
+    },
+    "search": "Search",
+    "searchHint": "Name, description or a permission of the role"
+  },
+  "clients": {
+    "title": "Clients",
+    "col": {
+      "client": "Client",
+      "name": "Name",
+      "type": "Type",
+      "grants": "Grants",
+      "roles": "Roles",
+      "actions": "Actions"
+    },
+    "type": {
+      "public": "public",
+      "confidential": "confidential"
+    },
+    "rotate": "Rotate secret",
+    "confirmRotate": "Rotate the secret of {{id}}? The current secret stops working.",
+    "secret": {
+      "title": "Secret of {{id}}",
+      "warning": "Copy it now. It is shown once and cannot be read again; rotate the secret to get a new one.",
+      "saved": "I saved it"
+    },
+    "new": {
+      "title": "New client",
+      "id": "Client id",
+      "name": "Name",
+      "type": "Type",
+      "typeConfidential": "confidential (has a secret)",
+      "typePublic": "public (PKCE, no secret)",
+      "redirects": "Redirect URIs",
+      "logouts": "Post logout redirect URIs",
+      "grants": "Allowed grants",
+      "scopes": "Allowed scopes",
+      "scopesHint": "openid profile email ...",
+      "resource": "Resource (default audience)",
+      "roles": "Roles",
+      "rolesHint": "Roles of a machine client (client_credentials)",
+      "create": "Create client",
+      "backchannel": "Backchannel logout URI"
+    },
+    "add": "Add client",
+    "manage": "Manage",
+    "manageAria": "Manage client {{id}}",
+    "status": {
+      "disabled": "Disabled"
+    },
+    "form": {
+      "addTitle": "Add client",
+      "addIntro": "Register an application or a service that signs in through identity.",
+      "details": "Client",
+      "idFixed": "The id of a client cannot be changed.",
+      "typeFixed": "The type of a client cannot be changed.",
+      "uris": "Redirects and logout",
+      "access": "Grants and scopes",
+      "save": "Save changes",
+      "saved": "Changes saved.",
+      "created": "Client {{id}} created.",
+      "notFound": "There is no client {{id}}.",
+      "rotateHint": "Issues a new secret; the current one stops working at once.",
+      "dangerTitle": "Disable or delete",
+      "enabledHint": "Disable the client to stop it signing in or getting tokens. Only a disabled client can be deleted.",
+      "disabledHint": "This client cannot sign in or get tokens. Enable it again, or delete it for good.",
+      "disable": "Disable client",
+      "enable": "Enable client",
+      "delete": "Delete client",
+      "deleteTitle": "Delete client",
+      "deleteWarning": "Deleting {{id}} also removes its roles and exchange policies. This cannot be undone.",
+      "typeToConfirm": "Type {{id}} to confirm",
+      "deleted": "Client {{id}} deleted.",
+      "accessHint": "Pick the grants this client may use. Scopes: leave empty for openid profile email offline_access."
+    },
+    "grant": {
+      "authorization_code": "A person signs in in the browser (with PKCE for a public client).",
+      "refresh_token": "Gets a new token without signing in again.",
+      "client_credentials": "A service calls the API as itself, no person involved. Confidential clients only.",
+      "token_exchange": "Swaps a token for one for another service (the gateway does this).",
+      "unknown": "Not a grant identity knows; untick to remove it."
+    },
+    "scope": {
+      "suggested": "Standard scopes"
+    },
+    "search": "Search",
+    "searchHint": "Id, name, grant or role",
+    "filter": {
+      "anyType": "Any type"
+    }
+  },
+  "exchange": {
+    "title": "Exchange policies",
+    "intro": "Token exchange is denied unless a policy allows the calling client to obtain a token for the audience.",
+    "col": {
+      "client": "Client",
+      "audience": "Audience",
+      "maxScope": "Max scope",
+      "depth": "Chain depth",
+      "actions": "Actions"
+    },
+    "confirmDelete": "Delete the policy of {{client}} for {{audience}}? Exchanges stop working (deny by default).",
+    "saved": "Policy saved.",
+    "deleted": "Policy deleted.",
+    "set": {
+      "title": "Set a policy",
+      "client": "Client id",
+      "audience": "Audience",
+      "maxScope": "Max scope",
+      "maxScopeHint": "Space separated",
+      "depth": "Max chain depth",
+      "save": "Save policy"
+    },
+    "add": "Add policy",
+    "manage": "Manage",
+    "manageAria": "Manage the policy of {{client}} for {{audience}}",
+    "deleteAria": "Delete the policy of {{client}} for {{audience}}",
+    "search": "Search",
+    "searchHint": "Client, audience or scope",
+    "filter": {
+      "audience": "Audience",
+      "audienceHint": "Audience contains this text"
+    },
+    "form": {
+      "addTitle": "Add policy",
+      "addIntro": "Allow a client to exchange a token for an audience.",
+      "details": "Policy",
+      "keyFixed": "The client and the audience of a policy cannot be changed.",
+      "audienceHint": "The service the exchanged token is for, e.g. identity",
+      "limits": "Limits",
+      "depthHint": "1 to 5 levels of act (delegation) in the exchanged token",
+      "save": "Save changes",
+      "saved": "Changes saved.",
+      "created": "Policy created.",
+      "notFound": "There is no policy of {{client}} for {{audience}}.",
+      "deleteTitle": "Delete policy",
+      "deleteHint": "Exchanges of this client for this audience stop working (deny by default).",
+      "delete": "Delete policy"
+    }
+  }
+}

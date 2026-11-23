@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@import "@huponx/ui-kit/styles.css";
+
+/* Tailwind scans the kit as well (its components are TypeScript source compiled by this app). */
+@source "../../../packages/ui-kit/src";

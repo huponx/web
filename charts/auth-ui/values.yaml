@@ -1,0 +1,67 @@
+# Values of the web-application chart live under `application:` (alias of the dependency).
+# image.tag is written at release time (update-deployment-values); the default only keeps `helm template` working.
+#
+# The identity service serves the auth pages, so this chart is normally not deployed (no mm-deploy
+# application, no ingress). It is the vehicle of the image `huponx/auth-ui` in the CI of this repository.
+# If it is deployed anyway it is a harmless static file server: no ingress, one small replica.
+application:
+  deployment:
+    container:
+      image:
+        repository: huponx/auth-ui
+        tag: "0.0.0"
+      port: 8080
+      startupProbe:
+        httpGet:
+          path: /
+          port: 8080
+        failureThreshold: 30
+        periodSeconds: 2
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 8080
+        periodSeconds: 20
+      readinessProbe:
+        httpGet:
+          path: /
+          port: 8080
+        periodSeconds: 10
+      resources:
+        limits:
+          cpu: 100m
+          memory: 64Mi
+        requests:
+          cpu: 10m
+          memory: 32Mi
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /var/run
+    volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
+  service:
+    enabled: true
+    port: 80
+  ingress:
+    enabled: false
+    tls: false
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false

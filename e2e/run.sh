@@ -2,7 +2,7 @@
 # End to end run of the admin app against a real identity and gatekeeper (sibling checkouts ../identity
 # and ../gatekeeper): Playwright drives a browser through login, roles, users and logout.
 #
-# Needs Postgres with the identity schema (db-migration V1..V8) and Redis (POSTGRES_* / REDIS_*), Go,
+# Needs Postgres with the identity schema (db-migration V1..V13) and Redis (POSTGRES_* / REDIS_*), Go,
 # openssl, pnpm and a Chromium for Playwright (pnpm exec playwright install chromium).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -36,6 +36,10 @@ SETUP_CONFIG=$(cat <<EOF
 EOF
 ) E2E_GK_SECRET=$secret "$tmp/identity-setup"
 
+# the sign in pages: identity serves the build of apps/auth (in production it is the auth-ui image)
+pnpm --filter @huponx/auth build >/dev/null
+export IDENTITY_UI_DIR=$root/apps/auth/dist IDENTITY_APPS="Admin=$ui|$ui/logo.svg"
+
 HTTP_PORT=$ID_HTTP PORT=$ID_GRPC "$tmp/identity" >"$tmp/identity.log" 2>&1 & ipid=$!
 for _ in $(seq 1 50); do curl -fs "$IDENTITY_ISSUER/healthz" >/dev/null && break; sleep 0.2; done
 
@@ -55,6 +59,6 @@ printf 'window.__env__ = { API_BASE: "http://localhost:%s" };\n' "$GK_PORT" > ap
 (cd apps/admin && pnpm exec vite preview --port "$UI_PORT" --strictPort >"$tmp/preview.log" 2>&1) & upid=$!
 trap 'kill ${ipid:-0} ${gpid:-0} ${upid:-0} 2>/dev/null || true; rm -rf "$tmp"' EXIT
 for _ in $(seq 1 50); do curl -fs "$ui/" >/dev/null && break; sleep 0.2; done
-E2E_BASE_URL=$ui E2E_ADMIN_EMAIL="${E2E_ADMIN_EMAIL:-admin@example.com}" E2E_ADMIN_PASSWORD="$SETUP_ADMIN_PASSWORD" \
+E2E_IDENTITY_URL=$IDENTITY_ISSUER E2E_IDENTITY_LOG="$tmp/identity.log" E2E_BASE_URL=$ui E2E_ADMIN_EMAIL="${E2E_ADMIN_EMAIL:-admin@example.com}" E2E_ADMIN_PASSWORD="$SETUP_ADMIN_PASSWORD" \
   pnpm exec playwright test -c e2e/playwright.config.ts "$@" \
   || { echo '--- gatekeeper log'; tail -20 "$tmp/gatekeeper.log"; echo '--- identity log'; tail -20 "$tmp/identity.log"; exit 1; }

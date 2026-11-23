@@ -5,6 +5,9 @@
 /** The signed in user, as /auth/me returns it. */
 export interface Me {
   sub: string;
+  /** Display name and e-mail from the ID token (absent when identity did not send them). */
+  name?: string;
+  email?: string;
   roles: string[];
   scopes: string[];
   perms: string[];
