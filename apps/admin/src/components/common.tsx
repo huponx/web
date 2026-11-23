@@ -1,5 +1,7 @@
 import {
   Alert,
+  AutoAlert,
+  ClearButton,
   Badge,
   Button,
   Dialog,
@@ -22,7 +24,7 @@ import {
   Textarea,
   cn,
 } from "@huponx/ui-kit";
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import type { FormEvent, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
@@ -60,10 +62,9 @@ export function ErrorAlert({ error }: { error: unknown }) {
   return <Alert variant="destructive">{errorText(error, t("common.somethingWrong"))}</Alert>;
 }
 
-/** The result of an action ("Role x created."). */
+/** The result of an action ("Role x created."); goes away by itself like in the dict app. */
 export function DoneAlert({ children }: { children?: ReactNode }) {
-  if (!children) return null;
-  return <Alert variant="success">{children}</Alert>;
+  return <AutoAlert variant="success">{children}</AutoAlert>;
 }
 
 /** Permissions, roles, grants: one badge each, a hint when the list is empty. */
@@ -179,14 +180,7 @@ export function TextField({
           aria-invalid={shown ? true : undefined} className={clearable ? `pr-9 ${rest.className ?? ""}` : rest.className}
         />
         {clearable ? (
-          <button
-            type="button"
-            aria-label={t("common.clearField", { label })}
-            className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={clear}
-          >
-            <X className="size-4" aria-hidden="true" />
-          </button>
+          <ClearButton label={t("common.clearField", { label })} onClick={clear} />
         ) : null}
       </div>
     </Shell>

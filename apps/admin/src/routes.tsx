@@ -1,7 +1,8 @@
-import { ArrowLeftRight, KeyRound, LayoutDashboard, Settings as SettingsIcon, Shield, Users as UsersIcon } from "lucide-react";
+import { ArrowLeftRight, BookOpen, KeyRound, LayoutDashboard, Settings as SettingsIcon, Shield, Users as UsersIcon } from "lucide-react";
 import type { ComponentType, ReactElement } from "react";
 import { ClientForm } from "./pages/ClientForm";
 import { Clients } from "./pages/Clients";
+import { Dictionary } from "./pages/Dictionary";
 import { Exchange } from "./pages/Exchange";
 import { ExchangeForm } from "./pages/ExchangeForm";
 import { Home } from "./pages/Home";
@@ -45,6 +46,14 @@ export const routes: AppRoute[] = [
     perm: "identity:exchange:read",
     element: <Exchange />,
     testId: "nav-exchange",
+  },
+  {
+    path: "/dictionary",
+    labelKey: "nav.dictionary",
+    icon: BookOpen,
+    perm: "dictionary:settings:read",
+    element: <Dictionary />,
+    testId: "nav-dictionary",
   },
 ];
 

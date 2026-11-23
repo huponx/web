@@ -1,8 +1,9 @@
 import type { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { cn } from "../../lib/cn";
 
+// text-base (16px) below md: iOS Safari zooms the page into a field whose font is smaller than 16px when it gets focus
 const field =
-  "w-full min-w-0 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20";
+  "w-full min-w-0 rounded-md border border-input bg-transparent px-3 text-base shadow-xs md:text-sm outline-none transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20";
 
 export function Input({ className, type = "text", ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input type={type} className={cn(field, "h-9 py-1", className)} {...props} />;

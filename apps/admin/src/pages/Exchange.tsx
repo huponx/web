@@ -1,10 +1,10 @@
 import { Can } from "@huponx/auth-client";
-import { Button, Card, CardContent } from "@huponx/ui-kit";
+import { Button, Card, CardContent, useAction, useFlash, usePaged } from "@huponx/ui-kit";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation } from "react-router-dom";
-import { useAction, useIdentity, usePaged } from "../api";
+import { Link } from "react-router-dom";
+import { useIdentity } from "../api";
 import type { ExchangePolicy } from "../api";
 import { useConfirm } from "../components/ConfirmDialog";
 import { ActionLabel, Actions, DataTable, DoneAlert, ErrorAlert, LoadMore, Loading, PageTitle, ROW_ACTION, TextField } from "../components/common";
@@ -27,7 +27,7 @@ export function Exchange() {
   const [filter, setFilter] = useState<Filter>({ query: "", audience: "" });
   const paged = usePaged((token) => api.listPoliciesPage(filter, token), [api, filter.query, filter.audience]);
   const { items: data, error, loading, reload } = paged;
-  const notice = (useLocation().state as { deleted?: boolean } | null)?.deleted ? t("exchange.deleted") : undefined;
+  const notice = useFlash<{ deleted?: boolean }>()?.deleted ? t("exchange.deleted") : undefined;
   const del = useAction();
   const { confirm, dialog } = useConfirm();
 

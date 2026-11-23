@@ -1,7 +1,7 @@
-import { Badge, Checkbox } from "@huponx/ui-kit";
+import { Badge, Checkbox, useLoad } from "@huponx/ui-kit";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
-import { useIdentity, useLoad } from "../api";
+import { useIdentity } from "../api";
 import type { Role } from "../api";
 import { ErrorAlert, Loading } from "./common";
 

@@ -169,6 +169,15 @@ body {
   font-size: 13px;
 }
 
+/* iOS Safari zooms the page into a field whose font is smaller than 16px when it gets focus */
+@media (max-width: 767px) {
+  .ui-input,
+  .ui-select,
+  .ui-textarea {
+    font-size: 16px;
+  }
+}
+
 .ui-actions {
   display: flex;
   gap: 8px;

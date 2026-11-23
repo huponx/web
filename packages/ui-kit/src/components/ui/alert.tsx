@@ -1,6 +1,7 @@
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
 import { AlertCircle, CheckCircle2, TriangleAlert } from "lucide-react";
+import { forwardRef } from "react";
 import type { HTMLAttributes } from "react";
 import { cn } from "../../lib/cn";
 
@@ -18,12 +19,15 @@ const alertVariants = cva("relative flex w-full items-start gap-3 rounded-lg bor
 
 const icons = { default: null, success: CheckCircle2, warning: TriangleAlert, destructive: AlertCircle } as const;
 
-export function Alert({ className, variant = "default", children, ...props }: HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>) {
+export const Alert = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>>(function Alert(
+  { className, variant = "default", children, ...props },
+  ref,
+) {
   const Icon = icons[variant ?? "default"];
   return (
-    <div role={variant === "destructive" ? "alert" : "status"} className={cn(alertVariants({ variant }), className)} {...props}>
+    <div ref={ref} role={variant === "destructive" ? "alert" : "status"} className={cn(alertVariants({ variant }), className)} {...props}>
       {Icon ? <Icon className="mt-0.5 size-4 shrink-0" aria-hidden="true" /> : null}
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
-}
+});

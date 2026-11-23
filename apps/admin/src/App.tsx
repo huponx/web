@@ -45,6 +45,7 @@ function Shell() {
     expand: t("shell.expand"),
     openMenu: t("shell.openMenu"),
     closeMenu: t("shell.closeMenu"),
+    backToTop: t("shell.backToTop"),
     breadcrumb: t("shell.breadcrumb"),
     theme: {
       group: t("shell.theme.group"),
@@ -56,6 +57,7 @@ function Shell() {
 
   return (
     <AppShell
+      pageKey={pathname}
       brand={t("shell.brand")}
       items={items}
       bottomItems={[toItem(settingsRoute)]}

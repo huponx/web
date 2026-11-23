@@ -1,58 +1,110 @@
 import { Can, RequireAuth, useAuth } from "@huponx/auth-client";
-import { Button, Center, Layout, Loading } from "@huponx/ui";
-import { NavLink, Route, Routes } from "react-router-dom";
-import { Entries } from "./pages/Entries";
-import { Home } from "./pages/Home";
-import { Session } from "./pages/Session";
+import { AppShell, Button } from "@huponx/ui-kit";
+import type { Crumb, NavItem, ShellLabels, ShellLink } from "@huponx/ui-kit";
+import { BookMarked, Search, Settings as SettingsIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { AccountMenu } from "./AccountMenu";
+import { DictLogo } from "./Logo";
+import { Lookup, LookupMemoProvider } from "./pages/Lookup";
+import { SettingsProvider } from "./lib/settings";
+import { Saved } from "./pages/Saved";
+import { Settings } from "./pages/Settings";
+
+// NavLink of React Router fits the link of the shell
+const link = NavLink as unknown as ShellLink;
+
+function Message({ children }: { children: React.ReactNode }) {
+  return <p className="py-12 text-center text-muted-foreground">{children}</p>;
+}
 
 function Shell() {
-  const { user, logout } = useAuth();
+  const { t } = useTranslation();
+  const { can } = useAuth();
+  const { pathname } = useLocation();
+
+  // the menu only shows what the user may use; the gateway checks the permission again
+  const items: NavItem[] = [];
+  if (can("dictionary:word:read")) {
+    items.push({ to: "/", label: t("nav.lookup"), icon: Search, end: true, testId: "nav-lookup" });
+    items.push({ to: "/saved", label: t("nav.saved"), icon: BookMarked, testId: "nav-saved" });
+  }
+
+  // pinned to the bottom of the sidebar, like the admin app
+  const bottomItems: NavItem[] = can("dictionary:word:read")
+    ? [{ to: "/settings", label: t("nav.settings"), icon: SettingsIcon, testId: "nav-settings" }]
+    : [];
+
+  const breadcrumbs: Crumb[] = [
+    { label: t("nav.home"), to: pathname === "/" ? undefined : "/" },
+    ...(pathname === "/saved" ? [{ label: t("nav.saved") }] : []),
+    ...(pathname === "/settings" ? [{ label: t("nav.settings") }] : []),
+  ];
+
+  const labels: ShellLabels = {
+    navigation: t("shell.navigation"),
+    collapse: t("shell.collapse"),
+    expand: t("shell.expand"),
+    openMenu: t("shell.openMenu"),
+    closeMenu: t("shell.closeMenu"),
+    backToTop: t("shell.backToTop"),
+    breadcrumb: t("shell.breadcrumb"),
+    theme: {
+      group: t("shell.theme.group"),
+      light: t("shell.theme.light"),
+      dark: t("shell.theme.dark"),
+      system: t("shell.theme.system"),
+    },
+  };
+
+  const denied = <Message>{t("common.notAllowed")}</Message>;
   return (
-    <Layout
-      brand="Dict"
-      user={user?.sub}
-      onLogout={() => void logout()}
-      nav={
-        <>
-          <NavLink to="/" end>
-            Home
-          </NavLink>
-          <NavLink to="/session">Session</NavLink>
-          {/* the menu only shows what the user may use; the gateway checks the permission again */}
-          <Can perm="dict:entry:read">
-            <NavLink to="/entries">Entries</NavLink>
-          </Can>
-        </>
-      }
-    >
+    <SettingsProvider>
+    <LookupMemoProvider>
+    <AppShell pageKey={pathname} brand={t("shell.brand")} logo={<DictLogo />} items={items} bottomItems={bottomItems} breadcrumbs={breadcrumbs} link={link} labels={labels} userMenu={<AccountMenu />}>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/session" element={<Session />} />
         <Route
-          path="/entries"
+          path="/"
           element={
-            <Can perm="dict:entry:read" fallback={<Center>You are not allowed to see this page.</Center>}>
-              <Entries />
+            <Can perm="dictionary:word:read" fallback={denied}>
+              <Lookup />
             </Can>
           }
         />
-        <Route path="*" element={<Center>Page not found.</Center>} />
+        <Route
+          path="/saved"
+          element={
+            <Can perm="dictionary:word:read" fallback={denied}>
+              <Saved />
+            </Can>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <Can perm="dictionary:word:read" fallback={denied}>
+              <Settings />
+            </Can>
+          }
+        />
+        <Route path="*" element={<Message>{t("common.notFound")}</Message>} />
       </Routes>
-    </Layout>
+    </AppShell>
+    </LookupMemoProvider>
+    </SettingsProvider>
   );
 }
 
 export function App() {
+  const { t } = useTranslation();
   return (
     <RequireAuth
-      loading={<Loading label="Signing in..." />}
+      loading={<Message>{t("common.signingIn")}</Message>}
       error={({ message, retry }) => (
-        <Center>
-          <div>
-            <p>{message}</p>
-            <Button onClick={retry}>Try again</Button>
-          </div>
-        </Center>
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+          <p>{message}</p>
+          <Button onClick={retry}>{t("common.tryAgain")}</Button>
+        </div>
       )}
     >
       <Shell />

@@ -1,10 +1,10 @@
 import { Can, useAuth } from "@huponx/auth-client";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@huponx/ui-kit";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { useAction, useIdentity, useLoad } from "../api";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useIdentity } from "../api";
 import type { Permission, Role } from "../api";
 import { Actions, DoneAlert, ErrorAlert, Loading, PageTitle, TextField } from "../components/common";
 import { useConfirm } from "../components/ConfirmDialog";
@@ -120,8 +120,7 @@ export function RoleForm() {
   const { name } = useParams();
   const { t } = useTranslation();
   const api = useIdentity();
-  const location = useLocation();
-  const state = location.state as { created?: string } | null;
+  const state = useFlash<{ created?: string }>();
   const catalog = usePermissionCatalog();
   const roles = useLoad(() => (name ? api.listRoles() : Promise.resolve(undefined)), [api, name]);
 

@@ -1,17 +1,17 @@
 import { Can, useAuth } from "@huponx/auth-client";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger } from "@huponx/ui-kit";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger, useAction, useFlash, usePaged } from "@huponx/ui-kit";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { useIdentity, useAction, usePaged } from "../api";
+import { useIdentity } from "../api";
 import type { Permission, Role } from "../api";
 import { ActionLabel, Actions, BadgeList, ROW_ACTION, DataTable, DoneAlert, ErrorAlert, LoadMore, Loading, Modal, PageTitle, TextField } from "../components/common";
 import { useConfirm } from "../components/ConfirmDialog";
 import { SearchBar } from "../components/SearchBar";
 
-function EditDescription({ permission, onClose, onDone }: { permission: Permission; onClose: () => void; onDone: () => void }) {
+function EditDescription({ permission, onClose, onDone }: { permission: Permission; onClose: () => void; onDone: (name: string) => void }) {
   const { t } = useTranslation();
   const api = useIdentity();
   const [description, setDescription] = useState(permission.description ?? "");
@@ -21,7 +21,7 @@ function EditDescription({ permission, onClose, onDone }: { permission: Permissi
     ev.preventDefault();
     const r = await a.run(() => api.updatePermission(permission.name, description));
     if (r) {
-      onDone();
+      onDone(permission.name);
       onClose();
     }
   }
@@ -55,6 +55,7 @@ function PermissionCatalog() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [editing, setEditing] = useState<Permission>();
+  const [updated, setUpdated] = useState<string>();
   const add = useAction();
   const del = useAction();
 
@@ -70,6 +71,7 @@ function PermissionCatalog() {
 
   async function remove(p: Permission) {
     if (!(await confirm({ title: t("common.delete"), message: t("roles.perm.confirmDelete", { name: p.name }), confirmLabel: t("common.delete") }))) return;
+    setUpdated(undefined);
     const r = await del.run(() => api.deletePermission(p.name), t("roles.perm.deleted", { name: p.name }));
     if (r !== undefined) reload();
   }
@@ -144,9 +146,9 @@ function PermissionCatalog() {
         ) : null}
         <LoadMore paged={paged} />
         <ErrorAlert error={del.error} />
-        <DoneAlert>{del.done}</DoneAlert>
+        <DoneAlert>{updated ?? del.done}</DoneAlert>
       </CardContent>
-      {editing ? <EditDescription permission={editing} onClose={() => setEditing(undefined)} onDone={reload} /> : null}
+      {editing ? <EditDescription permission={editing} onClose={() => setEditing(undefined)} onDone={(n) => (del.clear(), setUpdated(t("roles.perm.updated", { name: n })), reload())} /> : null}
       {dialog}
     </Card>
   );
@@ -162,6 +164,8 @@ export function Roles() {
   const canCatalog = can("identity:permission:read");
   const { confirm, dialog } = useConfirm();
   const del = useAction();
+  // set by the edit page after it deleted the role
+  const gone = useFlash<{ deleted?: string }>()?.deleted;
 
   async function remove(r: Role) {
     if (!(await confirm({ title: t("roles.form.deleteTitle"), message: t("roles.form.confirmDelete", { name: r.name }), confirmLabel: t("common.delete") }))) return;
@@ -193,7 +197,7 @@ export function Roles() {
               <SearchBar label={t("roles.search")} hint={t("roles.searchHint")} onSearch={setQuery} />
               <ErrorAlert error={error} />
               <ErrorAlert error={del.error} />
-              <DoneAlert>{del.done}</DoneAlert>
+              <DoneAlert>{del.done ?? (gone ? t("roles.form.deleted", { name: gone }) : undefined)}</DoneAlert>
               {loading ? <Loading /> : null}
               {data ? (
                 <DataTable

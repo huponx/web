@@ -177,6 +177,7 @@ describe("roles page", () => {
     if (/\/api\/permissions(\?|$)/.test(c.url) && c.method === "GET") return catalog;
     if (/\/api\/roles(\?|$)/.test(c.url) && c.method === "GET") return { roles };
     if (c.url.endsWith("/api/roles") && c.method === "POST") return { role: { name: "support" } };
+    if (/\/api\/permissions\//.test(c.url) && c.method === "PUT") return { permission: { name: "identity:user:write", description: "x" } };
     return {};
   };
 
@@ -196,6 +197,26 @@ describe("roles page", () => {
     await user.click(screen.getByRole("button", { name: "Delete support" }));
     await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Delete" }));
     expect(calls.find((c) => c.method === "DELETE")?.url).toBe("https://api.example.com/api/roles/support");
+    expect(await screen.findByText("Role support deleted.")).toBeTruthy();
+  });
+
+  it("shows a notice on the list after a role is deleted from its edit page", async () => {
+    renderApp(["identity:role:*"], "/roles/support", answer);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Delete role" }));
+    await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Delete" }));
+    expect(await screen.findByText("Role support deleted.")).toBeTruthy();
+  });
+
+  it("shows a notice after the description of a permission is edited", async () => {
+    renderApp(["identity:role:*", "identity:permission:*"], "/roles", answer);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("tab", { name: "Permissions" }));
+    await user.click(await screen.findByRole("button", { name: "Edit identity:user:write" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByLabelText("Description"), " x");
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("Permission identity:user:write updated.")).toBeTruthy();
   });
 
   it("adds a role with the permissions typed (no catalog right)", async () => {
@@ -619,7 +640,7 @@ describe("home", () => {
 
   it("summarises the applications of the system status", async () => {
     renderApp(["system:status:read"], "/", answer);
-    expect((await screen.findByTestId("system-summary")).textContent).toBe("2 applications");
+    expect((await screen.findByTestId("system-summary")).textContent).toBe("System status of 2 applications");
     // one chip per health status that occurs (Healthy always), each with its own colour, and the out of sync count
     expect(screen.getByTestId("health-count-Healthy").getAttribute("data-count")).toBe("1");
     expect(screen.getByTestId("health-count-Degraded").getAttribute("data-count")).toBe("1");
@@ -635,5 +656,52 @@ describe("home", () => {
     // a chart version is shown whole, a git commit is shortened to 7 characters
     expect(within(rows[0]!).getByText("v2026.11.5-release-463f6d9")).toBeTruthy();
     expect(within(rows[1]!).getByText("b5a535e")).toBeTruthy();
+  });
+});
+
+describe("dictionary settings page", () => {
+  const settings = { maxSavedWords: 100, allowExportDeck: true, allowExportLink: true, englishEnabled: true, englishViEnabled: true };
+  const answer = (c: Call) => (c.url.endsWith("/api/dictionary/settings") && c.method === "GET" ? { settings } : { settings });
+
+  it("is in the menu only with dictionary:settings:read", async () => {
+    renderApp(["dictionary:settings:read"], "/", answer);
+    expect(await screen.findByRole("link", { name: "Dictionary" })).toBeTruthy();
+  });
+
+  it("is hidden without the permission", async () => {
+    renderApp(["identity:role:read"], "/", answer);
+    await screen.findByRole("link", { name: "Roles & Permissions" });
+    expect(screen.queryByRole("link", { name: "Dictionary" })).toBeNull();
+  });
+
+  it("saves the changed values", async () => {
+    const calls = renderApp(["dictionary:settings:*"], "/dictionary", answer);
+    const user = userEvent.setup();
+    const max = await screen.findByLabelText("Max saved words per user");
+    await user.clear(max);
+    await user.type(max, "250");
+    await user.click(screen.getByRole("switch", { name: "Export as link" }));
+    await user.click(screen.getByRole("switch", { name: "English-Vietnamese" }));
+    await user.click(screen.getByRole("button", { name: "Save settings" }));
+    const put = calls.find((c) => c.method === "PUT");
+    expect(JSON.parse(put!.body!)).toEqual({
+      settings: { max_saved_words: 250, allow_export_deck: true, allow_export_link: false, english_enabled: true, english_vi_enabled: false },
+    });
+    expect(await screen.findByText("Dictionary settings saved.")).toBeTruthy();
+  });
+
+  it("does not let both dictionaries be turned off", async () => {
+    renderApp(["dictionary:settings:*"], "/dictionary", answer);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("switch", { name: "English" }));
+    await user.click(screen.getByRole("switch", { name: "English-Vietnamese" }));
+    expect((screen.getByRole("button", { name: "Save settings" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("is read only with only the read permission", async () => {
+    renderApp(["dictionary:settings:read"], "/dictionary", answer);
+    const sw = await screen.findByRole("switch", { name: "Export as link" });
+    expect((sw as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Save settings" })).toBeNull();
   });
 });

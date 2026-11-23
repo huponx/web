@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Home, Settings, Users } from "lucide-react";
 import { forwardRef } from "react";
@@ -118,5 +118,72 @@ describe("initials", () => {
     expect(initials("ann@example.com")).toBe("A");
     expect(initials("Đức")).toBe("Đ");
     expect(initials("")).toBe("?");
+  });
+});
+
+describe("back to top", () => {
+  it("shows a button once the page is scrolled down, and it scrolls the page to the top", () => {
+    renderShell();
+    const main = screen.getByRole("main");
+    const scrollTo = vi.fn();
+    main.scrollTo = scrollTo as unknown as typeof main.scrollTo;
+    expect(screen.queryByTestId("back-to-top")).toBeNull();
+    main.scrollTop = 120;
+    fireEvent.scroll(main);
+    expect(screen.queryByTestId("back-to-top")).toBeNull(); // not far enough
+    main.scrollTop = 900;
+    fireEvent.scroll(main);
+    fireEvent.click(screen.getByRole("button", { name: "Back to top" }));
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    main.scrollTop = 0;
+    fireEvent.scroll(main);
+    expect(screen.queryByTestId("back-to-top")).toBeNull();
+  });
+});
+
+describe("swipe gestures of the drawer", () => {
+  const touch = (type: "touchstart" | "touchend", x: number, y = 300) => {
+    const point = { clientX: x, clientY: y, identifier: 1, target: document.body };
+    act(() => {
+      fireEvent(document, Object.assign(new Event(type, { bubbles: true }), { touches: type === "touchstart" ? [point] : [], changedTouches: [point] }));
+    });
+  };
+  const swipe = (from: number, to: number, y2 = 300) => {
+    touch("touchstart", from);
+    touch("touchend", to, y2);
+  };
+  const width = window.innerWidth;
+  afterEach(() => {
+    window.innerWidth = width;
+  });
+
+  it("opens from the left edge and closes with a swipe to the left (phone width only)", () => {
+    window.innerWidth = 390;
+    renderShell();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    swipe(200, 320); // not from the edge
+    expect(screen.queryByRole("dialog")).toBeNull();
+    swipe(30, 60); // too short
+    expect(screen.queryByRole("dialog")).toBeNull();
+    swipe(30, 140, 500); // mostly vertical
+    expect(screen.queryByRole("dialog")).toBeNull();
+    swipe(30, 160);
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    swipe(250, 120);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("does nothing on a wide screen", () => {
+    window.innerWidth = 1280;
+    renderShell();
+    swipe(30, 160);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("leaves the first pixels to the browser (its back gesture)", () => {
+    window.innerWidth = 390;
+    renderShell();
+    swipe(8, 140);
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
