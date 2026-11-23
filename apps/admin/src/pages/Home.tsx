@@ -103,15 +103,25 @@ function QuickActions() {
 
 const healthClass: Record<string, string> = {
   Healthy: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  Progressing: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  Progressing: "bg-sky-500/15 text-sky-700 dark:text-sky-400",
   Degraded: "bg-red-500/15 text-red-700 dark:text-red-400",
+  Suspended: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
+  Missing: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
+  Unknown: "bg-muted text-muted-foreground",
 };
+
+const healthOrder = ["Healthy", "Progressing", "Degraded", "Suspended", "Missing", "Unknown"] as const;
+
+/** An ArgoCD health status as one of the known ones; anything else is Unknown. */
+function knownHealth(health: string): (typeof healthOrder)[number] {
+  return (healthOrder as readonly string[]).includes(health) ? (health as (typeof healthOrder)[number]) : "Unknown";
+}
 
 function HealthBadge({ health }: { health: string }) {
   const { t } = useTranslation();
-  const known = ["Healthy", "Progressing", "Degraded", "Suspended", "Missing"].includes(health) ? health : "Unknown";
+  const known = knownHealth(health);
   return (
-    <Badge variant="outline" className={cn("border-transparent font-normal", healthClass[known] ?? "bg-muted text-muted-foreground")} data-testid="health-badge" data-health={known}>
+    <Badge variant="outline" className={cn("border-transparent font-normal", healthClass[known])} data-testid="health-badge" data-health={known}>
       {t(`home.system.health_.${known}`)}
     </Badge>
   );
@@ -139,14 +149,15 @@ function SystemStatus() {
   }
   if (!status.data) return <Loading />;
   const apps: SystemApp[] = status.data.apps ?? [];
-  const healthy = apps.filter((a) => a.health === "Healthy").length;
+  const counts = Object.fromEntries(healthOrder.map((h) => [h, apps.filter((a) => knownHealth(a.health) === h).length]));
+  const outOfSync = apps.filter((a) => a.sync === "OutOfSync").length;
   return (
     <section className="flex flex-col gap-3" aria-label={t("home.system.title")} data-testid="system-status">
       <div className="flex items-center justify-between gap-2">
         <div>
           <h2 className="text-sm font-medium text-muted-foreground">{t("home.system.title")}</h2>
           <p className="text-sm" data-testid="system-summary">
-            {t("home.system.summary", { healthy, total: apps.length })}
+            {t("home.system.summary", { count: apps.length })}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={status.reload} aria-label={t("home.system.refresh")}>
@@ -154,6 +165,26 @@ function SystemStatus() {
           {t("home.system.refresh")}
         </Button>
       </div>
+      {apps.length > 0 && (
+        <ul className="flex flex-wrap gap-2" data-testid="health-counts">
+          {healthOrder
+            .filter((h) => counts[h]! > 0 || h === "Healthy")
+            .map((h) => (
+              <li key={h}>
+                <Badge variant="outline" className={cn("border-transparent font-normal", healthClass[h])} data-testid={`health-count-${h}`} data-count={counts[h]}>
+                  <span className="font-semibold">{counts[h]}</span> {t(`home.system.health_.${h}`)}
+                </Badge>
+              </li>
+            ))}
+          {outOfSync > 0 && (
+            <li>
+              <Badge variant="outline" className="border-transparent bg-amber-500/15 font-normal text-amber-700 dark:text-amber-400" data-testid="out-of-sync-count">
+                {t("home.system.outOfSyncCount", { count: outOfSync })}
+              </Badge>
+            </li>
+          )}
+        </ul>
+      )}
       {apps.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("home.system.none")}</p>
       ) : (
@@ -179,7 +210,7 @@ function SystemStatus() {
                     <td className="px-4 py-2">
                       <SyncBadge sync={a.sync} />
                     </td>
-                    <td className="px-4 py-2 font-mono text-xs">{a.revision ? a.revision.slice(0, 12) : ""}</td>
+                    <td className="px-4 py-2 font-mono text-xs" title={a.revision}>{shortRevision(a.revision)}</td>
                     <td className="px-4 py-2 text-muted-foreground">{a.syncedAt ? formatDateTime(Date.parse(a.syncedAt) / 1000, i18n.resolvedLanguage ?? "en") : ""}</td>
                   </tr>
                 ))}
@@ -204,4 +235,10 @@ export function Home() {
       <SystemStatus />
     </>
   );
+}
+
+/** A git commit is shortened to 7 characters; a chart version or a tag ("v2026.11.2-release-463f6d9") is shown whole. */
+function shortRevision(revision?: string): string {
+  if (!revision) return "";
+  return /^[0-9a-f]{40}$/i.test(revision) ? revision.slice(0, 7) : revision;
 }

@@ -2,7 +2,7 @@
 # End to end run of the admin app against a real identity and gatekeeper (sibling checkouts ../identity
 # and ../gatekeeper): Playwright drives a browser through login, roles, users and logout.
 #
-# Needs Postgres with the identity schema (db-migration V1..V13) and Redis (POSTGRES_* / REDIS_*), Go,
+# Needs Postgres with the identity schema (db-migration V1..V14) and Redis (POSTGRES_* / REDIS_*), Go,
 # openssl, pnpm and a Chromium for Playwright (pnpm exec playwright install chromium).
 set -euo pipefail
 cd "$(dirname "$0")/.."

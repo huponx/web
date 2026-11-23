@@ -81,7 +81,8 @@
     },
     "system": {
       "title": "System status",
-      "summary": "{{healthy}} of {{total}} applications healthy",
+      "summary": "{{count}} applications",
+      "outOfSyncCount": "{{count}} out of sync",
       "synced": "Synced",
       "outOfSync": "Out of sync",
       "unknown": "Unknown",
