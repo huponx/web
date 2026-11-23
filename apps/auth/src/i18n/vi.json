@@ -1,0 +1,106 @@
+{
+  "common": {
+    "email": "E-mail",
+    "password": "Mật khẩu",
+    "continue": "Tiếp tục",
+    "backToSignIn": "Quay lại đăng nhập",
+    "back": "Quay lại"
+  },
+  "login": {
+    "title": "Đăng nhập",
+    "submit": "Đăng nhập",
+    "forgot": "Quên mật khẩu?"
+  },
+  "mfa": {
+    "title": "Xác minh",
+    "code": "Mã từ ứng dụng xác thực hoặc mã khôi phục",
+    "submit": "Xác minh"
+  },
+  "passwordChange": {
+    "title": "Chọn mật khẩu mới",
+    "notice": "Bạn đang đăng nhập bằng mật khẩu tạm. Hãy chọn mật khẩu của riêng bạn để tiếp tục.",
+    "new": "Mật khẩu mới (ít nhất 12 ký tự)",
+    "repeat": "Nhập lại mật khẩu mới",
+    "submit": "Đặt mật khẩu"
+  },
+  "forgot": {
+    "title": "Quên mật khẩu?",
+    "send": "Gửi liên kết",
+    "sentTitle": "Kiểm tra e-mail của bạn",
+    "sent": "Nếu địa chỉ đã đăng ký, chúng tôi đã gửi liên kết để đặt lại mật khẩu. Liên kết có hiệu lực trong 30 phút."
+  },
+  "reset": {
+    "title": "Chọn mật khẩu mới",
+    "new": "Mật khẩu mới (ít nhất 12 ký tự)",
+    "submit": "Đặt mật khẩu",
+    "invalidTitle": "Liên kết không hợp lệ",
+    "invalid": "Liên kết này không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.",
+    "askAgain": "Yêu cầu liên kết mới",
+    "doneTitle": "Đã đổi mật khẩu",
+    "done": "Mật khẩu của bạn đã được đổi và bạn đã bị đăng xuất khỏi mọi nơi."
+  },
+  "account": {
+    "title": "Xác thực nhiều yếu tố",
+    "on": "Xác thực nhiều yếu tố đang bật. Số mã khôi phục còn lại: {{count}}.",
+    "forced": "Tài khoản của bạn bắt buộc dùng nên không thể tắt.",
+    "codeOrRecovery": "Mã hoặc mã khôi phục",
+    "turnOff": "Tắt",
+    "enrollTitle": "Bật xác thực nhiều yếu tố",
+    "scan": "Quét mã bằng ứng dụng xác thực, rồi nhập mã 6 chữ số mà ứng dụng hiển thị.",
+    "qrAlt": "Mã QR",
+    "typeKey": "Hoặc nhập khóa này:",
+    "code": "Mã",
+    "turnOn": "Bật",
+    "codesTitle": "Mã khôi phục",
+    "codesText": "Xác thực nhiều yếu tố đã bật. Hãy cất các mã khôi phục này ở nơi an toàn: mỗi mã chỉ dùng được một lần và sẽ không hiển thị lại."
+  },
+  "logout": {
+    "title": "Đăng xuất",
+    "submit": "Đăng xuất",
+    "doneTitle": "Đã đăng xuất",
+    "done": "Bạn đã đăng xuất."
+  },
+  "errors": {
+    "pageTitle": "Đã xảy ra lỗi",
+    "csrf_expired": "Biểu mẫu đã hết hạn. Hãy thử lại.",
+    "rate_limited": "Quá nhiều lần thử. Hãy đợi vài phút.",
+    "invalid_credentials": "Sai e-mail hoặc mật khẩu.",
+    "invalid_code": "Sai mã. Hãy kiểm tra đồng hồ của thiết bị và thử lại.",
+    "invalid_mfa_code": "Sai mã.",
+    "invalid_password_or_code": "Sai mật khẩu hoặc mã.",
+    "challenge_expired": "Sai quá nhiều lần hoặc yêu cầu đã hết hạn. Hãy đăng nhập lại.",
+    "unauthenticated": "Hãy đăng nhập lại.",
+    "invalid_link": "Liên kết này không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.",
+    "mfa_forced": "Tài khoản của bạn bắt buộc dùng xác thực nhiều yếu tố.",
+    "mfa_enabled": "Xác thực nhiều yếu tố đã được bật.",
+    "password_mismatch": "Hai mật khẩu không giống nhau.",
+    "password_too_short": "Mật khẩu phải có ít nhất 12 ký tự.",
+    "password_too_long": "Mật khẩu quá dài.",
+    "password_common": "Mật khẩu quá phổ biến.",
+    "password_same": "Mật khẩu phải khác mật khẩu trước.",
+    "password_email": "Mật khẩu không được chứa địa chỉ e-mail.",
+    "internal": "Đã xảy ra lỗi. Hãy thử lại.",
+    "network": "Không kết nối được máy chủ. Hãy thử lại.",
+    "page": {
+      "unknown_client": "Ứng dụng không xác định.",
+      "bad_redirect": "Địa chỉ chuyển hướng chưa được đăng ký cho ứng dụng này.",
+      "bad_request": "Yêu cầu không hợp lệ.",
+      "not_found": "Trang này không tồn tại.",
+      "internal": "Đã xảy ra lỗi. Hãy thử lại."
+    }
+  },
+  "apps": {
+    "title": "Ứng dụng",
+    "signedInAs": "Đã đăng nhập: {{who}}",
+    "none": "Chưa có ứng dụng nào được cấu hình.",
+    "security": "Xác thực nhiều lớp (MFA)",
+    "signOut": "Đăng xuất"
+  },
+  "preferences": {
+    "group": "Giao diện",
+    "light": "Sáng",
+    "dark": "Tối",
+    "system": "Theo hệ thống",
+    "language": "Ngôn ngữ"
+  }
+}

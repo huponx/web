@@ -1,0 +1,453 @@
+{
+  "common": {
+    "loading": "Đang tải...",
+    "signingIn": "Đang đăng nhập...",
+    "tryAgain": "Thử lại",
+    "close": "Đóng",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "copy": "Sao chép",
+    "delete": "Xóa",
+    "none": "không có",
+    "noneParen": "(không có)",
+    "empty": "Không có dữ liệu.",
+    "somethingWrong": "Đã có lỗi xảy ra.",
+    "notAllowed": "Bạn không có quyền xem trang này.",
+    "notFound": "Không tìm thấy trang.",
+    "clearField": "Xóa {{label}}",
+    "confirmTitle": "Bạn có chắc không?",
+    "confirm": "Xác nhận",
+    "required": "Trường này là bắt buộc.",
+    "invalidEmail": "Nhập địa chỉ email hợp lệ.",
+    "invalidFormat": "Hãy dùng đúng định dạng gợi ý bên dưới ô nhập.",
+    "search": "Tìm kiếm",
+    "clearSearch": "Xóa tìm kiếm",
+    "loadMore": "Tải thêm"
+  },
+  "shell": {
+    "brand": "Admin Portal",
+    "navigation": "Chính",
+    "collapse": "Thu gọn thanh bên",
+    "expand": "Mở rộng thanh bên",
+    "openMenu": "Mở menu",
+    "closeMenu": "Đóng menu",
+    "breadcrumb": "Đường dẫn",
+    "userMenu": "Menu người dùng",
+    "signOut": "Đăng xuất",
+    "language": "Ngôn ngữ",
+    "theme": {
+      "group": "Giao diện",
+      "light": "Sáng",
+      "dark": "Tối",
+      "system": "Theo hệ thống"
+    }
+  },
+  "nav": {
+    "home": "Trang chủ",
+    "users": "Người dùng",
+    "roles": "Vai trò & Quyền",
+    "clients": "Ứng dụng khách",
+    "exchange": "Chính sách đổi token",
+    "settings": "Cài đặt",
+    "userNew": "Thêm",
+    "userEdit": "Sửa",
+    "roleNew": "Thêm",
+    "roleEdit": "Sửa",
+    "clientNew": "Thêm",
+    "clientEdit": "Sửa",
+    "exchangeNew": "Thêm",
+    "exchangeEdit": "Sửa"
+  },
+  "home": {
+    "title": "Admin Portal",
+    "hello": "Xin chào, {{name}}",
+    "subtitle": "Tình hình hệ thống danh tính của bạn.",
+    "stats": {
+      "users": "Người dùng",
+      "newThisMonth": "+{{count}} trong tháng",
+      "active": "Người dùng hoạt động",
+      "activeShare": "{{percent}}% tổng số người dùng",
+      "roles": "Vai trò",
+      "permissions": "{{count}} quyền",
+      "pending": "Người dùng chờ kích hoạt",
+      "pendingHint": "Chưa đặt mật khẩu"
+    },
+    "quick": {
+      "title": "Thao tác nhanh",
+      "addUser": "Thêm người dùng",
+      "createRole": "Tạo vai trò",
+      "addClient": "Thêm client",
+      "addExchange": "Thêm chính sách exchange"
+    },
+    "system": {
+      "title": "Trạng thái hệ thống",
+      "summary": "{{healthy}}/{{total}} ứng dụng khoẻ mạnh",
+      "synced": "Đã đồng bộ",
+      "outOfSync": "Lệch cấu hình",
+      "unknown": "Không rõ",
+      "refresh": "Làm mới",
+      "app": "Ứng dụng",
+      "sync": "Đồng bộ",
+      "health": "Sức khoẻ",
+      "revision": "Phiên bản",
+      "syncedAt": "Đồng bộ lần cuối",
+      "none": "Không có ứng dụng nào.",
+      "error": "Không đọc được trạng thái.",
+      "health_": {
+        "Healthy": "Khoẻ mạnh",
+        "Progressing": "Đang triển khai",
+        "Degraded": "Suy giảm",
+        "Suspended": "Tạm dừng",
+        "Missing": "Thiếu",
+        "Unknown": "Không rõ"
+      }
+    }
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "appearance": {
+      "title": "Giao diện",
+      "description": "Chọn giao diện và ngôn ngữ của trang quản trị. Ngôn ngữ cũng được lưu vào tài khoản của bạn.",
+      "theme": "Giao diện",
+      "language": "Ngôn ngữ"
+    },
+    "session": {
+      "title": "Phiên đăng nhập",
+      "description": "Một lời gọi qua gateway bằng cookie phiên của bạn.",
+      "subject": "Chủ thể",
+      "methods": "Phương thức xác thực",
+      "expires": "Hết hạn",
+      "refresh": "Làm mới"
+    },
+    "profile": {
+      "title": "Hồ sơ",
+      "description": "Tên và ảnh đại diện của bạn. Chúng hiển thị ở đầu trang; bạn tự thay đổi mà không cần quyền nào.",
+      "saved": "Đã lưu hồ sơ."
+    }
+  },
+  "users": {
+    "title": "Người dùng",
+    "search": {
+      "label": "Email",
+      "hint": "Các email bắt đầu bằng đoạn văn bản này",
+      "button": "Tìm",
+      "name": "Tên",
+      "nameHint": "Tên có chứa chữ này",
+      "status": "Trạng thái",
+      "role": "Vai trò",
+      "any": "Tất cả",
+      "clear": "Xóa bộ lọc"
+    },
+    "col": {
+      "user": "Người dùng",
+      "roles": "Vai trò",
+      "status": "Trạng thái",
+      "mfa": "MFA",
+      "lastLogin": "Đăng nhập gần nhất",
+      "added": "Ngày thêm"
+    },
+    "status": {
+      "active": "Hoạt động",
+      "pending": "Chờ kích hoạt",
+      "disabled": "Đã khóa"
+    },
+    "mfaState": {
+      "required": "bắt buộc",
+      "enrolled": "đã đăng ký"
+    },
+    "manage": "Quản lý",
+    "manageAria": "Quản lý {{email}}",
+    "loadMore": "Tải thêm",
+    "new": {
+      "title": "Thêm người dùng",
+      "description": "Người dùng nhận email chào mừng kèm liên kết để tự đặt mật khẩu.",
+      "create": "Tạo người dùng",
+      "created": "Đã tạo người dùng {{email}}.",
+      "welcomeSent": "Đã gửi email chào mừng kèm liên kết đặt mật khẩu.",
+      "welcomeNote": "Email chào mừng kèm liên kết đặt mật khẩu (có hiệu lực 7 ngày) sẽ được gửi cho người dùng. Tài khoản ở trạng thái Chờ kích hoạt cho đến khi họ đặt mật khẩu."
+    },
+    "roles": {
+      "title": "Vai trò",
+      "none": "Chưa có vai trò nào.",
+      "more": "+{{count}} nữa"
+    },
+    "account": {
+      "title": "Tài khoản",
+      "enable": "Mở khóa tài khoản",
+      "disable": "Khóa tài khoản",
+      "enabled": "Đã mở khóa tài khoản.",
+      "disabled": "Đã khóa tài khoản.",
+      "sendReset": "Gửi email đặt lại mật khẩu",
+      "resetSent": "Đã gửi email đặt lại mật khẩu.",
+      "status": "Trạng thái",
+      "pendingHint": "Người dùng chưa đặt mật khẩu. Tài khoản sẽ hoạt động khi họ đặt mật khẩu qua liên kết trong email chào mừng.",
+      "resendWelcome": "Gửi lại email chào mừng",
+      "welcomeSent": "Đã gửi email chào mừng.",
+      "lastLogin": "Đăng nhập gần nhất:"
+    },
+    "mfa": {
+      "title": "Xác thực đa yếu tố",
+      "state": "Chế độ máy chủ: <strong>{{mode}}</strong>. Người dùng này: {{enrolled}}, {{required}}, số mã khôi phục còn lại: {{left}}.",
+      "enrolledYes": "đã đăng ký ứng dụng xác thực",
+      "enrolledNo": "chưa đăng ký",
+      "requiredYes": "bắt buộc",
+      "requiredNo": "không bắt buộc",
+      "require": "Bắt buộc MFA",
+      "stopRequire": "Bỏ bắt buộc MFA",
+      "required": "MFA đã được bắt buộc cho người dùng này.",
+      "notRequired": "MFA không còn bắt buộc.",
+      "turnOff": "Tắt",
+      "turnedOff": "Đã tắt MFA.",
+      "reset": "Đặt lại",
+      "resetDone": "Đã đặt lại MFA.",
+      "confirmReset": "Đặt lại MFA? Ứng dụng xác thực và các mã khôi phục sẽ bị xóa.",
+      "hint": "Quản trị viên không thể đăng ký ứng dụng xác thực thay người dùng: người dùng tự làm trên thiết bị của họ."
+    },
+    "add": "Thêm người dùng",
+    "form": {
+      "profile": "Hồ sơ",
+      "email": "Email",
+      "name": "Tên",
+      "locale": "Ngôn ngữ",
+      "localeHint": "Ngôn ngữ của các email gửi cho người dùng."
+    },
+    "edit": {
+      "save": "Lưu thay đổi",
+      "saved": "Đã lưu thay đổi."
+    },
+    "avatar": {
+      "file": "Tệp ảnh",
+      "upload": "Tải ảnh lên",
+      "remove": "Xóa ảnh",
+      "hint": "PNG, JPEG hoặc WebP. Ảnh được cắt vuông và thu nhỏ còn {{side}}x{{side}} ngay trên trình duyệt trước khi lưu.",
+      "size": "Ảnh sau khi thu nhỏ: {{kb}} KB.",
+      "failedAfterCreate": "Không lưu được ảnh: hãy tải lên lại.",
+      "error": {
+        "type": "Hãy chọn tệp PNG, JPEG hoặc WebP.",
+        "size": "Tệp lớn hơn 5 MB.",
+        "decode": "Không đọc được tệp này như một bức ảnh.",
+        "encode": "Không xử lý được ảnh."
+      }
+    },
+    "never": "Chưa từng",
+    "stats": {
+      "title": "Thống kê người dùng",
+      "total": "Người dùng",
+      "active": "Đang hoạt động",
+      "pending": "Chờ kích hoạt",
+      "disabled": "Đã vô hiệu hóa",
+      "mfaEnabled": "Đã bật MFA",
+      "mfaEnforced": "Bắt buộc MFA",
+      "signedIn30d": "Đăng nhập 30 ngày qua",
+      "neverSignedIn": "Chưa từng đăng nhập",
+      "expand": "Hiện tất cả thống kê",
+      "collapse": "Thu gọn thống kê"
+    }
+  },
+  "roles": {
+    "title": "Vai trò & Quyền",
+    "col": {
+      "role": "Vai trò",
+      "description": "Mô tả",
+      "permissions": "Quyền",
+      "assigned": "Đã gán",
+      "actions": "Thao tác"
+    },
+    "editPermissions": "Sửa quyền",
+    "new": {
+      "title": "Vai trò mới",
+      "name": "Tên",
+      "nameHint": "chữ thường, ví dụ support",
+      "description": "Mô tả",
+      "permissions": "Quyền",
+      "permissionsHint": "Cách nhau bằng dấu cách hoặc xuống dòng, ví dụ identity:user:read bill:*",
+      "create": "Tạo vai trò",
+      "created": "Đã tạo vai trò {{name}}.",
+      "pickHint": "Chọn các quyền mà vai trò được cấp."
+    },
+    "perm": {
+      "title": "Quyền",
+      "intro": "Danh mục các quyền có thể cấp cho vai trò. Quyền đang được vai trò sử dụng thì không thể xoá.",
+      "name": "Quyền",
+      "description": "Mô tả",
+      "roles": "Vai trò",
+      "actions": "Thao tác",
+      "edit": "Sửa",
+      "editAria": "Sửa {{name}}",
+      "deleteAria": "Xoá {{name}}",
+      "editTitle": "Sửa {{name}}",
+      "inUse": "Đang được vai trò sử dụng",
+      "confirmDelete": "Xoá quyền {{name}}?",
+      "created": "Đã thêm quyền {{name}}.",
+      "deleted": "Đã xoá quyền {{name}}.",
+      "new": "Thêm quyền",
+      "nameHint": "Ví dụ bill:invoice:read, hoặc wildcard như bill:*.",
+      "add": "Thêm quyền",
+      "empty": "Danh mục chưa có quyền nào.",
+      "wildcards": "Wildcard",
+      "unknown": "Không có trong danh mục",
+      "search": "Tìm permission",
+      "searchHint": "Tên hoặc mô tả"
+    },
+    "tab": {
+      "roles": "Vai trò",
+      "permissions": "Quyền"
+    },
+    "add": "Thêm vai trò",
+    "manage": "Quản lý",
+    "editAria": "Quản lý {{name}}",
+    "deleteAria": "Xoá {{name}}",
+    "form": {
+      "addTitle": "Thêm vai trò",
+      "addIntro": "Đặt tên cho vai trò và chọn các quyền được phép.",
+      "details": "Vai trò",
+      "nameFixed": "Không thể đổi tên của vai trò.",
+      "save": "Lưu thay đổi",
+      "saved": "Đã lưu thay đổi.",
+      "deleteTitle": "Xoá vai trò",
+      "deleteHint": "Chưa có user hay client nào giữ vai trò này nên có thể xoá.",
+      "heldBy": "Đang được {{count}} user/client giữ; hãy gỡ vai trò khỏi họ trước.",
+      "delete": "Xoá vai trò",
+      "confirmDelete": "Xoá vai trò {{name}}?",
+      "deleted": "Đã xoá vai trò {{name}}.",
+      "notFound": "Không có vai trò {{name}}."
+    },
+    "search": "Tìm kiếm",
+    "searchHint": "Tên, mô tả hoặc một permission của role"
+  },
+  "clients": {
+    "title": "Ứng dụng khách",
+    "col": {
+      "client": "Ứng dụng",
+      "name": "Tên",
+      "type": "Loại",
+      "grants": "Grant",
+      "roles": "Vai trò",
+      "actions": "Thao tác"
+    },
+    "type": {
+      "public": "public",
+      "confidential": "confidential"
+    },
+    "rotate": "Đổi secret",
+    "confirmRotate": "Đổi secret của {{id}}? Secret hiện tại sẽ ngừng hoạt động.",
+    "secret": {
+      "title": "Secret của {{id}}",
+      "warning": "Hãy sao chép ngay. Secret chỉ hiện một lần và không đọc lại được; đổi secret để lấy giá trị mới.",
+      "saved": "Tôi đã lưu"
+    },
+    "new": {
+      "title": "Ứng dụng khách mới",
+      "id": "Client id",
+      "name": "Tên",
+      "type": "Loại",
+      "typeConfidential": "confidential (có secret)",
+      "typePublic": "public (PKCE, không có secret)",
+      "redirects": "Redirect URI",
+      "logouts": "Post logout redirect URI",
+      "grants": "Grant được phép",
+      "scopes": "Scope được phép",
+      "scopesHint": "openid profile email ...",
+      "resource": "Resource (audience mặc định)",
+      "roles": "Vai trò",
+      "rolesHint": "Vai trò của ứng dụng máy (client_credentials)",
+      "create": "Tạo ứng dụng khách",
+      "backchannel": "Backchannel logout URI"
+    },
+    "add": "Thêm client",
+    "manage": "Quản lý",
+    "manageAria": "Quản lý client {{id}}",
+    "status": {
+      "disabled": "Đã vô hiệu hóa"
+    },
+    "form": {
+      "addTitle": "Thêm client",
+      "addIntro": "Đăng ký một ứng dụng hoặc dịch vụ đăng nhập qua identity.",
+      "details": "Client",
+      "idFixed": "Không thể đổi id của client.",
+      "typeFixed": "Không thể đổi loại của client.",
+      "uris": "Chuyển hướng và đăng xuất",
+      "access": "Grant và scope",
+      "save": "Lưu thay đổi",
+      "saved": "Đã lưu thay đổi.",
+      "created": "Đã tạo client {{id}}.",
+      "notFound": "Không có client {{id}}.",
+      "rotateHint": "Cấp secret mới; secret hiện tại ngừng hoạt động ngay.",
+      "dangerTitle": "Vô hiệu hóa hoặc xóa",
+      "enabledHint": "Vô hiệu hóa client để chặn đăng nhập và cấp token. Chỉ client đã vô hiệu hóa mới xóa được.",
+      "disabledHint": "Client này không thể đăng nhập hay nhận token. Bật lại, hoặc xóa hẳn.",
+      "disable": "Vô hiệu hóa client",
+      "enable": "Bật client",
+      "delete": "Xóa client",
+      "deleteTitle": "Xóa client",
+      "deleteWarning": "Xóa {{id}} cũng xóa các role và exchange policy của nó. Không thể hoàn tác.",
+      "typeToConfirm": "Nhập {{id}} để xác nhận",
+      "deleted": "Đã xóa client {{id}}.",
+      "accessHint": "Chọn các grant client này được dùng. Scope: để trống sẽ dùng openid profile email offline_access."
+    },
+    "grant": {
+      "authorization_code": "Người dùng đăng nhập trên trình duyệt (public client dùng kèm PKCE).",
+      "refresh_token": "Lấy token mới mà không phải đăng nhập lại.",
+      "client_credentials": "Một dịch vụ gọi API bằng chính nó, không có người dùng. Chỉ dành cho client confidential.",
+      "token_exchange": "Đổi token lấy token cho service khác (gateway dùng cách này).",
+      "unknown": "Không phải grant identity biết; bỏ chọn để xóa."
+    },
+    "scope": {
+      "suggested": "Scope chuẩn"
+    },
+    "search": "Tìm kiếm",
+    "searchHint": "Id, tên, grant hoặc role",
+    "filter": {
+      "anyType": "Mọi loại"
+    }
+  },
+  "exchange": {
+    "title": "Chính sách đổi token",
+    "intro": "Việc đổi token bị từ chối trừ khi có chính sách cho phép ứng dụng gọi lấy token cho audience đó.",
+    "col": {
+      "client": "Ứng dụng",
+      "audience": "Audience",
+      "maxScope": "Scope tối đa",
+      "depth": "Độ sâu chuỗi",
+      "actions": "Thao tác"
+    },
+    "confirmDelete": "Xóa chính sách của {{client}} cho {{audience}}? Việc đổi token sẽ ngừng hoạt động (mặc định từ chối).",
+    "saved": "Đã lưu chính sách.",
+    "deleted": "Đã xóa chính sách.",
+    "set": {
+      "title": "Đặt chính sách",
+      "client": "Client id",
+      "audience": "Audience",
+      "maxScope": "Scope tối đa",
+      "maxScopeHint": "Cách nhau bằng dấu cách",
+      "depth": "Độ sâu chuỗi tối đa",
+      "save": "Lưu chính sách"
+    },
+    "add": "Thêm policy",
+    "manage": "Quản lý",
+    "manageAria": "Quản lý policy của {{client}} cho {{audience}}",
+    "deleteAria": "Xóa policy của {{client}} cho {{audience}}",
+    "search": "Tìm kiếm",
+    "searchHint": "Client, audience hoặc scope",
+    "filter": {
+      "audience": "Audience",
+      "audienceHint": "Audience chứa đoạn text này"
+    },
+    "form": {
+      "addTitle": "Thêm policy",
+      "addIntro": "Cho phép một client đổi token lấy token cho một audience.",
+      "details": "Policy",
+      "keyFixed": "Không thể đổi client và audience của policy.",
+      "audienceHint": "Service mà token sau khi đổi dành cho, ví dụ identity",
+      "limits": "Giới hạn",
+      "depthHint": "Token sau khi đổi có tối đa 1 đến 5 cấp act (ủy quyền)",
+      "save": "Lưu thay đổi",
+      "saved": "Đã lưu thay đổi.",
+      "created": "Đã tạo policy.",
+      "notFound": "Không có policy của {{client}} cho {{audience}}.",
+      "deleteTitle": "Xóa policy",
+      "deleteHint": "Việc đổi token của client này cho audience này sẽ ngừng hoạt động (mặc định từ chối).",
+      "delete": "Xóa policy"
+    }
+  }
+}

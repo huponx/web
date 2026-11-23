@@ -1,0 +1,106 @@
+{
+  "common": {
+    "email": "E-mail",
+    "password": "Password",
+    "continue": "Continue",
+    "backToSignIn": "Back to sign in",
+    "back": "Back"
+  },
+  "login": {
+    "title": "Sign in",
+    "submit": "Sign in",
+    "forgot": "Forgot your password?"
+  },
+  "mfa": {
+    "title": "Verification",
+    "code": "Code from your authenticator app, or a recovery code",
+    "submit": "Verify"
+  },
+  "passwordChange": {
+    "title": "Choose a new password",
+    "notice": "You are signing in with a temporary password. Choose your own to continue.",
+    "new": "New password (at least 12 characters)",
+    "repeat": "Repeat the new password",
+    "submit": "Set the password"
+  },
+  "forgot": {
+    "title": "Forgot your password?",
+    "send": "Send the link",
+    "sentTitle": "Check your e-mail",
+    "sent": "If the address is registered, we sent a link to reset the password. It works for 30 minutes."
+  },
+  "reset": {
+    "title": "Choose a new password",
+    "new": "New password (at least 12 characters)",
+    "submit": "Set the password",
+    "invalidTitle": "Link not valid",
+    "invalid": "This link is not valid or has expired. Ask for a new one.",
+    "askAgain": "Ask for a new link",
+    "doneTitle": "Password changed",
+    "done": "Your password was changed and you were signed out everywhere."
+  },
+  "account": {
+    "title": "Multi-factor authentication",
+    "on": "Multi-factor authentication is on. Recovery codes left: {{count}}.",
+    "forced": "It is required for your account and cannot be turned off.",
+    "codeOrRecovery": "Code or recovery code",
+    "turnOff": "Turn off",
+    "enrollTitle": "Turn on multi-factor authentication",
+    "scan": "Scan the code with an authenticator app, then enter the 6 digit code it shows.",
+    "qrAlt": "QR code",
+    "typeKey": "Or type this key:",
+    "code": "Code",
+    "turnOn": "Turn on",
+    "codesTitle": "Recovery codes",
+    "codesText": "Multi-factor authentication is on. Keep these recovery codes in a safe place: each works once, and they are not shown again."
+  },
+  "logout": {
+    "title": "Sign out",
+    "submit": "Sign out",
+    "doneTitle": "Signed out",
+    "done": "You have been signed out."
+  },
+  "errors": {
+    "pageTitle": "Something went wrong",
+    "csrf_expired": "The form expired. Please try again.",
+    "rate_limited": "Too many attempts. Please wait a few minutes.",
+    "invalid_credentials": "Wrong e-mail or password.",
+    "invalid_code": "Wrong code. Check the clock of your device and try again.",
+    "invalid_mfa_code": "Wrong code.",
+    "invalid_password_or_code": "Wrong password or code.",
+    "challenge_expired": "Too many wrong attempts or the request expired. Please sign in again.",
+    "unauthenticated": "Please sign in again.",
+    "invalid_link": "This link is not valid or has expired. Ask for a new one.",
+    "mfa_forced": "Multi-factor authentication is required for your account.",
+    "mfa_enabled": "Multi-factor authentication is already on.",
+    "password_mismatch": "The two passwords are not the same.",
+    "password_too_short": "The password must have at least 12 characters.",
+    "password_too_long": "The password is too long.",
+    "password_common": "The password is too common.",
+    "password_same": "The password must differ from the previous one.",
+    "password_email": "The password must not contain the e-mail address.",
+    "internal": "Something went wrong. Please try again.",
+    "network": "The server cannot be reached. Please try again.",
+    "page": {
+      "unknown_client": "Unknown application.",
+      "bad_redirect": "The redirect address is not registered for this application.",
+      "bad_request": "The request is not valid.",
+      "not_found": "This page does not exist.",
+      "internal": "Something went wrong. Please try again."
+    }
+  },
+  "apps": {
+    "title": "Applications",
+    "signedInAs": "Signed in as {{who}}",
+    "none": "No application is configured.",
+    "security": "Multi-factor authentication",
+    "signOut": "Sign out"
+  },
+  "preferences": {
+    "group": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "language": "Language"
+  }
+}

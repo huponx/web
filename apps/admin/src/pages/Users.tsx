@@ -1,279 +1,211 @@
-import { Can } from "@huponx/auth-client";
-import { Actions, Badges, Button, Card, DataTable, ErrorNotice, Loading, Modal, Notice, PageTitle, TextField } from "@huponx/ui";
-import { useEffect, useState } from "react";
-import { useIdentity, useAction, useLoad, words } from "../api";
-import type { User } from "../api";
+import { Can, useAuth } from "@huponx/auth-client";
+import { Badge, Button, Card, CardContent } from "@huponx/ui-kit";
+import { ChevronDown, ChevronUp, KeyRound, Plus, ShieldCheck, UserCheck, UserMinus, UserX, Users as UsersIcon, Clock, LogIn, Pencil } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link, useSearchParams } from "react-router-dom";
+import { statusOf, useIdentity, useLoad, usePaged } from "../api";
+import type { UserFilter, UserStats } from "../api";
+import { formatDate, formatDateTime } from "../lib/date";
 
-function Mfa({ user, onChanged }: { user: User; onChanged: () => void }) {
+import { ActionLabel, Actions, BadgeList, DataTable, ErrorAlert, LoadMore, Loading, PageTitle, ROW_ACTION, SelectField, TextField } from "../components/common";
+
+const ALL = "all"; // Radix Select has no empty value
+const n = (v: string | undefined) => Number(v ?? 0);
+
+/** Counts of all users: by status, MFA and activity. */
+function Stats() {
+  const { t } = useTranslation();
   const api = useIdentity();
-  const { data, error, loading, reload } = useLoad(() => api.getMfa(user.id), [api, user.id, user.mfaEnabled, user.mfaEnforced]);
-  const a = useAction();
-
-  async function act(fn: () => Promise<unknown>, message: string) {
-    const r = await a.run(async () => (await fn(), true), message);
-    if (r) {
-      reload();
-      onChanged();
-    }
-  }
-
+  const stats = useLoad(() => api.getUserStats(), [api]);
+  const [expanded, setExpanded] = useState(false);
+  if (stats.error) return <ErrorAlert error={stats.error} />;
+  const s: UserStats | undefined = stats.data;
+  if (!s) return <Loading />;
+  const items = [
+    { key: "total", icon: UsersIcon, value: n(s.total) },
+    { key: "active", icon: UserCheck, value: n(s.active) },
+    { key: "pending", icon: Clock, value: n(s.pending) },
+    { key: "disabled", icon: UserX, value: n(s.disabled) },
+    { key: "mfaEnabled", icon: ShieldCheck, value: n(s.mfaEnabled) },
+    { key: "mfaEnforced", icon: KeyRound, value: n(s.mfaEnforced) },
+    { key: "signedIn30d", icon: LogIn, value: n(s.signedIn30d) },
+    { key: "neverSignedIn", icon: UserMinus, value: n(s.neverSignedIn) },
+  ];
+  // one line: the first four (the first two on a narrow screen); the icon at the right shows all of them
+  const shown = expanded ? items : items.slice(0, 4);
+  const Toggle = expanded ? ChevronUp : ChevronDown;
   return (
-    <section aria-label="Multi-factor authentication">
-      <h3>Multi-factor authentication</h3>
-      <ErrorNotice error={error} />
-      {loading ? <Loading /> : null}
-      {data ? (
-        <p data-testid="mfa-state">
-          Server mode: <strong>{data.mode}</strong>. This user: {data.enabled ? "authenticator enrolled" : "not enrolled"},{" "}
-          {data.enforced ? "required" : "not required"}, recovery codes left: {data.recoveryCodesLeft}.
-        </p>
-      ) : null}
-      <Can perm="identity:mfa:write">
-        <Actions>
-          <Button busy={a.busy} onClick={() => void act(() => api.enforceMfa(user.id, !data?.enforced), data?.enforced ? "MFA no longer required." : "MFA is required for this user.")}>
-            {data?.enforced ? "Stop requiring MFA" : "Require MFA"}
-          </Button>
-          {data?.enabled ? (
-            <Button busy={a.busy} onClick={() => void act(() => api.setMfa(user.id, false), "MFA turned off.")}>
-              Turn off
-            </Button>
-          ) : null}
-          <Button
-            variant="danger"
-            busy={a.busy}
-            onClick={() => window.confirm("Reset MFA? The authenticator and the recovery codes are deleted.") && void act(() => api.resetMfa(user.id), "MFA reset.")}
-          >
-            Reset
-          </Button>
-        </Actions>
-        <p className="ui-field-hint">An admin cannot enroll an authenticator for a user: the user does it on their own device.</p>
-      </Can>
-      <ErrorNotice error={a.error} />
-      {a.done ? <Notice>{a.done}</Notice> : null}
-    </section>
-  );
-}
-
-function RoleAssign({ user, onChanged }: { user: User; onChanged: () => void }) {
-  const api = useIdentity();
-  const known = useLoad(() => api.listRoles().catch(() => []), [api]);
-  const [role, setRole] = useState("");
-  const a = useAction();
-
-  async function act(fn: () => Promise<unknown>) {
-    const r = await a.run(async () => (await fn(), true));
-    if (r) {
-      setRole("");
-      onChanged();
-    }
-  }
-
-  return (
-    <section aria-label="Roles">
-      <h3>Roles</h3>
-      <p>
-        {user.roles.length === 0 ? <Badges items={[]} /> : null}
-        {user.roles.map((r) => (
-          <span key={r} className="ui-badge ui-mono">
-            {r}
-            <Can perm="identity:role:write">
-              {" "}
-              <button className="ui-btn ui-btn-link" aria-label={`Revoke ${r}`} disabled={a.busy} onClick={() => void act(() => api.revokeRole(r, { user_id: user.id }))}>
-                x
-              </button>
-            </Can>
-          </span>
+    <section aria-label={t("users.stats.title")} className="flex flex-col gap-1 pt-3" data-testid="user-stats">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-4">
+        {shown.map(({ key, icon: Icon, value }, i) => (
+          <div key={key} className={`relative ${!expanded && i >= 2 ? "hidden md:block" : ""}`}>
+            {/* the round badge sits on the top left corner of the card */}
+            <span className="absolute -left-2 -top-3 z-10 flex size-10 items-center justify-center rounded-full border bg-card shadow-md">
+              <Icon className="size-4" aria-hidden="true" />
+            </span>
+            <Card className="shadow-md">
+              <CardContent className="flex flex-col items-center gap-1 py-5 text-center">
+                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t(`users.stats.${key}`)}</span>
+                <span className="text-3xl font-semibold" data-testid={`stat-${key}`}>
+                  {value}
+                </span>
+              </CardContent>
+            </Card>
+          </div>
         ))}
-      </p>
-      <Can perm="identity:role:write">
-        <datalist id="known-roles">{known.data?.map((r) => <option key={r.name} value={r.name} />)}</datalist>
-        <TextField label="Assign role" list="known-roles" value={role} onChange={(e) => setRole(e.target.value)} />
-        <Actions>
-          <Button variant="primary" busy={a.busy} disabled={!role} onClick={() => void act(() => api.assignRole(role, { user_id: user.id }))}>
-            Assign
-          </Button>
-        </Actions>
-      </Can>
-      <ErrorNotice error={a.error} />
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="self-center"
+        data-testid="stats-toggle"
+        aria-expanded={expanded}
+        aria-label={expanded ? t("users.stats.collapse") : t("users.stats.expand")}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <Toggle aria-hidden="true" />
+      </Button>
     </section>
-  );
-}
-
-function Account({ user, onChanged }: { user: User; onChanged: () => void }) {
-  const api = useIdentity();
-  const [pw, setPw] = useState("");
-  const a = useAction();
-
-  async function act(fn: () => Promise<unknown>, message: string, changed = false) {
-    const r = await a.run(async () => (await fn(), true), message);
-    if (r && changed) onChanged();
-    if (r) setPw("");
-  }
-
-  return (
-    <Can perm="identity:user:write">
-      <section aria-label="Account">
-        <h3>Account</h3>
-        <Actions>
-          <Button busy={a.busy} onClick={() => void act(() => api.setDisabled(user.id, !user.disabled), user.disabled ? "Account enabled." : "Account disabled.", true)}>
-            {user.disabled ? "Enable account" : "Disable account"}
-          </Button>
-          <Button busy={a.busy} onClick={() => void act(() => api.sendReset(user.id), "Password reset email sent.")}>
-            Send password reset
-          </Button>
-        </Actions>
-        <TextField label="Set a password" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} hint="Checked against the password policy of identity." />
-        <Actions>
-          <Button busy={a.busy} disabled={!pw} onClick={() => void act(() => api.setPassword(user.id, pw), "Password changed.")}>
-            Set password
-          </Button>
-        </Actions>
-        <ErrorNotice error={a.error} />
-        {a.done ? <Notice>{a.done}</Notice> : null}
-      </section>
-    </Can>
-  );
-}
-
-function UserPanel({ user, onClose, onChanged }: { user: User; onClose: () => void; onChanged: () => void }) {
-  return (
-    <Modal title={user.email} onClose={onClose}>
-      <p className="ui-field-hint">
-        {user.name || "(no name)"} - id <span className="ui-mono">{user.id}</span> {user.disabled ? "- DISABLED" : ""}
-      </p>
-      <Can perm="identity:role:read">
-        <RoleAssign user={user} onChanged={onChanged} />
-      </Can>
-      <Account user={user} onChanged={onChanged} />
-      <Can perm="identity:mfa:read">
-        <Mfa user={user} onChanged={onChanged} />
-      </Can>
-      <Actions>
-        <Button onClick={onClose}>Close</Button>
-      </Actions>
-    </Modal>
-  );
-}
-
-function CreateUser({ onDone }: { onDone: () => void }) {
-  const api = useIdentity();
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [roles, setRoles] = useState("");
-  const a = useAction();
-
-  async function submit(ev: React.FormEvent) {
-    ev.preventDefault();
-    const r = await a.run(() => api.createUser({ email, name, password, roles: words(roles) }), `User ${email} created.`);
-    if (r) {
-      setEmail("");
-      setName("");
-      setPassword("");
-      setRoles("");
-      onDone();
-    }
-  }
-
-  return (
-    <Card>
-      <h2>New user</h2>
-      <form onSubmit={(ev) => void submit(ev)}>
-        <TextField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} />
-        <TextField label="Password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} hint="Leave empty: the user sets it through a password reset." />
-        <TextField label="Roles" value={roles} onChange={(e) => setRoles(e.target.value)} hint="Separated by spaces" />
-        <Actions>
-          <Button type="submit" variant="primary" busy={a.busy}>
-            Create user
-          </Button>
-        </Actions>
-      </form>
-      <ErrorNotice error={a.error} />
-      {a.done ? <Notice>{a.done}</Notice> : null}
-    </Card>
   );
 }
 
 export function Users() {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.resolvedLanguage ?? "en";
   const api = useIdentity();
-  const [query, setQuery] = useState("");
-  const [search, setSearch] = useState("");
-  // pages already loaded after the first one; the first page reloads with the search
-  const [more, setMore] = useState<User[]>([]);
-  const [token, setToken] = useState("");
-  const [selectedId, setSelectedId] = useState<string>();
-  const first = useLoad(() => api.listUsers(search), [api, search]);
-  const more_ = useAction();
-
-  useEffect(() => {
-    setMore([]);
-    setToken("");
-  }, [search, first.data]);
-
-  const nextToken = token || first.data?.nextPageToken || "";
-  const users = [...(first.data?.users ?? []), ...more];
-  const selected = users.find((u) => u.id === selectedId);
-
-  async function loadMore() {
-    const r = await more_.run(() => api.listUsers(search, nextToken));
-    if (r) {
-      setMore((m) => [...m, ...r.users]);
-      setToken(r.nextPageToken || "");
-    }
-  }
+  const { can } = useAuth();
+  // the fields of the form, and the filter applied by Search
+  // a link from the home page can open the list narrowed to a status (?status=pending)
+  const urlStatus = useSearchParams()[0].get("status");
+  const initial: UserFilter = urlStatus === "pending" || urlStatus === "active" || urlStatus === "disabled" ? { status: urlStatus } : {};
+  const [draft, setDraft] = useState<UserFilter>(initial);
+  const [search, setSearch] = useState<UserFilter>(initial);
+  const searchKey = JSON.stringify(search);
+  const roles = useLoad(() => (can("identity:role:read") ? api.listRoles() : Promise.resolve(undefined)), [api, can]);
+  const set = (patch: UserFilter) => setDraft((d) => ({ ...d, ...patch }));
+  const paged = usePaged(
+    (token) => api.listUsers(search, token).then((r) => ({ items: r.users ?? [], next: r.nextPageToken ?? "" })),
+    [api, searchKey],
+  );
+  const first = { loading: paged.loading, error: paged.error, data: paged.items };
+  const users = paged.items ?? [];
 
   return (
     <>
-      <PageTitle>Users</PageTitle>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageTitle>{t("users.title")}</PageTitle>
+        <Can perm="identity:user:write">
+          <Button asChild>
+            <Link to="/users/new">
+              <Plus aria-hidden="true" />
+              {t("users.add")}
+            </Link>
+          </Button>
+        </Can>
+      </div>
+      <Stats />
       <Card>
-        <form
-          onSubmit={(ev) => {
-            ev.preventDefault();
-            setSearch(query.trim());
-          }}
-        >
-          <TextField label="Search by email" value={query} onChange={(e) => setQuery(e.target.value)} hint="Emails that start with this text" />
-          <Actions>
-            <Button type="submit">Search</Button>
-          </Actions>
-        </form>
-        <ErrorNotice error={first.error} />
-        {first.loading ? <Loading /> : null}
-        {first.data ? (
-          <DataTable
-            rows={users}
-            rowKey={(u) => u.id}
-            columns={[
-              { header: "Email", cell: (u) => <strong>{u.email}</strong> },
-              { header: "Name", cell: (u) => u.name },
-              { header: "Roles", cell: (u) => <Badges items={u.roles} /> },
-              { header: "Status", cell: (u) => (u.disabled ? "disabled" : "active") },
-              { header: "MFA", cell: (u) => (u.mfaEnforced ? "required" : u.mfaEnabled ? "enrolled" : "-") },
-              {
-                header: "",
-                cell: (u) => (
-                  <Button onClick={() => setSelectedId(u.id)} aria-label={`Manage ${u.email}`}>
-                    Manage
-                  </Button>
-                ),
-              },
-            ]}
-          />
-        ) : null}
-        <ErrorNotice error={more_.error} />
-        {nextToken ? (
-          <Actions>
-            <Button busy={more_.busy} onClick={() => void loadMore()}>
-              Load more
-            </Button>
-          </Actions>
-        ) : null}
+        <CardContent className="flex flex-col gap-4">
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(ev) => {
+              ev.preventDefault();
+              setSearch({ email: draft.email?.trim(), name: draft.name?.trim(), status: draft.status, role: draft.role });
+            }}
+          >
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <TextField label={t("users.search.label")} value={draft.email ?? ""} onChange={(e) => set({ email: e.target.value })} onClear={() => set({ email: "" })} hint={t("users.search.hint")} />
+              <TextField label={t("users.search.name")} value={draft.name ?? ""} onChange={(e) => set({ name: e.target.value })} onClear={() => set({ name: "" })} hint={t("users.search.nameHint")} />
+              <SelectField
+                label={t("users.search.status")}
+                value={draft.status || ALL}
+                onValueChange={(v) => set({ status: v === ALL ? "" : (v as UserFilter["status"]) })}
+                options={[
+                  { value: ALL, label: t("users.search.any") },
+                  ...(["pending", "active", "disabled"] as const).map((x) => ({ value: x, label: t(`users.status.${x}`) })),
+                ]}
+              />
+              {roles.data ? (
+                <SelectField
+                  label={t("users.search.role")}
+                  value={draft.role || ALL}
+                  onValueChange={(v) => set({ role: v === ALL ? "" : v })}
+                  options={[{ value: ALL, label: t("users.search.any") }, ...roles.data.map((r) => ({ value: r.name, label: r.name }))]}
+                />
+              ) : (
+                <TextField label={t("users.search.role")} value={draft.role ?? ""} onChange={(e) => set({ role: e.target.value.trim() })} onClear={() => set({ role: "" })} />
+              )}
+            </div>
+            <Actions>
+              <Button type="submit" variant="outline">
+                {t("users.search.button")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setDraft({});
+                  setSearch({});
+                }}
+              >
+                {t("users.search.clear")}
+              </Button>
+            </Actions>
+          </form>
+          <ErrorAlert error={first.error} />
+          {first.loading ? <Loading /> : null}
+          {first.data ? (
+            <DataTable
+              rows={users}
+              rowKey={(u) => u.id}
+              columns={[
+                {
+                  header: t("users.col.user"),
+                  cell: (u) => (
+                    <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 flex-col">
+                        <strong className="truncate">{u.email}</strong>
+                        {u.name ? <span className="truncate text-xs text-muted-foreground">{u.name}</span> : null}
+                      </div>
+                    </div>
+                  ),
+                },
+                { header: t("users.col.roles"), cell: (u) => <BadgeList items={u.roles} /> },
+                {
+                  header: t("users.col.status"),
+                  cell: (u) => {
+                    const s = statusOf(u);
+                    return <Badge variant={s === "active" ? "success" : s === "disabled" ? "destructive" : "warning"}>{t(`users.status.${s}`)}</Badge>;
+                  },
+                },
+                {
+                  header: t("users.col.mfa"),
+                  cell: (u) => (u.mfaEnforced ? t("users.mfaState.required") : u.mfaEnabled ? t("users.mfaState.enrolled") : "-"),
+                },
+                {
+                  header: t("users.col.lastLogin"),
+                  cell: (u) => formatDateTime(u.lastLoginAt, lang) ?? <span className="text-muted-foreground">{t("users.never")}</span>,
+                },
+                { header: t("users.col.added"), cell: (u) => formatDate(u.createdAt, lang) ?? "-" },
+                {
+                  header: <span className="sr-only">{t("users.manage")}</span>,
+                  className: "text-right",
+                  cell: (u) => (
+                    <Button asChild variant="outline" size="sm" className={ROW_ACTION}>
+                      <Link to={`/users/${encodeURIComponent(u.id)}`} aria-label={t("users.manageAria", { email: u.email })}>
+                        <ActionLabel icon={Pencil}>{t("users.manage")}</ActionLabel>
+                      </Link>
+                    </Button>
+                  ),
+                },
+              ]}
+            />
+          ) : null}
+          <LoadMore paged={paged} />
+        </CardContent>
       </Card>
-      <Can perm="identity:user:write">
-        <CreateUser onDone={first.reload} />
-      </Can>
-      {selected ? <UserPanel user={selected} onClose={() => setSelectedId(undefined)} onChanged={first.reload} /> : null}
     </>
   );
 }

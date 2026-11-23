@@ -1,0 +1,6 @@
+application:
+  deployment:
+    replicas: 1
+    container:
+      image:
+        tag: "v2026.08.1-release-e1f4018"

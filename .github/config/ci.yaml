@@ -1,4 +1,5 @@
-# Three apps built from one repository: each has its own image, chart and deployment file in mm-deploy.
+# Four apps built from one repository: each has its own image and chart; dict, bill and admin also have a
+# deployment file in mm-deploy (auth-ui does not, see its entry).
 # language node: lint-test runs `pnpm lint`, `pnpm typecheck` and `pnpm test` once for the whole workspace.
 apps:
   - name: dict
@@ -37,6 +38,28 @@ apps:
           image-name: admin
           dockerfile-path: build/admin/Dockerfile
           chart-path: charts/admin
+          image-tag-paths:
+            - .application.deployment.container.image.tag
+          trivy:
+            severity: "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"
+            ignore-unfixed: true
+            exit-code: 0   # report only: the CVEs are listed in the PR comment, the build does not fail
+  # The pages of sign in: not deployed from here. The identity image copies the files out of this image
+  # (COPY --from=ghcr.io/huponx/auth-ui:<tag>), so it only has to be built, scanned and pushed: every environment
+  # is switched off for it below, so no deployment PR (and no mm-deploy file) exists for this app.
+  - name: auth-ui
+    language: node
+    create-deployment-pr:
+      environments:
+        dev: { enabled: false }
+        staging: { enabled: false }
+        production: { enabled: false }
+    cicd:
+      jobs:
+        containerize-and-package:
+          image-name: auth-ui
+          dockerfile-path: build/auth-ui/Dockerfile
+          chart-path: charts/auth-ui
           image-tag-paths:
             - .application.deployment.container.image.tag
           trivy:
