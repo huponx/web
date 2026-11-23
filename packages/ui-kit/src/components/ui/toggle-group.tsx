@@ -4,7 +4,7 @@ import type { ComponentProps, ElementRef } from "react";
 import { cn } from "../../lib/cn";
 
 export function ToggleGroup({ className, ...props }: ComponentProps<typeof ToggleGroupPrimitive.Root>) {
-  return <ToggleGroupPrimitive.Root className={cn("inline-flex items-center rounded-md border bg-background p-0.5 shadow-xs", className)} {...props} />;
+  return <ToggleGroupPrimitive.Root className={cn("inline-flex items-center rounded-md border bg-popover p-0.5 shadow-xs", className)} {...props} />;
 }
 
 /** forwardRef: it is the trigger of a Tooltip (`asChild`), which needs the element. */

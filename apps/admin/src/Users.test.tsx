@@ -1,6 +1,6 @@
 import { AuthProvider, createClient } from "@huponx/auth-client";
 import type { Me } from "@huponx/auth-client";
-import { ThemeProvider } from "@huponx/ui-kit";
+import { StyleProvider, ThemeProvider } from "@huponx/ui-kit";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -41,6 +41,8 @@ function renderApp(route: string, answer: (c: Call) => unknown) {
     fetch: async (url, init) => {
       const u = String(url);
       if (u.endsWith("/auth/me")) return new Response(JSON.stringify(me), { status: 200 });
+      // read at start-up by every user, not a call the tests count
+      if (u.endsWith("/api/ui-style")) return new Response(JSON.stringify({ uiStyle: "saas", uiPalettes: {} }), { status: 200 });
       const call = { method: init?.method ?? "GET", url: u.replace("https://api.example.com", ""), body: init?.body as string | undefined };
       calls.push(call);
       return new Response(JSON.stringify(answer(call)), { status: 200 });
@@ -50,11 +52,13 @@ function renderApp(route: string, answer: (c: Call) => unknown) {
   });
   render(
     <ThemeProvider>
-      <AuthProvider client={client}>
-        <MemoryRouter initialEntries={[route]}>
-          <App />
-        </MemoryRouter>
-      </AuthProvider>
+      <StyleProvider>
+        <AuthProvider client={client}>
+          <MemoryRouter initialEntries={[route]}>
+            <App />
+          </MemoryRouter>
+        </AuthProvider>
+      </StyleProvider>
     </ThemeProvider>,
   );
   return calls;
@@ -93,13 +97,15 @@ describe("users list statistics and dates", () => {
     expect((await screen.findByTestId("stat-total")).textContent).toBe("5");
     expect(screen.getByTestId("stat-active").textContent).toBe("3");
     expect(screen.getByTestId("stat-pending").textContent).toBe("1");
-    // one line: the rest is behind the expand icon
-    expect(screen.queryByTestId("stat-mfaEnabled")).toBeNull();
+    // one line: the rest is behind the expand icon (the cards stay in the page so they can animate, but are hidden)
+    const hidden = (id: string) => screen.getByTestId(id).closest('[aria-hidden="true"]');
+    expect(hidden("stat-mfaEnabled")).not.toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Show all statistics" }));
     expect(screen.getByTestId("stat-mfaEnabled").textContent).toBe("2");
     expect(screen.getByTestId("stat-neverSignedIn").textContent).toBe("2");
+    expect(hidden("stat-mfaEnabled")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Show fewer statistics" }));
-    expect(screen.queryByTestId("stat-mfaEnabled")).toBeNull();
+    expect(hidden("stat-mfaEnabled")).not.toBeNull();
     expect(screen.getByRole("columnheader", { name: "Last login" })).toBeTruthy();
     expect(screen.getByRole("columnheader", { name: "Date added" })).toBeTruthy();
     const rows = await screen.findAllByRole("row");

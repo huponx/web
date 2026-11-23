@@ -1,6 +1,6 @@
 import type { AuthClient } from "@huponx/auth-client";
 import { useAuth } from "@huponx/auth-client";
-import type { Page } from "@huponx/ui-kit";
+import type { Page, SystemStyleReply } from "@huponx/ui-kit";
 import { useMemo } from "react";
 
 // The gateway answers with protojson: camelCase names, int64 as strings, enums by name.
@@ -269,6 +269,15 @@ export function identityApi(c: AuthClient) {
         delete: del,
       }),
 
+    // the look of the web apps, one value for the whole system: any signed-in user reads it, identity:settings:write sets it
+    // together with the palette of each style ({saas, glass, mono} to a palette name)
+    getUiStyle: () =>
+      c.api<SystemStyleReply>("GET", "/api/ui-style").then((r) => ({ uiStyle: r.uiStyle ?? "saas", uiPalettes: r.uiPalettes ?? {} })),
+    updateUiStyle: (v: { uiStyle: string; uiPalettes: Record<string, string> }) =>
+      c.api<SystemStyleReply>("PUT", "/api/ui-style", { ui_style: v.uiStyle, ui_palettes: v.uiPalettes }).then((r) => ({
+        uiStyle: r.uiStyle ?? v.uiStyle,
+        uiPalettes: r.uiPalettes ?? v.uiPalettes,
+      })),
     // the signed in user: no permission needed, the user is the one of the session
     getMe: () => c.api<{ user: User }>("GET", "/api/me").then((r) => r.user),
     updateMe: (u: { name?: string; locale?: string; theme?: string }) => c.api<{ user: User }>("PUT", "/api/me", u).then((r) => r.user),

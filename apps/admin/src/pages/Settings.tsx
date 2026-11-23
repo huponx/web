@@ -60,7 +60,7 @@ function ProfileForm({ user, reload }: { user: { name: string; email: string; av
         <TextField label={t("users.form.name")} value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
       </div>
       <ErrorAlert error={a.error} />
-      <DoneAlert>{a.done}</DoneAlert>
+      <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
       <div className="flex justify-end">
         <Button type="submit" busy={a.busy}>
           {t("common.save")}

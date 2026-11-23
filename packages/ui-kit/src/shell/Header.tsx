@@ -18,7 +18,7 @@ export interface HeaderProps {
 /** Breadcrumb on the left; on the right the theme switch, then the avatar menu. */
 export function Header({ breadcrumbs, link: Link, labels, onOpenMobileMenu, userMenu }: HeaderProps) {
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
+    <header className="ui-glass flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
       <Button variant="ghost" size="icon-sm" className="md:hidden" aria-label={labels.openMenu} onClick={onOpenMobileMenu}>
         <PanelLeft aria-hidden="true" />
       </Button>

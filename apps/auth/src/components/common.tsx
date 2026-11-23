@@ -27,10 +27,10 @@ import { MmLogo } from "./MmLogo";
 /** The centered card every page lives in. */
 export function AuthLayout({ title, description, signedIn, children }: { title: string; description?: string; signedIn?: boolean; children: ReactNode }) {
   return (
-    <main className="relative flex min-h-svh items-center justify-center bg-muted/40 p-4">
+    <main className="relative flex min-h-svh items-center justify-center bg-muted/40 p-4 glass:bg-transparent">
       <Preferences signedIn={signedIn} />
       <Card className="w-full max-w-md">
-        <CardHeader className="items-center gap-3 text-center">
+        <CardHeader className="items-center gap-3 text-center mono:items-start mono:text-left">
           <MmLogo className="size-12 drop-shadow-sm" />
           <CardTitle className="text-xl">{title}</CardTitle>
           {description ? <CardDescription>{description}</CardDescription> : null}

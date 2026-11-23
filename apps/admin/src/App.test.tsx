@@ -1,5 +1,5 @@
 import { AuthProvider, createClient } from "@huponx/auth-client";
-import { ThemeProvider } from "@huponx/ui-kit";
+import { StyleProvider, ThemeProvider } from "@huponx/ui-kit";
 import type { Me } from "@huponx/auth-client";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -21,6 +21,8 @@ function renderApp(perms: string[], route = "/", answer: (c: Call) => unknown = 
     fetch: async (url, init) => {
       const u = String(url);
       if (u.endsWith("/auth/me")) return new Response(JSON.stringify(me), { status: 200 });
+      // the system style is read at start-up by every user; it is not a call the tests count
+      if (u.endsWith("/api/ui-style") && (init?.method ?? "GET") === "GET") return new Response(JSON.stringify({ uiStyle: "saas", uiPalettes: { saas: "aurora", glass: "ocean", mono: "aurora" } }), { status: 200 });
       const call = { method: init?.method ?? "GET", url: u, body: init?.body as string | undefined };
       calls.push(call);
       return new Response(JSON.stringify(answer(call)), { status: 200 });
@@ -30,11 +32,13 @@ function renderApp(perms: string[], route = "/", answer: (c: Call) => unknown = 
   });
   render(
     <ThemeProvider>
-      <AuthProvider client={client}>
-        <MemoryRouter initialEntries={[route]}>
-          <App />
-        </MemoryRouter>
-      </AuthProvider>
+      <StyleProvider>
+        <AuthProvider client={client}>
+          <MemoryRouter initialEntries={[route]}>
+            <App />
+          </MemoryRouter>
+        </AuthProvider>
+      </StyleProvider>
     </ThemeProvider>,
   );
   return calls;
@@ -703,5 +707,54 @@ describe("dictionary settings page", () => {
     const sw = await screen.findByRole("switch", { name: "Export as link" });
     expect((sw as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByRole("button", { name: "Save settings" })).toBeNull();
+  });
+});
+
+describe("system style card", () => {
+  it("is not in the user settings page, and the system page needs identity:settings:write", async () => {
+    renderApp(["identity:settings:write"], "/settings");
+    await screen.findByRole("heading", { name: "Settings" });
+    expect(screen.queryByTestId("ui-style-card")).toBeNull();
+  });
+
+  it("has a menu item and a page only with identity:settings:write", async () => {
+    renderApp(["identity:role:read"], "/system");
+    expect(await screen.findByText("You are not allowed to see this page.")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "System settings" })).toBeNull();
+  });
+
+  it("saves the picked style for the whole system and applies it now", async () => {
+    document.documentElement.dataset.style = "saas";
+    const calls = renderApp(["identity:settings:write"], "/system", () => ({ uiStyle: "mono" }));
+    const user = userEvent.setup();
+    expect(await screen.findByTestId("ui-style-card")).toBeTruthy();
+    await user.click(screen.getByTestId("ui-style-mono"));
+    expect(screen.getByTestId("ui-style-mono").getAttribute("aria-checked")).toBe("true");
+    await user.click(within(screen.getByTestId("ui-style-card")).getByRole("button", { name: "Save style" }));
+    const put = calls.find((c) => c.method === "PUT" && c.url.endsWith("/api/ui-style"));
+    expect(JSON.parse(put!.body!)).toEqual({ ui_style: "mono", ui_palettes: { saas: "aurora", glass: "ocean", mono: "aurora" } });
+    expect(await screen.findByText("System style saved.")).toBeTruthy();
+    expect(document.documentElement.dataset.style).toBe("mono");
+  });
+
+  it("picks the colours of the selected style, remembers them per style, and applies them on save", async () => {
+    document.documentElement.dataset.palette = "aurora";
+    const calls = renderApp(["identity:settings:write"], "/system", () => ({ uiStyle: "glass" }));
+    const user = userEvent.setup();
+    expect(await screen.findByTestId("ui-style-card")).toBeTruthy();
+    // glass has the ocean palette from the system value
+    await user.click(screen.getByTestId("ui-style-glass"));
+    await vi.waitFor(() => expect(screen.getByTestId("ui-palette-ocean").getAttribute("aria-checked")).toBe("true"));
+    await user.click(screen.getByTestId("ui-palette-sunset"));
+    expect(screen.getByTestId("ui-palette-sunset").getAttribute("aria-checked")).toBe("true");
+    // another style shows its own palette, and glass keeps the pick
+    await user.click(screen.getByTestId("ui-style-saas"));
+    expect(screen.getByTestId("ui-palette-aurora").getAttribute("aria-checked")).toBe("true");
+    await user.click(screen.getByTestId("ui-style-glass"));
+    expect(screen.getByTestId("ui-palette-sunset").getAttribute("aria-checked")).toBe("true");
+    await user.click(within(screen.getByTestId("ui-style-card")).getByRole("button", { name: "Save style" }));
+    const put = calls.find((c) => c.method === "PUT" && c.url.endsWith("/api/ui-style"));
+    expect(JSON.parse(put!.body!)).toEqual({ ui_style: "glass", ui_palettes: { saas: "aurora", glass: "sunset", mono: "aurora" } });
+    await vi.waitFor(() => expect(document.documentElement.dataset.palette).toBe("sunset"));
   });
 });

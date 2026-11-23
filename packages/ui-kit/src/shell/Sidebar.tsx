@@ -7,7 +7,7 @@ function itemClass(isActive: boolean, collapsed: boolean) {
   return cn(
     "flex h-9 items-center gap-3 overflow-hidden rounded-md px-3 text-sm text-sidebar-foreground/80 outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50",
     collapsed && "justify-center px-0",
-    isActive && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
+    isActive && "bg-sidebar-accent font-medium text-sidebar-accent-foreground mono:rounded-none mono:border-l-2 mono:border-sidebar-foreground",
   );
 }
 

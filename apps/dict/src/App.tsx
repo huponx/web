@@ -1,6 +1,6 @@
 import { Can, RequireAuth, useAuth } from "@huponx/auth-client";
-import { AppShell, Button } from "@huponx/ui-kit";
-import type { Crumb, NavItem, ShellLabels, ShellLink } from "@huponx/ui-kit";
+import { AppShell, Button, systemStyleOf, useSystemStyle } from "@huponx/ui-kit";
+import type { Crumb, SystemStyleReply, NavItem, ShellLabels, ShellLink } from "@huponx/ui-kit";
 import { BookMarked, Search, Settings as SettingsIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
@@ -16,6 +16,13 @@ const link = NavLink as unknown as ShellLink;
 
 function Message({ children }: { children: React.ReactNode }) {
   return <p className="py-12 text-center text-muted-foreground">{children}</p>;
+}
+
+/** Applies the style the administrator picked for the whole system (the cached one is used until it arrives). */
+function SystemStyle() {
+  const { client } = useAuth();
+  useSystemStyle(() => client.api<SystemStyleReply>("GET", "/api/ui-style").then(systemStyleOf));
+  return null;
 }
 
 function Shell() {
@@ -107,6 +114,7 @@ export function App() {
         </div>
       )}
     >
+      <SystemStyle />
       <Shell />
     </RequireAuth>
   );

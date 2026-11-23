@@ -1,22 +1,13 @@
 import { useAuth } from "@huponx/auth-client";
 import {
-  DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  UserMenu,
+  AccountMenuView,
   rememberLanguageChoice,
   useAccountLocale,
   useAccountProfile,
   useAccountTheme,
 } from "@huponx/ui-kit";
 import type { AccountProfile } from "@huponx/ui-kit";
-import { Languages, LogOut, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
 import { LANGUAGE_STORAGE_KEY, languages } from "./i18n";
 
 const languageCodes = languages.map((l) => l.code);
@@ -37,35 +28,18 @@ export function AccountMenu() {
     client.api("PUT", "/api/me", { locale: code }).catch(() => undefined); // best effort: the browser keeps the choice anyway
   };
   return (
-    <UserMenu name={profile?.name || user?.name || user?.email || user?.sub || ""} image={profile?.avatar || undefined} label={t("shell.userMenu")}>
-      {can("dictionary:word:read") && (
-        <DropdownMenuItem asChild>
-          <Link to="/settings">
-            <Settings aria-hidden="true" />
-            {t("nav.settings")}
-          </Link>
-        </DropdownMenuItem>
-      )}
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger>
-          <Languages aria-hidden="true" />
-          {t("shell.language")}
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent>
-          <DropdownMenuRadioGroup value={i18n.resolvedLanguage ?? "en"} onValueChange={setLanguage}>
-            {languages.map((l) => (
-              <DropdownMenuRadioItem key={l.code} value={l.code}>
-                {l.label}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem data-testid="logout" onSelect={() => void logout()}>
-        <LogOut aria-hidden="true" />
-        {t("shell.signOut")}
-      </DropdownMenuItem>
-    </UserMenu>
+    <AccountMenuView
+      name={profile?.name || user?.name || user?.email || user?.sub || ""}
+      image={profile?.avatar || undefined}
+      label={t("shell.userMenu")}
+      settings={can("dictionary:word:read") ? { to: "/settings", label: t("nav.settings") } : undefined}
+      language={{
+        label: t("shell.language"),
+        value: i18n.resolvedLanguage ?? "en",
+        options: languages.map((l) => ({ value: l.code, label: l.label })),
+        onChange: setLanguage,
+      }}
+      signOut={{ label: t("shell.signOut"), onSelect: () => void logout() }}
+    />
   );
 }

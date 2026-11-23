@@ -46,7 +46,7 @@ export const TabsList = forwardRef<ElementRef<typeof TabsPrimitive.List>, Compon
         if (typeof ref === "function") ref(node);
         else if (ref) ref.current = node;
       }}
-      className={cn("relative inline-flex w-fit items-center gap-1 rounded-lg bg-muted p-1 text-muted-foreground", className)}
+      className={cn("relative inline-flex w-fit items-center gap-1 rounded-lg bg-muted p-1 text-muted-foreground glass:rounded-full mono:gap-4 mono:rounded-none mono:border-b mono:bg-transparent mono:p-0", className)}
       {...props}
     >
       {box ? (
@@ -54,7 +54,7 @@ export const TabsList = forwardRef<ElementRef<typeof TabsPrimitive.List>, Compon
           aria-hidden="true"
           data-testid="tabs-indicator"
           style={{ width: box.width, transform: `translateX(${box.left}px)` }}
-          className="absolute top-1 bottom-1 left-0 rounded-md bg-background shadow-xs transition-[transform,width] duration-300 ease-out motion-reduce:transition-none"
+          className="absolute top-1 bottom-1 left-0 rounded-md bg-background shadow-xs glass:rounded-full glass:bg-card mono:top-auto mono:bottom-0 mono:h-0.5 mono:rounded-none mono:bg-foreground mono:shadow-none transition-[transform,width] duration-300 ease-out motion-reduce:transition-none"
         />
       ) : null}
       {children}
@@ -67,7 +67,7 @@ export function TabsTrigger({ className, ...props }: ComponentProps<typeof TabsP
     <TabsPrimitive.Trigger
       className={cn(
         // no focus ring: the sliding highlight already shows the active tab (arrow keys activate the tab they reach)
-        "relative z-10 inline-flex h-8 items-center justify-center rounded-md px-3 text-sm font-medium whitespace-nowrap outline-none transition-colors duration-300 hover:text-foreground focus:outline-none focus-visible:outline-none data-[state=active]:text-foreground",
+        "relative z-10 inline-flex h-8 items-center justify-center rounded-md px-3 text-sm font-medium whitespace-nowrap outline-none transition-colors duration-300 hover:text-foreground focus:outline-none focus-visible:outline-none data-[state=active]:text-foreground glass:rounded-full mono:rounded-none mono:px-0",
         className,
       )}
       {...props}

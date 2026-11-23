@@ -95,7 +95,7 @@ export function Exchange() {
           </form>
           <ErrorAlert error={error} />
           <ErrorAlert error={del.error} />
-          <DoneAlert>{del.done ?? notice}</DoneAlert>
+          <DoneAlert watch={del.done ? del.doneId : notice}>{del.done ?? notice}</DoneAlert>
           {loading ? <Loading /> : null}
           {data ? (
             <DataTable

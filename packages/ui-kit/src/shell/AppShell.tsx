@@ -86,7 +86,7 @@ export function AppShell({ brand, logo, items, bottomItems, breadcrumbs, link, l
           data-testid="sidebar"
           data-collapsed={collapsed}
           className={cn(
-            "relative hidden shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-in-out motion-reduce:transition-none md:flex",
+            "ui-glass relative z-20 hidden shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-in-out motion-reduce:transition-none md:flex",
             collapsed ? "w-14" : "w-60",
           )}
         >
@@ -99,7 +99,7 @@ export function AppShell({ brand, logo, items, bottomItems, breadcrumbs, link, l
             aria-label={collapsed ? labels.expand : labels.collapse}
             aria-expanded={!collapsed}
             onClick={toggle}
-            className="absolute top-1/2 -right-3 z-20 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-xs outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:size-3.5"
+            className="absolute top-1/2 -right-3 z-20 flex size-6 after:absolute after:-inset-2 after:content-[''] -translate-y-1/2 items-center justify-center rounded-full border bg-popover text-muted-foreground shadow-xs outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:size-3.5"
           >
             {collapsed ? <ChevronRight aria-hidden="true" /> : <ChevronLeft aria-hidden="true" />}
           </button>
@@ -110,7 +110,7 @@ export function AppShell({ brand, logo, items, bottomItems, breadcrumbs, link, l
             <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/50 duration-200 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 motion-reduce:animate-none md:hidden" />
             <DialogPrimitive.Content
               aria-describedby={undefined}
-              className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-lg outline-none duration-200 data-[state=open]:animate-in data-[state=open]:slide-in-from-left data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left motion-reduce:animate-none md:hidden"
+              className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-sidebar-border bg-popover text-sidebar-foreground shadow-lg outline-none duration-200 data-[state=open]:animate-in data-[state=open]:slide-in-from-left data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left motion-reduce:animate-none md:hidden"
             >
               <DialogPrimitive.Title className="sr-only">{labels.navigation}</DialogPrimitive.Title>
               <div className="flex items-center justify-between pr-2">
