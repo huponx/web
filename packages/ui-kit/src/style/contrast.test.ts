@@ -21,20 +21,20 @@ function parseBlocks(src: string): Block[] {
   const re = /(?:^|(?<=\}))\s*([^{}@]+?)\s*\{([^{}]*)\}/g;
   for (let m = re.exec(noComments); m; m = re.exec(noComments)) {
     const props: [string, string][] = [];
-    for (const d of m[2].split(";")) {
+    for (const d of (m[2] ?? "").split(";")) {
       const i = d.indexOf(":");
       if (i < 0) continue;
       const name = d.slice(0, i).trim();
       if (name.startsWith("--")) props.push([name, d.slice(i + 1).trim()]);
     }
-    if (props.length) blocks.push({ selectors: m[1].split(/,(?![^(]*\))/).map((s) => s.trim()), props });
+    if (props.length) blocks.push({ selectors: (m[1] ?? "").split(/,(?![^(]*\))/).map((s) => s.trim()), props });
   }
   return blocks;
 }
 
 const blocks = parseBlocks(css);
 const STYLES = ["saas", "glass", "mono"];
-const PALETTES = ["aurora", ...[...css.matchAll(/\[data-palette="(\w+)"\]\s*\{/g)].map((m) => m[1])].filter(
+const PALETTES = ["aurora", ...[...css.matchAll(/\[data-palette="(\w+)"\]\s*\{/g)].map((m) => m[1] as string)].filter(
   (p, i, a) => a.indexOf(p) === i,
 );
 
@@ -88,7 +88,7 @@ function substitute(value: string, env: Map<string, string>, depth = 0): string 
       if (out[j] === ")" && --d === 0) break;
     }
     const [name, ...fb] = splitTop(out.slice(i + 4, j));
-    const raw = env.get(name);
+    const raw = env.get(name ?? "");
     const repl = raw !== undefined ? raw : fb.join(",");
     if (!repl) throw new Error(`unresolved ${name}`);
     out = out.slice(0, i) + substitute(repl, env, depth + 1) + out.slice(j + 1);
@@ -104,18 +104,19 @@ function parseColor(input: string): RGBA {
     return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16), 1];
   }
   const rgb = v.match(/^rgb\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+))?\s*\)$/);
-  if (rgb) return [+rgb[1], +rgb[2], +rgb[3], rgb[4] === undefined ? 1 : +rgb[4]];
+  if (rgb) return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3]), rgb[4] === undefined ? 1 : Number(rgb[4])];
   const mix = v.match(/^color-mix\(in srgb,(.*)\)$/s);
   if (mix) {
-    const [a, b] = splitTop(mix[1]).map((part) => {
+    type Part = { c: RGBA; p: number };
+    const [a, b] = splitTop(mix[1] ?? "").map((part): Part => {
       const m = part.match(/^(.*?)\s+([\d.]+)%$/s);
-      return m ? { c: parseColor(m[1]), p: +m[2] / 100 } : { c: parseColor(part), p: NaN };
-    });
+      return m ? { c: parseColor(m[1] ?? ""), p: Number(m[2]) / 100 } : { c: parseColor(part), p: NaN };
+    }) as [Part, Part];
     if (Number.isNaN(a.p)) a.p = Number.isNaN(b.p) ? 0.5 : 1 - b.p;
     if (Number.isNaN(b.p)) b.p = 1 - a.p;
     const alpha = a.c[3] * a.p + b.c[3] * b.p;
     if (alpha === 0) return [0, 0, 0, 0];
-    const ch = (i: number) => (a.c[i] * a.c[3] * a.p + b.c[i] * b.c[3] * b.p) / alpha; // premultiplied mix
+    const ch = (i: 0 | 1 | 2) => (a.c[i] * a.c[3] * a.p + b.c[i] * b.c[3] * b.p) / alpha; // premultiplied mix
     return [ch(0), ch(1), ch(2), alpha];
   }
   throw new Error(`cannot parse colour: ${input}`);
@@ -123,7 +124,7 @@ function parseColor(input: string): RGBA {
 
 function over(top: RGBA, base: RGBA): RGBA {
   const a = top[3] + base[3] * (1 - top[3]);
-  const ch = (i: number) => (top[i] * top[3] + base[i] * base[3] * (1 - top[3])) / a;
+  const ch = (i: 0 | 1 | 2) => (top[i] * top[3] + base[i] * base[3] * (1 - top[3])) / a;
   return [ch(0), ch(1), ch(2), a];
 }
 
