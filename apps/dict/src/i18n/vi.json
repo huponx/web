@@ -65,12 +65,29 @@
     "empty": "Hãy nhập một từ.",
     "saveOverride": "Lưu đè",
     "overridden": "Đã lưu đè \"{{word}}\" ({{count}}/{{limit}}).",
-    "submitHint": "Ctrl+Enter để tra từ",
-    "clear": "Xóa nội dung đã nhập"
+    "clear": "Xóa nội dung đã nhập",
+    "edit": "Sửa",
+    "edited": "đã chỉnh sửa",
+    "revert": "Hoàn nguyên",
+    "editedBadge": "Đã chỉnh sửa",
+    "unsaved": {
+      "title": "Chỉnh sửa chưa lưu",
+      "body": "Các chỉnh sửa trên thẻ chưa được lưu. Rời trang sẽ làm mất chúng.",
+      "stay": "Ở lại",
+      "leave": "Rời đi",
+      "relookup": "Tra lại sẽ bỏ các chỉnh sửa chưa lưu."
+    }
   },
   "saved": {
     "title": "Từ đã lưu",
     "count": "{{count}}/{{limit}} từ đã lưu đang chờ lần xuất tiếp theo.",
+    "countKept": "{{count}}/{{limit}} từ đã lưu, {{new}} từ chưa xuất.",
+    "exportedBadge": "Đã xuất",
+    "exportedKept": "Đã xuất {{count}} từ vào {{file}}. Các từ vẫn ở trong danh sách, được đánh dấu đã xuất.",
+    "scopeTitle": "Bạn muốn xuất những từ nào?",
+    "scopeMessage": "{{exported}} từ trong danh sách đã được xuất trước đó và {{new}} từ còn mới.",
+    "exportAll": "Xuất tất cả ({{count}})",
+    "exportNew": "Chỉ xuất từ mới ({{count}})",
     "empty": "Chưa có từ nào. Hãy tra một từ và lưu lại.",
     "word": "Từ",
     "savedAt": "Đã lưu",
@@ -93,6 +110,12 @@
     "copyLink": "Sao chép liên kết",
     "linkCopied": "Đã sao chép liên kết."
   },
+  "removePrompt": {
+    "title": "Xóa các từ đã xuất?",
+    "message": "Từ đã lưu giờ sẽ bị xóa sau khi xuất. Có {{count}} từ trong danh sách đã được xuất trước đó. Bạn có muốn xóa chúng ngay không?",
+    "remove": "Xóa chúng",
+    "keep": "Giữ lại"
+  },
   "settings": {
     "title": "Cài đặt",
     "dictionaries": "Từ điển",
@@ -105,6 +128,8 @@
     "maxWordsHint": "Từ 1 đến {{max}}.",
     "deckName": "Tên bộ thẻ mặc định",
     "deckNameHint": "Dùng khi bạn xuất các từ đã lưu thành bộ thẻ Anki.",
+    "removeAfterExport": "Xóa từ đã lưu sau khi xuất",
+    "removeAfterExportHint": "Bật: các từ đã xuất rời khỏi danh sách. Tắt: các từ vẫn ở lại, được đánh dấu đã xuất, và bạn chọn xuất tất cả hay chỉ các từ mới.",
     "save": "Lưu cài đặt",
     "saved": "Đã lưu cài đặt."
   },
@@ -116,6 +141,38 @@
     "unavailable": "Nguồn từ điển hiện không khả dụng. Hãy thử lại sau.",
     "forbidden": "Bạn không có quyền thực hiện thao tác này.",
     "featureDisabled": "Quản trị viên đã tắt tính năng này.",
-    "dictionaryDisabled": "Quản trị viên đã tắt từ điển này."
+    "dictionaryDisabled": "Quản trị viên đã tắt từ điển này.",
+    "imageTooLarge": "Ảnh vẫn quá lớn sau khi thu nhỏ. Hãy dùng ảnh nhỏ hơn.",
+    "imageFormat": "Tệp này không phải ảnh được hỗ trợ (PNG, JPEG, WebP hoặc GIF).",
+    "imageQuota": "Bạn đã dùng hết dung lượng ảnh. Hãy xóa bớt ảnh trong các thẻ.",
+    "imagesDisabled": "Máy chủ này chưa hỗ trợ ảnh."
+  },
+  "editor": {
+    "label": "Trình soạn thẻ",
+    "toolbar": "Định dạng",
+    "bold": "In đậm",
+    "italic": "In nghiêng",
+    "underline": "Gạch chân",
+    "bullets": "Danh sách chấm",
+    "numbers": "Danh sách số",
+    "rule": "Đường kẻ ngang",
+    "undo": "Hoàn tác",
+    "redo": "Làm lại",
+    "image": "Ảnh",
+    "uploading": "Đang tải ảnh lên...",
+    "audioUk": "URL âm thanh UK",
+    "audioUs": "URL âm thanh US",
+    "audioHint": "Địa chỉ https của tệp âm thanh; nút ▶ trong nội dung đánh dấu chỗ phát.",
+    "insertUk": "Chèn UK ▶",
+    "insertUs": "Chèn US ▶",
+    "tooLarge": "Thẻ quá lớn (tối đa 64 KiB). Hãy bớt nội dung hoặc ảnh.",
+    "badAudio": "Địa chỉ âm thanh phải là URL https dài tối đa 500 ký tự.",
+    "imageUnreadable": "Không đọc được ảnh. Hãy lưu ảnh về máy hoặc chụp màn hình rồi thêm tệp.",
+    "apply": "Áp dụng",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "chipUk": "UK ▶",
+    "chipUs": "US ▶",
+    "loading": "Đang tải trình soạn..."
   }
 }

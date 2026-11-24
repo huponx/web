@@ -130,6 +130,10 @@ export interface DictionarySettings {
   allowExportLink: boolean;
   englishEnabled: boolean;
   englishViEnabled: boolean;
+  /** An export takes the words out of the list (a user can turn it off for themself). */
+  removeAfterExport: boolean;
+  /** Hours a word that left the list is kept before the cleanup deletes it. */
+  exportedRetentionHours: number;
 }
 
 export interface UserMfa {
@@ -255,6 +259,8 @@ export function identityApi(c: AuthClient) {
             allow_export_link: s.allowExportLink,
             english_enabled: s.englishEnabled,
             english_vi_enabled: s.englishViEnabled,
+            remove_after_export: s.removeAfterExport,
+            exported_retention_hours: s.exportedRetentionHours,
           },
         })
         .then((r) => r.settings),

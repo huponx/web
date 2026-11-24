@@ -20,17 +20,17 @@
 :where(:root), :where([data-style="saas"]) {
   --radius: 0.875rem;
   --background: #fbfbfd;
-  --foreground: #15151f;
+  --foreground: color-mix(in srgb, #15151f 90%, var(--pal-primary, #15151f));
   --card: #ffffff;
-  --card-foreground: #15151f;
+  --card-foreground: var(--foreground);
   --popover: #ffffff;
-  --popover-foreground: #15151f;
+  --popover-foreground: var(--foreground);
   --primary: var(--pal-primary, #5b4bf5);
   --primary-foreground: #ffffff;
   --secondary: #f1f1f6;
-  --secondary-foreground: #15151f;
+  --secondary-foreground: var(--foreground);
   --muted: #f1f1f6;
-  --muted-foreground: #6b6b80;
+  --muted-foreground: color-mix(in srgb, #6b6b80 88%, var(--pal-primary, #6b6b80));
   --accent: var(--pal-accent, #eeecff);
   --accent-foreground: var(--pal-afg, #3d30c9);
   --destructive: #d92d4a;
@@ -41,7 +41,7 @@
   --input: #e7e7ef;
   --ring: var(--pal-primary, #5b4bf5);
   --sidebar: #f5f5fa;
-  --sidebar-foreground: #15151f;
+  --sidebar-foreground: var(--foreground);
   --sidebar-accent: var(--pal-accent, #eeecff);
   --sidebar-accent-foreground: var(--pal-afg, #3d30c9);
   --sidebar-border: #e7e7ef;
@@ -62,17 +62,17 @@
 :where(:root).dark, :where([data-style="saas"]).dark {
   --radius: 0.875rem;
   --background: #0f0f16;
-  --foreground: #ededf6;
+  --foreground: color-mix(in srgb, #ededf6 90%, var(--pal-primary, #ededf6));
   --card: #16161f;
-  --card-foreground: #ededf6;
+  --card-foreground: var(--foreground);
   --popover: #1c1c27;
-  --popover-foreground: #ededf6;
+  --popover-foreground: var(--foreground);
   --primary: var(--pal-primary, #7b6cff);
   --primary-foreground: #0c0c12;
   --secondary: #1c1c27;
-  --secondary-foreground: #ededf6;
+  --secondary-foreground: var(--foreground);
   --muted: #1c1c27;
-  --muted-foreground: #9a9ab2;
+  --muted-foreground: color-mix(in srgb, #9a9ab2 88%, var(--pal-primary, #9a9ab2));
   --accent: var(--pal-accent, #23213f);
   --accent-foreground: var(--pal-afg, #b9b1ff);
   --destructive: #ff6b81;
@@ -83,7 +83,7 @@
   --input: #272735;
   --ring: var(--pal-primary, #7b6cff);
   --sidebar: #12121a;
-  --sidebar-foreground: #ededf6;
+  --sidebar-foreground: var(--foreground);
   --sidebar-accent: var(--pal-accent, #23213f);
   --sidebar-accent-foreground: var(--pal-afg, #b9b1ff);
   --sidebar-border: #272735;
@@ -110,13 +110,13 @@
   --popover: var(--pal-pop, #f6f3ff);
   --popover-foreground: var(--pal-fg, #1d1a3b);
   --primary: var(--pal-primary, #6a4cff);
-  --primary-foreground: #ffffff;
+  --primary-foreground: var(--pal-pfg, #ffffff);
   --secondary: rgb(255 255 255 / 0.55);
   --secondary-foreground: var(--pal-fg, #1d1a3b);
   --muted: rgb(255 255 255 / 0.55);
-  --muted-foreground: var(--pal-mfg, #5f5b86);
+  --muted-foreground: color-mix(in srgb, var(--pal-mfg, #5f5b86) 75%, var(--pal-fg, #1d1a3b));
   --accent: color-mix(in srgb, var(--pal-primary, #6a4cff) 12%, transparent);
-  --accent-foreground: var(--pal-afg, #4a2fe0);
+  --accent-foreground: color-mix(in srgb, var(--pal-afg, #4a2fe0) 78%, var(--pal-fg, #1d1a3b));
   --destructive: #d6336c;
   --destructive-foreground: #ffffff;
   --success: #0f9d73;
@@ -127,13 +127,13 @@
   --sidebar: rgb(255 255 255 / 0.5);
   --sidebar-foreground: var(--pal-fg, #1d1a3b);
   --sidebar-accent: color-mix(in srgb, var(--pal-primary, #6a4cff) 12%, transparent);
-  --sidebar-accent-foreground: var(--pal-afg, #4a2fe0);
+  --sidebar-accent-foreground: var(--accent-foreground);
   --sidebar-border: rgb(255 255 255 / 0.75);
   --shadow-card: 0 10px 40px -12px color-mix(in srgb, var(--pal-primary, #5040c8) 35%, transparent);
   --shadow-btn: 0 6px 18px -6px color-mix(in srgb, var(--pal-primary, #6a4cff) 70%, transparent);
-  --btn-bg: linear-gradient(135deg, var(--pal-from, #7c5cff), var(--pal-to, #e052d6));
-  --grad-from: var(--pal-from, #7c5cff);
-  --grad-to: var(--pal-to, #e052d6);
+  --btn-bg: linear-gradient(135deg, var(--pal-from, #6f4ff5), var(--pal-to, #c23aa8));
+  --grad-from: var(--pal-from, #6f4ff5);
+  --grad-to: var(--pal-to, #c23aa8);
   --card-blur: 18px;
   --page-bg: var(--pal-bg, #e9e6ff);
   --page-image: radial-gradient(60% 50% at 15% 10%, var(--pal-b1, #c9b8ff) 0%, transparent 70%), radial-gradient(50% 50% at 90% 20%, var(--pal-b2, #ffc7ec) 0%, transparent 70%), radial-gradient(60% 60% at 70% 100%, var(--pal-b3, #b6e3ff) 0%, transparent 70%);
@@ -152,13 +152,13 @@
   --popover: var(--pal-pop, #1c1738);
   --popover-foreground: var(--pal-fg, #f1eeff);
   --primary: var(--pal-primary, #9a82ff);
-  --primary-foreground: #120d2c;
+  --primary-foreground: var(--pal-pfg, #ffffff);
   --secondary: rgb(255 255 255 / 0.07);
   --secondary-foreground: var(--pal-fg, #f1eeff);
   --muted: rgb(255 255 255 / 0.07);
-  --muted-foreground: var(--pal-mfg, #a9a3d6);
+  --muted-foreground: color-mix(in srgb, var(--pal-mfg, #a9a3d6) 72%, var(--pal-fg, #f1eeff));
   --accent: color-mix(in srgb, var(--pal-primary, #9a82ff) 18%, transparent);
-  --accent-foreground: var(--pal-afg, #cfc3ff);
+  --accent-foreground: color-mix(in srgb, var(--pal-afg, #cfc3ff) 78%, var(--pal-fg, #f1eeff));
   --destructive: #ff7aa8;
   --destructive-foreground: #120d2c;
   --success: #4be0b0;
@@ -169,13 +169,13 @@
   --sidebar: rgb(255 255 255 / 0.05);
   --sidebar-foreground: var(--pal-fg, #f1eeff);
   --sidebar-accent: color-mix(in srgb, var(--pal-primary, #9a82ff) 18%, transparent);
-  --sidebar-accent-foreground: var(--pal-afg, #cfc3ff);
+  --sidebar-accent-foreground: var(--accent-foreground);
   --sidebar-border: rgb(255 255 255 / 0.14);
   --shadow-card: 0 12px 44px -12px rgb(0 0 0 / 0.7);
   --shadow-btn: 0 6px 22px -6px color-mix(in srgb, var(--pal-primary, #9a82ff) 70%, transparent);
-  --btn-bg: linear-gradient(135deg, var(--pal-from, #7c5cff), var(--pal-to, #e052d6));
-  --grad-from: var(--pal-from, #7c5cff);
-  --grad-to: var(--pal-to, #e052d6);
+  --btn-bg: linear-gradient(135deg, var(--pal-from, #6f4ff5), var(--pal-to, #c23aa8));
+  --grad-from: var(--pal-from, #6f4ff5);
+  --grad-to: var(--pal-to, #c23aa8);
   --card-blur: 18px;
   --page-bg: var(--pal-bg, #100d24);
   --page-image: radial-gradient(55% 50% at 12% 8%, var(--pal-b1, #4a2fb8) 0%, transparent 70%), radial-gradient(50% 50% at 92% 18%, var(--pal-b2, #8a2a86) 0%, transparent 70%), radial-gradient(60% 60% at 70% 100%, var(--pal-b3, #1b4d8f) 0%, transparent 70%);
@@ -188,17 +188,17 @@
 [data-style="mono"] {
   --radius: 0.25rem;
   --background: color-mix(in srgb, #ffffff 95%, var(--pal-primary, #ffffff));
-  --foreground: #0a0a0a;
+  --foreground: color-mix(in srgb, #0a0a0a 94%, var(--pal-primary, #0a0a0a));
   --card: #ffffff;
-  --card-foreground: #0a0a0a;
+  --card-foreground: var(--foreground);
   --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
+  --popover-foreground: var(--foreground);
   --primary: #0a0a0a;
   --primary-foreground: #ffffff;
   --secondary: color-mix(in srgb, #f4f4f3 86%, var(--pal-primary, #f4f4f3));
-  --secondary-foreground: #0a0a0a;
+  --secondary-foreground: var(--foreground);
   --muted: color-mix(in srgb, #f4f4f3 86%, var(--pal-primary, #f4f4f3));
-  --muted-foreground: #6b6b68;
+  --muted-foreground: color-mix(in srgb, #6b6b68 88%, var(--pal-primary, #6b6b68));
   --accent: color-mix(in srgb, #f0f0ee 86%, var(--pal-primary, #f0f0ee));
   --accent-foreground: #0a0a0a;
   --destructive: #b3261e;
@@ -209,7 +209,7 @@
   --input: color-mix(in srgb, #e2e2df 86%, var(--pal-primary, #e2e2df));
   --ring: #0a0a0a;
   --sidebar: color-mix(in srgb, #fafaf9 86%, var(--pal-primary, #fafaf9));
-  --sidebar-foreground: #0a0a0a;
+  --sidebar-foreground: var(--foreground);
   --sidebar-accent: color-mix(in srgb, #f0f0ee 86%, var(--pal-primary, #f0f0ee));
   --sidebar-accent-foreground: #0a0a0a;
   --sidebar-border: color-mix(in srgb, #e2e2df 86%, var(--pal-primary, #e2e2df));
@@ -230,17 +230,17 @@
 [data-style="mono"].dark {
   --radius: 0.25rem;
   --background: color-mix(in srgb, #0a0a0a 95%, var(--pal-primary, #0a0a0a));
-  --foreground: #f4f4f2;
+  --foreground: color-mix(in srgb, #f4f4f2 94%, var(--pal-primary, #f4f4f2));
   --card: #0a0a0a;
-  --card-foreground: #f4f4f2;
+  --card-foreground: var(--foreground);
   --popover: #141413;
-  --popover-foreground: #f4f4f2;
+  --popover-foreground: var(--foreground);
   --primary: #f4f4f2;
   --primary-foreground: #0a0a0a;
   --secondary: color-mix(in srgb, #171716 86%, var(--pal-primary, #171716));
-  --secondary-foreground: #f4f4f2;
+  --secondary-foreground: var(--foreground);
   --muted: color-mix(in srgb, #171716 86%, var(--pal-primary, #171716));
-  --muted-foreground: #9a9a96;
+  --muted-foreground: color-mix(in srgb, #9a9a96 88%, var(--pal-primary, #9a9a96));
   --accent: color-mix(in srgb, #1c1c1a 86%, var(--pal-primary, #1c1c1a));
   --accent-foreground: #f4f4f2;
   --destructive: #ff7b72;
@@ -251,7 +251,7 @@
   --input: color-mix(in srgb, #2a2a28 86%, var(--pal-primary, #2a2a28));
   --ring: #f4f4f2;
   --sidebar: color-mix(in srgb, #0e0e0d 86%, var(--pal-primary, #0e0e0d));
-  --sidebar-foreground: #f4f4f2;
+  --sidebar-foreground: var(--foreground);
   --sidebar-accent: color-mix(in srgb, #1c1c1a 86%, var(--pal-primary, #1c1c1a));
   --sidebar-accent-foreground: #f4f4f2;
   --sidebar-border: color-mix(in srgb, #2a2a28 86%, var(--pal-primary, #2a2a28));
@@ -277,6 +277,7 @@
 
 [data-palette="ocean"] {
   --pal-primary: #0b72d9;
+  --pal-pfg: #120d2c;
   --pal-from: #1a8cff;
   --pal-to: #18c5b0;
   --pal-fg: #0f2a3d;
@@ -292,6 +293,7 @@
 
 [data-palette="ocean"].dark {
   --pal-primary: #5cb6ff;
+  --pal-pfg: #120d2c;
   --pal-from: #1a8cff;
   --pal-to: #18c5b0;
   --pal-fg: #e8f4ff;
@@ -306,7 +308,8 @@
 }
 
 [data-palette="sunset"] {
-  --pal-primary: #e0551f;
+  --pal-primary: #c9461a;
+  --pal-pfg: #120d2c;
   --pal-from: #ff7a33;
   --pal-to: #e8328a;
   --pal-fg: #3a1f14;
@@ -322,6 +325,7 @@
 
 [data-palette="sunset"].dark {
   --pal-primary: #ff9a66;
+  --pal-pfg: #120d2c;
   --pal-from: #ff7a33;
   --pal-to: #e8328a;
   --pal-fg: #fff0e8;
@@ -336,7 +340,8 @@
 }
 
 [data-palette="mint"] {
-  --pal-primary: #0f9d6b;
+  --pal-primary: #0b7f56;
+  --pal-pfg: #120d2c;
   --pal-from: #17b978;
   --pal-to: #1fb6c9;
   --pal-fg: #0f3326;
@@ -352,6 +357,7 @@
 
 [data-palette="mint"].dark {
   --pal-primary: #4be0a8;
+  --pal-pfg: #120d2c;
   --pal-from: #17b978;
   --pal-to: #1fb6c9;
   --pal-fg: #e6fff3;
@@ -367,6 +373,7 @@
 
 [data-palette="rose"] {
   --pal-primary: #d6336c;
+  --pal-pfg: #120d2c;
   --pal-from: #f0508a;
   --pal-to: #b44cf0;
   --pal-fg: #3a1226;
@@ -382,6 +389,7 @@
 
 [data-palette="rose"].dark {
   --pal-primary: #ff7aa8;
+  --pal-pfg: #120d2c;
   --pal-from: #f0508a;
   --pal-to: #b44cf0;
   --pal-fg: #fff0f6;
@@ -398,7 +406,7 @@
 [data-palette="graphite"] {
   --pal-primary: #3b4a6b;
   --pal-from: #4a5d86;
-  --pal-to: #6f7fa6;
+  --pal-to: #62739b;
   --pal-fg: #151b2b;
   --pal-mfg: #5a6580;
   --pal-bg: #eceef3;
@@ -413,7 +421,7 @@
 [data-palette="graphite"].dark {
   --pal-primary: #9db0dc;
   --pal-from: #4a5d86;
-  --pal-to: #6f7fa6;
+  --pal-to: #62739b;
   --pal-fg: #eef1f8;
   --pal-mfg: #98a3bd;
   --pal-bg: #0c0f16;
@@ -428,6 +436,7 @@
 /* aurora: no values of its own; `initial` also clears the ones a parent palette passed down (a preview inside a page) */
 [data-palette="aurora"], [data-palette="aurora"].dark {
   --pal-primary: initial;
+  --pal-pfg: initial;
   --pal-from: initial;
   --pal-to: initial;
   --pal-fg: initial;

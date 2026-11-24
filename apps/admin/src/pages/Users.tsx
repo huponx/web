@@ -49,8 +49,9 @@ function Stats() {
               !expanded && hiddenWhenCollapsed(i),
             )}
           >
-            <div className="min-h-0 overflow-hidden pt-3 pb-3 pl-2">
-              <div className="relative">
+            {/* no padding on the clipping box: padding would keep a hidden row from collapsing to 0 */}
+            <div className="min-h-0 overflow-hidden">
+              <div className="relative ml-2 mt-3 mb-3">
                 {/* the round badge sits on the top left corner of the card */}
                 <span className="absolute -left-2 -top-3 z-10 flex size-10 items-center justify-center rounded-full border bg-popover shadow-md">
                   <Icon className="size-4" aria-hidden="true" />

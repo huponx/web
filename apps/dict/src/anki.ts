@@ -1,9 +1,9 @@
 import type { Word } from "./api";
+import { PLACEHOLDER_UK, PLACEHOLDER_US } from "./lib/cardHtml";
 
 // Builds the card of a word the way it is saved and exported: the front is the word, the back is HTML.
 // Keep the placeholders in line with dictionary/internal/anki (the service turns them into sound tags).
-export const PLACEHOLDER_UK = "replace_audio_uk";
-export const PLACEHOLDER_US = "replace_audio_us";
+export { PLACEHOLDER_UK, PLACEHOLDER_US } from "./lib/cardHtml";
 
 export function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -53,9 +53,22 @@ export const DICTIONARY_SEPARATOR = "<hr>";
  * (or from the Vietnamese one when there is no English one).
  */
 export function combinedCardBack(en: Word | undefined, vi: Word | undefined): string {
-  if (en && vi) return cardBack(en, { placeholders: true }) + DICTIONARY_SEPARATOR + cardBack(vi, { placeholders: false, phonetics: false });
-  const only = en ?? vi;
-  return only ? cardBack(only, { placeholders: true }) : "";
+  return joinParts(en ? enPart(en) : "", vi ? viPart(vi, !!en) : "");
+}
+
+/** The part of a saved card that comes from the English dictionary. */
+export function enPart(en: Word): string {
+  return cardBack(en, { placeholders: true });
+}
+
+/** The part from the English-Vietnamese dictionary; with an English part before it, it leaves the phonetics out. */
+export function viPart(vi: Word, hasEn: boolean): string {
+  return cardBack(vi, hasEn ? { placeholders: false, phonetics: false } : { placeholders: true });
+}
+
+/** Both parts with a rule between them; an empty part is left out. */
+export function joinParts(enHtml: string, viHtml: string): string {
+  return enHtml && viHtml ? enHtml + DICTIONARY_SEPARATOR + viHtml : enHtml || viHtml;
 }
 
 /** What a manual add or a tab separated import of Anki takes: front, a tab, the back. */

@@ -135,10 +135,10 @@ export function AppShell({ brand, logo, items, bottomItems, breadcrumbs, link, l
             onOpenMobileMenu={() => setMobileOpen(true)}
             userMenu={userMenu}
           />
-          <main ref={mainRef} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > TOP_BUTTON_AFTER)} className="flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6">
+          <main ref={mainRef} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > TOP_BUTTON_AFTER)} className="flex-1 overflow-x-hidden overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6">
             <div
               key={pageKey}
-              className="mx-auto flex w-full max-w-6xl flex-col gap-6 duration-200 animate-in fade-in-0 slide-in-from-bottom-1 motion-reduce:animate-none"
+              className="mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-6 [&>*]:min-w-0 duration-200 animate-in fade-in-0 slide-in-from-bottom-1 motion-reduce:animate-none"
             >
               {children}
             </div>

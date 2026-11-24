@@ -1,20 +1,22 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import type { ComponentProps, HTMLAttributes } from "react";
+import { forwardRef } from "react";
+import type { ComponentProps, ElementRef, HTMLAttributes } from "react";
 import { cn } from "../../lib/cn";
 
 export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 
-export function DialogOverlay({ className, ...props }: ComponentProps<typeof DialogPrimitive.Overlay>) {
-  return (
-    <DialogPrimitive.Overlay
-      className={cn("fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0", className)}
-      {...props}
-    />
-  );
-}
+// a forwardRef: Radix puts a ref on the overlay (React 18 does not pass refs to plain function components)
+export const DialogOverlay = forwardRef<ElementRef<typeof DialogPrimitive.Overlay>, ComponentProps<typeof DialogPrimitive.Overlay>>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Overlay
+    ref={ref}
+    className={cn("fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0", className)}
+    {...props}
+  />
+));
+DialogOverlay.displayName = "DialogOverlay";
 
 export interface DialogContentProps extends ComponentProps<typeof DialogPrimitive.Content> {
   /** Label of the close button (translated by the app). */
@@ -33,7 +35,7 @@ export function DialogContent({ className, children, closeLabel = "Close", ...pr
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none [&_svg]:size-4">
+        <DialogPrimitive.Close className="absolute top-2 right-2 rounded-md p-2.5 opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none [&_svg]:size-4">
           <X aria-hidden="true" />
           <span className="sr-only">{closeLabel}</span>
         </DialogPrimitive.Close>

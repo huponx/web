@@ -1,6 +1,17 @@
 import { Can, RequireAuth, useAuth } from "@huponx/auth-client";
-import { AppShell, Button, systemStyleOf, useSystemStyle } from "@huponx/ui-kit";
-import type { Crumb, SystemStyleReply, NavItem, ShellLabels, ShellLink } from "@huponx/ui-kit";
+import {
+  AppShell,
+  Button,
+  systemStyleOf,
+  useSystemStyle,
+} from "@huponx/ui-kit";
+import type {
+  Crumb,
+  SystemStyleReply,
+  NavItem,
+  ShellLabels,
+  ShellLink,
+} from "@huponx/ui-kit";
 import { BookMarked, Search, Settings as SettingsIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
@@ -8,6 +19,7 @@ import { AccountMenu } from "./AccountMenu";
 import { DictLogo } from "./Logo";
 import { Lookup, LookupMemoProvider } from "./pages/Lookup";
 import { SettingsProvider } from "./lib/settings";
+import { RemovePrompt } from "./RemovePrompt";
 import { Saved } from "./pages/Saved";
 import { Settings } from "./pages/Settings";
 
@@ -21,7 +33,9 @@ function Message({ children }: { children: React.ReactNode }) {
 /** Applies the style the administrator picked for the whole system (the cached one is used until it arrives). */
 function SystemStyle() {
   const { client } = useAuth();
-  useSystemStyle(() => client.api<SystemStyleReply>("GET", "/api/ui-style").then(systemStyleOf));
+  useSystemStyle(() =>
+    client.api<SystemStyleReply>("GET", "/api/ui-style").then(systemStyleOf),
+  );
   return null;
 }
 
@@ -33,13 +47,31 @@ function Shell() {
   // the menu only shows what the user may use; the gateway checks the permission again
   const items: NavItem[] = [];
   if (can("dictionary:word:read")) {
-    items.push({ to: "/", label: t("nav.lookup"), icon: Search, end: true, testId: "nav-lookup" });
-    items.push({ to: "/saved", label: t("nav.saved"), icon: BookMarked, testId: "nav-saved" });
+    items.push({
+      to: "/",
+      label: t("nav.lookup"),
+      icon: Search,
+      end: true,
+      testId: "nav-lookup",
+    });
+    items.push({
+      to: "/saved",
+      label: t("nav.saved"),
+      icon: BookMarked,
+      testId: "nav-saved",
+    });
   }
 
   // pinned to the bottom of the sidebar, like the admin app
   const bottomItems: NavItem[] = can("dictionary:word:read")
-    ? [{ to: "/settings", label: t("nav.settings"), icon: SettingsIcon, testId: "nav-settings" }]
+    ? [
+        {
+          to: "/settings",
+          label: t("nav.settings"),
+          icon: SettingsIcon,
+          testId: "nav-settings",
+        },
+      ]
     : [];
 
   const breadcrumbs: Crumb[] = [
@@ -67,37 +99,51 @@ function Shell() {
   const denied = <Message>{t("common.notAllowed")}</Message>;
   return (
     <SettingsProvider>
-    <LookupMemoProvider>
-    <AppShell pageKey={pathname} brand={t("shell.brand")} logo={<DictLogo />} items={items} bottomItems={bottomItems} breadcrumbs={breadcrumbs} link={link} labels={labels} userMenu={<AccountMenu />}>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <Can perm="dictionary:word:read" fallback={denied}>
-              <Lookup />
-            </Can>
-          }
-        />
-        <Route
-          path="/saved"
-          element={
-            <Can perm="dictionary:word:read" fallback={denied}>
-              <Saved />
-            </Can>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <Can perm="dictionary:word:read" fallback={denied}>
-              <Settings />
-            </Can>
-          }
-        />
-        <Route path="*" element={<Message>{t("common.notFound")}</Message>} />
-      </Routes>
-    </AppShell>
-    </LookupMemoProvider>
+      <RemovePrompt />
+      <LookupMemoProvider>
+        <AppShell
+          pageKey={pathname}
+          brand={t("shell.brand")}
+          logo={<DictLogo />}
+          items={items}
+          bottomItems={bottomItems}
+          breadcrumbs={breadcrumbs}
+          link={link}
+          labels={labels}
+          userMenu={<AccountMenu />}
+        >
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Can perm="dictionary:word:read" fallback={denied}>
+                  <Lookup />
+                </Can>
+              }
+            />
+            <Route
+              path="/saved"
+              element={
+                <Can perm="dictionary:word:read" fallback={denied}>
+                  <Saved />
+                </Can>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <Can perm="dictionary:word:read" fallback={denied}>
+                  <Settings />
+                </Can>
+              }
+            />
+            <Route
+              path="*"
+              element={<Message>{t("common.notFound")}</Message>}
+            />
+          </Routes>
+        </AppShell>
+      </LookupMemoProvider>
     </SettingsProvider>
   );
 }
