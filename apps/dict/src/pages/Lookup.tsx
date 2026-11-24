@@ -1,6 +1,6 @@
 import { ApiError, useAuth } from "@huponx/auth-client";
-import { Alert, AutoAlert, Button, Card, CardContent, ClearButton, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Label, Tabs, TabsList, TabsTrigger, Textarea } from "@huponx/ui-kit";
-import { Copy, Save, Search } from "lucide-react";
+import { Alert, AutoAlert, Button, Card, CardContent, ClearButton, Dialog, DialogContent, Input, NOTICE_MS, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Label, Tabs, TabsList, TabsTrigger, Textarea } from "@huponx/ui-kit";
+import { Check, Copy, PenLine, Plus, RefreshCw, Save, Search } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import { enabledDictionaries, parseWords, serviceCode, startDictionary, useDicti
 import type { Dictionary, Word } from "../api";
 import { errorMessage } from "../lib/errors";
 import { useSettings } from "../lib/settings";
+import { useCopied } from "../lib/useCopied";
 import { SavedList } from "./Saved";
 import { WordCard } from "./WordCard";
 import type { CardOverride } from "./WordCard";
@@ -17,6 +18,16 @@ import type { CardOverride } from "./WordCard";
 type Notice = { kind: "success" | "error"; text: string };
 
 const key = (w: string) => w.trim().toLowerCase();
+
+/** The error key of a word typed for a card made by hand, mirroring the rules of the service (NormalizeWord); none when it is fine. */
+const MAX_WORD_RUNES = 64;
+function wordProblem(raw: string): "manual.empty" | "manual.tooLong" | "manual.invalid" | undefined {
+  const w = raw.trim().replace(/\s+/g, " ");
+  if (w === "") return "manual.empty";
+  if (Array.from(w).length > MAX_WORD_RUNES) return "manual.tooLong";
+  if (!/^[\p{L}\p{N} '.-]+$/u.test(w)) return "manual.invalid";
+  return undefined;
+}
 
 const EN = "DICTIONARY_ENGLISH" as const;
 const VI = "DICTIONARY_ENGLISH_VIETNAMESE" as const;
@@ -81,6 +92,13 @@ export function Lookup() {
   const [shownDict, setShownDict] = useState<Dictionary>(memo.current.shownDict);
   const [notFound, setNotFound] = useState<string[]>(memo.current.notFound);
   const [busy, setBusy] = useState(false);
+  // words (lower case) whose card is being written by hand, with no entry behind it; dropped when the editor is cancelled
+  const [manualKeys, setManualKeys] = useState<Set<string>>(new Set());
+  // the dialog of the "New card" button
+  const [newOpen, setNewOpen] = useState(false);
+  const [newWord, setNewWord] = useState("");
+  const [newTried, setNewTried] = useState(false);
+  const [copied, markCopied] = useCopied();
   // a lookup was made: changing the dictionary then repeats it at once
   const [searched, setSearched] = useState(memo.current.searched);
   const [saving, setSaving] = useState<string>();
@@ -101,6 +119,13 @@ export function Lookup() {
   const [confirmRelookup, setConfirmRelookup] = useState(false);
   const dirty = editing.size > 0 || unsaved.size > 0;
   const blocker = useBlocker(dirty);
+  // Leave discards the edits for good: the page remembers its state across a visit elsewhere, and it must not
+  // come back "dirty" with edits the user was told were gone
+  function leave() {
+    if (blocker.state !== "blocked") return;
+    memo.current = { ...memo.current, overrides: {}, unsaved: new Set() };
+    blocker.proceed();
+  }
   const [notices, setNotices] = useState<Record<string, Notice>>({});
 
   useEffect(() => {
@@ -128,8 +153,11 @@ export function Lookup() {
   }, [api, version]);
 
   // the notices hide by themselves (AutoAlert); a new object shows one again
+  // and are dropped from here too: a card that is rebuilt (another dictionary tab) must not show an old one again
   const flash = useCallback((id: string, n: Notice) => {
-    setNotices((m) => ({ ...m, [key(id)]: { ...n } }));
+    const shown = { ...n };
+    setNotices((m) => ({ ...m, [key(id)]: shown }));
+    setTimeout(() => setNotices((m) => (m[key(id)] === shown ? Object.fromEntries(Object.entries(m).filter(([k]) => k !== key(id))) : m)), NOTICE_MS);
   }, []);
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -166,6 +194,7 @@ export function Lookup() {
     setOverrides({});
     entries.current = { [EN]: {}, [VI]: {} };
     setUnsaved(new Set());
+    setManualKeys(new Set());
     setGeneration((g) => g + 1);
     await fetchFor(dict, list);
   }
@@ -199,6 +228,7 @@ export function Lookup() {
     for (const w of found) entries.current[dict][key(w.text)] = w;
     setWords(found);
     setShownDict(dict);
+    setNotices({});
     setNotFound(missing);
     setError(failed);
     // an open editor belongs to the dictionary it was opened in
@@ -206,9 +236,10 @@ export function Lookup() {
     setBusy(false);
   }
 
-  async function copy(id: string, html: string, text: string) {
+  async function copy(id: string, html: string, text: string, mark = id) {
     try {
       await copyRich(html, text);
+      markCopied(mark);
       flash(id, { kind: "success", text: t("lookup.copied") });
     } catch {
       flash(id, { kind: "error", text: t("lookup.copyFailed") });
@@ -216,7 +247,7 @@ export function Lookup() {
   }
 
   /** The entry of a word in one dictionary for the saved card: fetched before, the shown one, or fetched now (none: undefined). */
-  async function entryOf(w: Word, d: Dictionary): Promise<Word | undefined> {
+  async function entryOf(w: Word, d: Dictionary, lenient = false): Promise<Word | undefined> {
     const had = entries.current[d][key(w.text)] ?? (d === shownDict ? w : undefined);
     if (had) return had;
     try {
@@ -225,7 +256,8 @@ export function Lookup() {
       return got;
     } catch (err) {
       // no entry there, or an administrator turned that dictionary off: the card has one dictionary
-      if (!(err instanceof ApiError && err.code === "not_found") && serviceCode(err) !== "DICTIONARY_DISABLED") throw err;
+      // a card written by hand does not need the dictionary: a failed lookup (the reason it was written) must not stop the save
+      if (!lenient && !(err instanceof ApiError && err.code === "not_found") && serviceCode(err) !== "DICTIONARY_DISABLED") throw err;
       return undefined;
     }
   }
@@ -236,8 +268,9 @@ export function Lookup() {
     setSaving(w.text);
     try {
       const edits = overrides[key(w.text)] ?? {};
-      const en = edits[EN] ? undefined : await entryOf(w, EN);
-      const vi = edits[VI] ? undefined : await entryOf(w, VI);
+      const lenient = isManual(w);
+      const en = edits[EN] ? undefined : await entryOf(w, EN, lenient);
+      const vi = edits[VI] ? undefined : await entryOf(w, VI, lenient);
       const enHtml = edits[EN]?.content ?? (en ? enPart(en) : "");
       const viHtml = edits[VI]?.content ?? (vi ? viPart(vi, enHtml !== "") : "");
       const audio = (field: "audioUk" | "audioUs") => edits[EN]?.[field] || en?.[field] || edits[VI]?.[field] || vi?.[field] || "";
@@ -267,10 +300,39 @@ export function Lookup() {
 
   // what the cards show, in the order typed: the fetched entry, or the one fetched before for a word that was not fetched again (it has an edit here), else an empty one
   const found = new Map(words.map((w) => [key(w.text), w]));
+  const entryFor = (s: string) => found.get(key(s)) ?? entries.current[shownDict][key(s)];
   const shown = searchedList.flatMap((s) => {
-    const entry = found.get(key(s)) ?? entries.current[shownDict][key(s)];
-    return entry ? [entry] : overrides[key(s)]?.[shownDict] ? [blank(s)] : [];
+    const entry = entryFor(s);
+    return entry ? [entry] : overrides[key(s)]?.[shownDict] || manualKeys.has(key(s)) ? [blank(s)] : [];
   });
+  // a card with no entry behind it: written by hand
+  const isManual = (w: Word) => !entryFor(w.text);
+  const canWrite = can("dictionary:word:write");
+
+  /** The words that can still get a card by hand: those not found, or all the typed ones when the lookup failed. */
+  const candidates = (error ? searchedList : notFound).filter((s) => !entryFor(s) && !overrides[key(s)]?.[shownDict] && !manualKeys.has(key(s)));
+
+  /** Opens the editor of a card for each word, adding the words to the page when they are not in the last lookup. */
+  function startManual(list: string[]) {
+    setSearched(true);
+    setSearchedList((l) => {
+      const have = new Set(l.map(key));
+      return [...l, ...list.filter((w) => !have.has(key(w)))];
+    });
+    setManualKeys((m) => new Set([...m, ...list.map(key)]));
+  }
+
+  const newProblem = wordProblem(newWord);
+  const newClean = newWord.trim().replace(/\s+/g, " ");
+
+  function submitNew(e: FormEvent) {
+    e.preventDefault();
+    setNewTried(true);
+    if (newProblem) return;
+    // a word that is already on the page has its card: the user edits that one
+    if (!entryFor(newClean) && !overrides[key(newClean)]?.[shownDict]) startManual([newClean]);
+    setNewOpen(false);
+  }
 
   const dicts: { id: Dictionary; label: string }[] = enabled.map((id) => ({
     id,
@@ -344,11 +406,28 @@ export function Lookup() {
                   title={t("lookup.copyInput")}
                   className="max-sm:size-9 max-sm:px-0"
                   disabled={input.trim() === ""}
-                  onClick={() => void copy("", parseWords(input).map(escapeHtml).join("<br>"), parseWords(input).join("\n"))}
+                  onClick={() => void copy("", parseWords(input).map(escapeHtml).join("<br>"), parseWords(input).join("\n"), "#input")}
                 >
-                  <Copy aria-hidden="true" />
+                  {copied === "#input" ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
                   <span className="max-sm:sr-only">{t("lookup.copyInput")}</span>
                 </Button>
+                {canWrite ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    aria-label={t("lookup.newCard")}
+                    title={t("lookup.newCard")}
+                    className="max-sm:size-9 max-sm:px-0"
+                    onClick={() => {
+                      setNewWord("");
+                      setNewTried(false);
+                      setNewOpen(true);
+                    }}
+                  >
+                    <Plus aria-hidden="true" />
+                    <span className="max-sm:sr-only">{t("lookup.newCard")}</span>
+                  </Button>
+                ) : null}
                 <Button type="submit" busy={busy} aria-label={t("lookup.submit")} title={t("lookup.submit")} className="max-sm:size-9 max-sm:px-0">
                   <Search aria-hidden="true" />
                   <span className="max-sm:sr-only">{t("lookup.submit")}</span>
@@ -359,16 +438,63 @@ export function Lookup() {
         </CardContent>
       </Card>
 
-      {error ? <Alert variant="destructive">{error}</Alert> : null}
+      {error ? (
+        <Alert variant="destructive" className="space-y-2">
+          <p>{error}</p>
+          <Button type="button" variant="outline" size="sm" busy={busy} onClick={() => ask()}>
+            <RefreshCw aria-hidden="true" />
+            {t("lookup.tryAgain")}
+          </Button>
+        </Alert>
+      ) : null}
       <AutoAlert variant={notices[""]?.kind === "success" ? "success" : "destructive"} watch={notices[""]}>
         {notices[""]?.text}
       </AutoAlert>
-      {notFound.length > 0 ? <Alert variant="warning">{t("lookup.noEntry", { words: notFound.join(", ") })}</Alert> : null}
+      {!error && candidates.length > 0 ? (
+        <Alert variant="warning" className="space-y-2">
+          <p>{t("lookup.noEntry", { words: candidates.join(", ") })}</p>
+          {canWrite ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {candidates.length === 1 ? (
+                <Button type="button" variant="outline" size="sm" onClick={() => startManual(candidates)}>
+                  <PenLine aria-hidden="true" />
+                  {t("lookup.createManual")}
+                </Button>
+              ) : (
+                <>
+                  {candidates.map((s) => (
+                    <Button key={s} type="button" variant="outline" size="sm" onClick={() => startManual([s])}>
+                      <PenLine aria-hidden="true" />
+                      {t("lookup.createCard", { word: s })}
+                    </Button>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={() => startManual(candidates)}>
+                    {t("lookup.createAll", { count: candidates.length })}
+                  </Button>
+                </>
+              )}
+            </div>
+          ) : null}
+        </Alert>
+      ) : null}
+      {error && canWrite && candidates.length > 0 ? (
+        <div className="space-y-2 rounded-lg border p-3" data-testid="manual-candidates">
+          <p className="text-sm text-muted-foreground">{t("lookup.manualHint")}</p>
+          <div className="flex flex-wrap gap-2">
+            {candidates.map((s) => (
+              <Button key={s} type="button" variant="outline" size="sm" onClick={() => startManual([s])}>
+                <PenLine aria-hidden="true" />
+                {t("lookup.createCard", { word: s })}
+              </Button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {shown.length > 1 ? (
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => void copy("", cardsHtml(words), cardsText(words))}>
-            <Copy aria-hidden="true" />
+          <Button type="button" variant="outline" size="sm" onClick={() => void copy("", cardsHtml(words), cardsText(words), "#all")}>
+            {copied === "#all" ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
             {t("lookup.copyAll")}
           </Button>
           {can("dictionary:word:write") ? (
@@ -383,11 +509,13 @@ export function Lookup() {
         <WordCard
           key={`${generation}:${shownDict}:${w.text}`}
           word={w}
-          canSave={can("dictionary:word:write")}
+          canSave={canWrite}
+          manual={isManual(w)}
           saving={saving === w.text}
           alreadySaved={savedSet.has(key(w.text))}
           notice={notices[key(w.text)]}
           onSave={(x) => void save(x)}
+          copied={copied === w.text}
           onCopy={(x) => void copy(x.text, cardsHtml([x]), cardText(x))}
           override={overrides[key(w.text)]?.[shownDict]}
           initial={overrides[key(w.text)]?.[shownDict] ?? { content: partOf(w, shownDict), audioUk: w.audioUk, audioUs: w.audioUs }}
@@ -402,7 +530,18 @@ export function Lookup() {
             });
             setUnsaved((u) => mark(u, x.text, shownDict, false));
           }}
-          onEditing={(x, on) => setEditing((e) => mark(e, x.text, shownDict, on))}
+          onEditing={(x, on) => {
+            setEditing((e) => mark(e, x.text, shownDict, on));
+            // a cancelled card with no edit goes away; an applied one stays through its override
+            if (!on) {
+              setManualKeys((m) => {
+                if (!m.has(key(x.text))) return m;
+                const next = new Set(m);
+                next.delete(key(x.text));
+                return next;
+              });
+            }
+          }}
         />
       ))}
     </div>
@@ -416,10 +555,37 @@ export function Lookup() {
           <Button type="button" variant="outline" onClick={() => blocker.state === "blocked" && blocker.reset()}>
             {t("lookup.unsaved.stay")}
           </Button>
-          <Button type="button" variant="destructive" onClick={() => blocker.state === "blocked" && blocker.proceed()}>
+          <Button type="button" variant="destructive" onClick={leave}>
             {t("lookup.unsaved.leave")}
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog open={newOpen} onOpenChange={setNewOpen}>
+      <DialogContent closeLabel={t("common.close")}>
+        <form onSubmit={submitNew} className="space-y-4">
+          <DialogHeader>
+            <DialogTitle>{t("lookup.manual.title")}</DialogTitle>
+            <DialogDescription>{t("lookup.manual.hint")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-word">{t("lookup.manual.word")}</Label>
+            <Input id="new-word" value={newWord} autoComplete="off" autoFocus onChange={(e) => setNewWord(e.target.value)} />
+            {newProblem && (newTried || newWord !== "") ? (
+              <p role="alert" className="text-sm text-destructive">
+                {t(`lookup.${newProblem}`)}
+              </p>
+            ) : !newProblem && savedSet.has(key(newClean)) ? (
+              <p className="text-sm text-muted-foreground">{t("lookup.manual.exists", { word: newClean })}</p>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setNewOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit">{t("lookup.manual.continue")}</Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
     <Dialog open={confirmRelookup} onOpenChange={setConfirmRelookup}>
