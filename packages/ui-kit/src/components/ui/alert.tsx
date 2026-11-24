@@ -74,7 +74,7 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(function Alert(
           type="button"
           aria-label={closeLabel}
           onClick={onClose}
-          className="shrink-0 rounded-md p-1 opacity-70 outline-none transition-opacity hover:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:size-4"
+          className="-m-1 shrink-0 rounded-md p-2 opacity-70 outline-none transition-opacity hover:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:size-4"
         >
           <X aria-hidden="true" />
         </button>

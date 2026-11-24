@@ -65,12 +65,29 @@
     "empty": "Type a word first.",
     "saveOverride": "Save override",
     "overridden": "Overwrote \"{{word}}\" ({{count}}/{{limit}}).",
-    "submitHint": "Ctrl+Enter to look up",
-    "clear": "Clear input"
+    "clear": "Clear input",
+    "edit": "Edit",
+    "edited": "edited",
+    "revert": "Revert",
+    "editedBadge": "Edited",
+    "unsaved": {
+      "title": "Unsaved edits",
+      "body": "Your edits to the cards are not saved. Leaving this page will discard them.",
+      "stay": "Stay",
+      "leave": "Leave",
+      "relookup": "Looking up again will discard your unsaved edits."
+    }
   },
   "saved": {
     "title": "Saved words",
     "count": "{{count}} of {{limit}} saved words waiting for the next export.",
+    "countKept": "{{count}} of {{limit}} saved words, {{new}} not exported yet.",
+    "exportedBadge": "Exported",
+    "exportedKept": "Exported {{count}} words to {{file}}. They stay in your list, marked as exported.",
+    "scopeTitle": "What do you want to export?",
+    "scopeMessage": "{{exported}} words in your list were exported before and {{new}} are new.",
+    "exportAll": "Export all ({{count}})",
+    "exportNew": "Export new only ({{count}})",
     "empty": "No saved words yet. Look a word up and save it.",
     "word": "Word",
     "savedAt": "Saved",
@@ -93,6 +110,12 @@
     "copyLink": "Copy link",
     "linkCopied": "Link copied."
   },
+  "removePrompt": {
+    "title": "Remove the exported words?",
+    "message": "Saved words are now removed after an export. {{count}} words in your list were exported before. Do you want to remove them now?",
+    "remove": "Remove them",
+    "keep": "Keep them"
+  },
   "settings": {
     "title": "Settings",
     "dictionaries": "Dictionaries",
@@ -105,6 +128,8 @@
     "maxWordsHint": "From 1 to {{max}}.",
     "deckName": "Default deck name",
     "deckNameHint": "Used when you export your saved words as an Anki deck.",
+    "removeAfterExport": "Remove saved words after export",
+    "removeAfterExportHint": "On: exported words leave your list. Off: they stay, marked as exported, and you choose to export all or only the new ones.",
     "save": "Save settings",
     "saved": "Settings saved."
   },
@@ -116,6 +141,38 @@
     "unavailable": "The dictionary source is not available now. Try again later.",
     "forbidden": "You are not allowed to do this.",
     "featureDisabled": "An administrator turned this off.",
-    "dictionaryDisabled": "An administrator turned this dictionary off."
+    "dictionaryDisabled": "An administrator turned this dictionary off.",
+    "imageTooLarge": "The image is too large even after shrinking. Use a smaller picture.",
+    "imageFormat": "This file is not a supported image (PNG, JPEG, WebP or GIF).",
+    "imageQuota": "You have used all your image storage. Remove images from your cards first.",
+    "imagesDisabled": "Images are not available on this server."
+  },
+  "editor": {
+    "label": "Card editor",
+    "toolbar": "Formatting",
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "bullets": "Bulleted list",
+    "numbers": "Numbered list",
+    "rule": "Horizontal rule",
+    "undo": "Undo",
+    "redo": "Redo",
+    "image": "Image",
+    "uploading": "Uploading image...",
+    "audioUk": "UK audio URL",
+    "audioUs": "US audio URL",
+    "audioHint": "https address of a sound file; a ▶ button in the text marks where it plays.",
+    "insertUk": "Insert UK ▶",
+    "insertUs": "Insert US ▶",
+    "tooLarge": "The card is too large (at most 64 KiB). Remove some content or images.",
+    "badAudio": "The audio address must be an https URL of at most 500 characters.",
+    "imageUnreadable": "The image could not be read. Save the image to your computer or take a screenshot, then add the file.",
+    "apply": "Apply",
+    "save": "Save",
+    "cancel": "Cancel",
+    "chipUk": "UK ▶",
+    "chipUs": "US ▶",
+    "loading": "Loading editor..."
   }
 }

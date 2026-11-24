@@ -1,7 +1,17 @@
 import { AutoAlert, Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@huponx/ui-kit";
-import { Bookmark, BookmarkCheck, Copy, Volume2 } from "lucide-react";
+import { Bookmark, BookmarkCheck, Copy, Pencil, Undo2, Volume2 } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Word } from "../api";
+import { CardBody } from "./Saved";
+import { CardEditor } from "./LazyCardEditor";
+
+/** What the user changed on the card of a lookup (not saved yet): the back of the card and the two audio URLs. */
+export interface CardOverride {
+  content: string;
+  audioUk: string;
+  audioUs: string;
+}
 
 function Play({ url, region }: { url: string; region: string }) {
   const { t } = useTranslation();
@@ -30,17 +40,49 @@ export interface WordCardProps {
   notice?: { kind: "success" | "error"; text: string };
   onSave: (w: Word) => void;
   onCopy: (w: Word) => void;
+  /** The edit the user applied; the card shows it instead of the entry. */
+  override?: CardOverride;
+  onApply: (w: Word, o: CardOverride) => void;
+  onRevert: (w: Word) => void;
+  /** What the editor starts from: the applied edit of this dictionary, else the entry of it. */
+  initial: CardOverride;
+  /** The editor of this card opened or closed. */
+  onEditing: (w: Word, editing: boolean) => void;
 }
 
 /** One entry: headword, pronunciations, parts of speech, numbered meanings with examples. */
-export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, onCopy }: WordCardProps) {
+export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, onCopy, override, onApply, onRevert, initial, onEditing }: WordCardProps) {
   const { t } = useTranslation();
+  // the editor takes the place of the entry inside the card; Save waits until the edit is applied or dropped
+  const [editing, setEditingState] = useState(false);
+  const setEditing = (on: boolean) => {
+    setEditingState(on);
+    onEditing(word, on);
+  };
   const uk = word.phoneticUk || (!word.phoneticUs ? word.phonetic : "");
   return (
-    <Card data-testid={`word-${word.text}`}>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-        <CardTitle className="text-xl">{word.text}</CardTitle>
+    <Card data-testid={`word-${word.text}`} className="glass:border-primary/30 glass:shadow-md">
+      {/* the header (word and actions) is a tinted band across the top of the panel */}
+      <CardHeader className="-mt-5 flex flex-row flex-wrap items-center justify-between gap-2 rounded-t-[inherit] border-b bg-primary/10 py-3 glass:border-primary/20">
+        <CardTitle className="text-xl">
+          {word.text}
+          {override ? (
+            <Badge variant="outline" className="ml-2 align-middle font-normal">
+              {t("lookup.edited")}
+            </Badge>
+          ) : null}
+        </CardTitle>
         <div className="flex gap-1">
+          {canSave && !editing ? (
+            <Button type="button" variant="outline" size="icon-sm" aria-label={t("lookup.edit")} title={t("lookup.edit")} onClick={() => setEditing(true)}>
+              <Pencil aria-hidden="true" />
+            </Button>
+          ) : null}
+          {override && !editing ? (
+            <Button type="button" variant="outline" size="icon-sm" aria-label={t("lookup.revert")} title={t("lookup.revert")} onClick={() => onRevert(word)}>
+              <Undo2 aria-hidden="true" />
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="outline"
@@ -57,6 +99,7 @@ export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, 
               size="icon-sm"
               variant={alreadySaved ? "destructive" : "default"}
               busy={saving}
+              disabled={editing}
               aria-label={alreadySaved ? t("lookup.saveOverride") : t("lookup.save")}
               title={alreadySaved ? t("lookup.saveOverride") : t("lookup.save")}
               onClick={() => onSave(word)}
@@ -70,6 +113,39 @@ export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, 
         <AutoAlert variant={notice?.kind === "success" ? "success" : "destructive"} watch={notice}>
           {notice?.text}
         </AutoAlert>
+        {editing ? (
+          <CardEditor
+            initialContent={initial.content}
+            initialAudio={{ audioUk: initial.audioUk, audioUs: initial.audioUs }}
+            applyLabel={t("editor.apply")}
+            onApply={(o) => {
+              onApply(word, o);
+              setEditing(false);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        ) : override ? (
+          <>
+            {override.audioUk || override.audioUs ? (
+              <div className="flex flex-wrap items-center gap-x-4 text-muted-foreground">
+                {override.audioUk ? (
+                  <span className="inline-flex items-center">
+                    {t("lookup.uk")}
+                    <Play url={override.audioUk} region={t("lookup.uk")} />
+                  </span>
+                ) : null}
+                {override.audioUs ? (
+                  <span className="inline-flex items-center">
+                    {t("lookup.us")}
+                    <Play url={override.audioUs} region={t("lookup.us")} />
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            <CardBody content={override.content} />
+          </>
+        ) : (
+          <>
         {uk || word.audioUk || word.phoneticUs || word.audioUs ? (
           <div className="flex flex-wrap items-center gap-x-4 text-muted-foreground">
             {uk || word.audioUk ? (
@@ -109,6 +185,8 @@ export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, 
               </li>
             ))}
           </ol>
+        )}
+          </>
         )}
       </CardContent>
     </Card>

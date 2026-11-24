@@ -1,16 +1,46 @@
 import { Can, useAuth } from "@huponx/auth-client";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Switch, useAction, useLoad } from "@huponx/ui-kit";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Switch,
+  useAction,
+  useLoad,
+} from "@huponx/ui-kit";
 import { useId, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useIdentity } from "../api";
 import type { DictionarySettings } from "../api";
-import { Actions, DoneAlert, ErrorAlert, Loading, PageTitle, TextField } from "../components/common";
+import {
+  Actions,
+  DoneAlert,
+  ErrorAlert,
+  Loading,
+  PageTitle,
+  TextField,
+} from "../components/common";
 
 const MAX_SAVED_LIMIT = 1000;
+const MAX_RETENTION_HOURS = 8760;
 
 /** A setting that is on or off: the name and what it does on the left, the switch on the right. */
-function SwitchRow({ label, hint, checked, onChange, disabled }: { label: string; hint: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+function SwitchRow({
+  label,
+  hint,
+  checked,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
   const id = useId();
   return (
     <div className="flex items-center justify-between gap-4">
@@ -20,7 +50,12 @@ function SwitchRow({ label, hint, checked, onChange, disabled }: { label: string
         </span>
         <span className="text-sm text-muted-foreground">{hint}</span>
       </div>
-      <Switch checked={checked} onCheckedChange={onChange} aria-labelledby={id} disabled={disabled} />
+      <Switch
+        checked={checked}
+        onCheckedChange={onChange}
+        aria-labelledby={id}
+        disabled={disabled}
+      />
     </div>
   );
 }
@@ -31,17 +66,28 @@ function Editor({ initial }: { initial: DictionarySettings }) {
   const { can } = useAuth();
   const canWrite = can("dictionary:settings:write");
   const [max, setMax] = useState(String(initial.maxSavedWords));
+  const [keep, setKeep] = useState(String(initial.exportedRetentionHours));
   const [s, setS] = useState(initial);
   const a = useAction();
-  const set = (patch: Partial<DictionarySettings>) => setS((cur) => ({ ...cur, ...patch }));
+  const set = (patch: Partial<DictionarySettings>) =>
+    setS((cur) => ({ ...cur, ...patch }));
   const oneOn = s.englishEnabled || s.englishViEnabled;
 
   async function submit(ev: FormEvent) {
     ev.preventDefault();
-    const saved = await a.run(() => api.updateDictionarySettings({ ...s, maxSavedWords: Number(max) }), t("dictionary.saved"));
+    const saved = await a.run(
+      () =>
+        api.updateDictionarySettings({
+          ...s,
+          maxSavedWords: Number(max),
+          exportedRetentionHours: Number(keep),
+        }),
+      t("dictionary.saved"),
+    );
     if (saved) {
       setS(saved);
       setMax(String(saved.maxSavedWords));
+      setKeep(String(saved.exportedRetentionHours));
     }
   }
 
@@ -73,8 +119,41 @@ function Editor({ initial }: { initial: DictionarySettings }) {
           <CardTitle>{t("dictionary.export")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <SwitchRow label={t("dictionary.exportDeck")} hint={t("dictionary.exportDeckHint")} checked={s.allowExportDeck} onChange={(v) => set({ allowExportDeck: v })} disabled={!canWrite} />
-          <SwitchRow label={t("dictionary.exportLink")} hint={t("dictionary.exportLinkHint")} checked={s.allowExportLink} onChange={(v) => set({ allowExportLink: v })} disabled={!canWrite} />
+          <SwitchRow
+            label={t("dictionary.exportDeck")}
+            hint={t("dictionary.exportDeckHint")}
+            checked={s.allowExportDeck}
+            onChange={(v) => set({ allowExportDeck: v })}
+            disabled={!canWrite}
+          />
+          <SwitchRow
+            label={t("dictionary.exportLink")}
+            hint={t("dictionary.exportLinkHint")}
+            checked={s.allowExportLink}
+            onChange={(v) => set({ allowExportLink: v })}
+            disabled={!canWrite}
+          />
+          <SwitchRow
+            label={t("dictionary.removeAfterExport")}
+            hint={t("dictionary.removeAfterExportHint")}
+            checked={s.removeAfterExport}
+            onChange={(v) => set({ removeAfterExport: v })}
+            disabled={!canWrite}
+          />
+          <TextField
+            label={t("dictionary.retention")}
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={MAX_RETENTION_HOURS}
+            step={1}
+            value={keep}
+            onChange={(e) => setKeep(e.target.value)}
+            hint={t("dictionary.retentionHint")}
+            required
+            disabled={!canWrite}
+            className="max-w-40"
+          />
         </CardContent>
       </Card>
       <Card>
@@ -83,8 +162,20 @@ function Editor({ initial }: { initial: DictionarySettings }) {
           <CardDescription>{t("dictionary.oneOn")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <SwitchRow label={t("dictionary.english")} hint={t("dictionary.englishHint")} checked={s.englishEnabled} onChange={(v) => set({ englishEnabled: v })} disabled={!canWrite} />
-          <SwitchRow label={t("dictionary.englishVi")} hint={t("dictionary.englishViHint")} checked={s.englishViEnabled} onChange={(v) => set({ englishViEnabled: v })} disabled={!canWrite} />
+          <SwitchRow
+            label={t("dictionary.english")}
+            hint={t("dictionary.englishHint")}
+            checked={s.englishEnabled}
+            onChange={(v) => set({ englishEnabled: v })}
+            disabled={!canWrite}
+          />
+          <SwitchRow
+            label={t("dictionary.englishVi")}
+            hint={t("dictionary.englishViHint")}
+            checked={s.englishViEnabled}
+            onChange={(v) => set({ englishViEnabled: v })}
+            disabled={!canWrite}
+          />
         </CardContent>
       </Card>
       <ErrorAlert error={a.error} />
@@ -107,8 +198,16 @@ export function Dictionary() {
   const load = useLoad(() => api.getDictionarySettings(), [api]);
   return (
     <div className="flex flex-col gap-6">
-      <PageTitle description={t("dictionary.intro")}>{t("dictionary.title")}</PageTitle>
-      {load.error ? <ErrorAlert error={load.error} /> : load.data ? <Editor initial={load.data} /> : <Loading />}
+      <PageTitle description={t("dictionary.intro")}>
+        {t("dictionary.title")}
+      </PageTitle>
+      {load.error ? (
+        <ErrorAlert error={load.error} />
+      ) : load.data ? (
+        <Editor initial={load.data} />
+      ) : (
+        <Loading />
+      )}
     </div>
   );
 }
