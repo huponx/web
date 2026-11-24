@@ -232,6 +232,13 @@ export function SettingsForm() {
             }
             offByAdmin={!system.removeAfterExport}
           />
+          <DictionaryRow
+            label={t("settings.freshDeck")}
+            hint={t("settings.freshDeckHint")}
+            checked={draft.freshDeck}
+            onChange={(v) => setDraft((cur) => ({ ...cur, freshDeck: v }))}
+            offByAdmin={false}
+          />
         </CardContent>
       </Card>
       {error ? <Alert variant="destructive">{error}</Alert> : null}

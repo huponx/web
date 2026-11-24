@@ -30,7 +30,16 @@ import {
   TooltipTrigger,
   useConfirm,
 } from "@huponx/ui-kit";
-import { CircleCheck, Copy, Download, Link2, Pencil, Search, Trash2 } from "lucide-react";
+import {
+  Check,
+  CircleCheck,
+  Copy,
+  Download,
+  Link2,
+  Pencil,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DEFAULT_DECK, downloadBase64, useDictionary } from "../api";
@@ -38,9 +47,13 @@ import type { ExportScope, SavedWord } from "../api";
 import { removesAfterExport, SAVED_CHANGED } from "../api";
 import { cardViewHtml } from "../lib/cardHtml";
 import { useCardImages } from "../lib/useCardImages";
+import { useCopied } from "../lib/useCopied";
 import { errorMessage } from "../lib/errors";
 import { useSettings } from "../lib/settings";
 import { CardEditor } from "./LazyCardEditor";
+
+/** How long the search box waits after the last keystroke before it asks the service. */
+const SEARCH_DEBOUNCE_MS = 300;
 
 /** The look of the back of a card (lists, rules, italics): the tags are bare, the page styles reset them. */
 export const CARD_BODY =
@@ -59,7 +72,11 @@ export function CardBody({
   useCardImages(body, html);
   return (
     <div className={clamp ? "relative max-h-28 overflow-hidden" : undefined}>
-      <div ref={body} className={`${CARD_BODY} [&_img]:h-auto [&_img]:max-h-64 [&_img[width]]:max-h-none [&_img]:max-w-full [&_img]:rounded-md`} dangerouslySetInnerHTML={{ __html: html }} />
+      <div
+        ref={body}
+        className={`${CARD_BODY} [&_img]:h-auto [&_img]:max-h-64 [&_img[width]]:max-h-none [&_img]:max-w-full [&_img]:rounded-md`}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
       {clamp ? (
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-background to-transparent"
@@ -81,7 +98,11 @@ function ExportedBadge({ className = "ml-2" }: { className?: string }) {
       <Tooltip>
         <TooltipTrigger asChild>
           <span className={`inline-flex align-middle ${className}`}>
-            <CircleCheck role="img" aria-label={label} className="size-4 shrink-0 text-success" />
+            <CircleCheck
+              role="img"
+              aria-label={label}
+              className="size-4 shrink-0 text-success"
+            />
           </span>
         </TooltipTrigger>
         <TooltipContent>{label}</TooltipContent>
@@ -121,12 +142,15 @@ export function SavedList({
   const [choosing, setChoosing] = useState<"deck" | "link">();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  // a read after the first one: the list on screen stays (dimmed) until the new one arrives
+  const [fetching, setFetching] = useState(false);
   const [exporting, setExporting] = useState(false);
   const { settings } = useSettings();
   const limit = settings.system.maxSavedWords;
   const { allowExportDeck, allowExportLink } = settings.system;
   // what the user typed; untouched: the default name of the preferences
   const [typedDeck, setDeck] = useState<string>();
+  const [copied, markCopied] = useCopied();
   const deck = typedDeck ?? (settings.user.deckName || DEFAULT_DECK);
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
@@ -145,19 +169,46 @@ export function SavedList({
   const [editing, setEditing] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string>();
+  // the card of the dialog; kept while the dialog fades out, so it does not go blank first
+  const lastViewing = useRef<SavedWord>(undefined);
+  if (viewing) lastViewing.current = viewing;
+  const card = viewing ?? lastViewing.current;
+  const openCard = (w: SavedWord) => {
+    setEditing(false);
+    setEditError(undefined);
+    setViewing(w);
+  };
 
+  // the service does the search; it runs once the user stops typing
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  // the newest read wins: an older one that arrives late must not overwrite it
+  const readSeq = useRef(0);
   const load = useCallback(() => {
+    const seq = ++readSeq.current;
+    setFetching(true);
     api
-      .listAll()
+      .listAll(debouncedQuery)
       .then((r) => {
+        if (seq !== readSeq.current) return;
         setWords(r.words);
         setTotal(r.total);
         setNewTotal(r.newTotal);
         setError(undefined);
       })
-      .catch((e) => setError(errorMessage(e, t)))
-      .finally(() => setLoading(false));
-  }, [api, t]);
+      .catch((e) => {
+        if (seq === readSeq.current) setError(errorMessage(e, t));
+      })
+      .finally(() => {
+        if (seq !== readSeq.current) return;
+        setLoading(false);
+        setFetching(false);
+      });
+  }, [api, t, debouncedQuery]);
 
   // `version` is the signal to read the list again
   useEffect(load, [load, version]);
@@ -166,11 +217,6 @@ export function SavedList({
     window.addEventListener(SAVED_CHANGED, load);
     return () => window.removeEventListener(SAVED_CHANGED, load);
   }, [load]);
-
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return q ? words.filter((w) => w.word.toLowerCase().includes(q)) : words;
-  }, [words, query]);
 
   async function remove(w: SavedWord) {
     if (
@@ -196,12 +242,20 @@ export function SavedList({
   }
 
   /** Saves the card the user edited: the word is saved again (an upsert, so it is the newest and new again). */
-  async function saveEdit(w: SavedWord, edit: { content: string; audioUk: string; audioUs: string }) {
+  async function saveEdit(
+    w: SavedWord,
+    edit: { content: string; audioUk: string; audioUs: string },
+  ) {
     setSavingEdit(true);
     setEditError(undefined);
     try {
       await api.save({ word: w.word, ...edit });
-      const updated: SavedWord = { ...w, ...edit, createdAt: new Date().toISOString(), exported: false };
+      const updated: SavedWord = {
+        ...w,
+        ...edit,
+        createdAt: new Date().toISOString(),
+        exported: false,
+      };
       setWords((list) => [updated, ...list.filter((x) => x.word !== w.word)]);
       if (w.exported) setNewTotal((n) => n + 1);
       setViewing(updated);
@@ -281,6 +335,7 @@ export function SavedList({
     if (!link) return;
     try {
       await navigator.clipboard.writeText(link.url);
+      markCopied("link");
       setNotice(t("saved.linkCopied"));
     } catch {
       setError(t("lookup.copyFailed"));
@@ -372,7 +427,11 @@ export function SavedList({
                 title={t("saved.copyLink")}
                 onClick={() => void copyLink()}
               >
-                <Copy aria-hidden="true" />
+                {copied === "link" ? (
+                  <Check aria-hidden="true" />
+                ) : (
+                  <Copy aria-hidden="true" />
+                )}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -404,35 +463,38 @@ export function SavedList({
         </div>
         {loading ? (
           <Loading label={t("common.loading")} />
-        ) : words.length === 0 ? (
+        ) : total === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             {t("saved.empty")}
           </p>
-        ) : shown.length === 0 ? (
+        ) : words.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             {t("saved.noMatch")}
           </p>
         ) : !compact ? (
-          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {shown.map((w) => (
+          <ul
+            aria-busy={fetching}
+            className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-3 ${fetching ? "opacity-60 transition-opacity" : ""}`}
+          >
+            {words.map((w) => (
               <li
                 key={w.word}
-                className="relative rounded-lg border shadow-sm transition-colors hover:bg-accent/40 glass:border-primary/30 glass:bg-card glass:shadow-md"
+                className="relative rounded-lg border shadow-sm transition-colors hover:bg-accent/40 glass:rounded-xl glass:bg-card glass:shadow-(--shadow-card)"
               >
                 <div
                   role="button"
                   tabIndex={0}
                   aria-label={t("saved.open", { word: w.word })}
-                  className="flex cursor-pointer flex-col gap-2 rounded-lg p-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  onClick={() => setViewing(w)}
+                  className="flex cursor-pointer flex-col gap-2 rounded-lg glass:rounded-xl p-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  onClick={() => openCard(w)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setViewing(w);
+                      openCard(w);
                     }
                   }}
                 >
-                  <div className="-mx-4 -mt-4 min-w-0 rounded-t-lg border-b bg-primary/10 px-4 py-3 pr-12 glass:border-primary/20">
+                  <div className="-mx-4 -mt-4 min-w-0 rounded-t-lg glass:rounded-t-xl border-b bg-primary/10 px-4 py-3 pr-12 glass:bg-primary/[0.07] glass:border-primary/20 glass:shadow-[0_1px_0_0_rgb(255_255_255/0.8)]">
                     <p className="truncate text-base font-semibold">{w.word}</p>
                     <p className="text-xs text-muted-foreground">
                       {when(w.createdAt)}
@@ -458,7 +520,10 @@ export function SavedList({
             ))}
           </ul>
         ) : (
-          <Table>
+          <Table
+            aria-busy={fetching}
+            className={fetching ? "opacity-60 transition-opacity" : undefined}
+          >
             <TableHeader>
               <TableRow>
                 <TableHead>{t("saved.word")}</TableHead>
@@ -471,13 +536,13 @@ export function SavedList({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {shown.map((w) => (
+              {words.map((w) => (
                 <TableRow key={w.word}>
                   <TableCell className="font-medium">
                     <button
                       type="button"
                       className="text-left hover:underline"
-                      onClick={() => setViewing(w)}
+                      onClick={() => openCard(w)}
                     >
                       {w.word}
                     </button>
@@ -544,49 +609,67 @@ export function SavedList({
         open={viewing !== undefined}
         onOpenChange={(open) => {
           if (open) return;
+          // the content stays until the closing animation is over (it is reset when a card is opened)
           setViewing(undefined);
-          setEditing(false);
-          setEditError(undefined);
         }}
       >
         <DialogContent
           closeLabel={t("common.close")}
           className="grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0"
         >
-          <DialogHeader className="border-b bg-primary/10 px-6 py-4 pr-12 glass:border-primary/20">
+          <DialogHeader className="border-b bg-primary/10 px-6 py-4 pr-12 glass:bg-primary/[0.07] glass:border-primary/20 glass:shadow-[0_1px_0_0_rgb(255_255_255/0.8)]">
             <div className="flex items-center justify-between gap-2">
-              <DialogTitle>{viewing?.word}</DialogTitle>
-              {write && viewing && !editing ? (
-                <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
+              <DialogTitle>{card?.word}</DialogTitle>
+              {write && card && !editing ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditing(true)}
+                >
                   <Pencil aria-hidden="true" />
                   {t("lookup.edit")}
                 </Button>
               ) : null}
             </div>
             <DialogDescription>
-              {viewing ? when(viewing.createdAt) : null}
-              {viewing?.exported ? <ExportedBadge /> : null}
+              {card ? when(card.createdAt) : null}
+              {card?.exported ? <ExportedBadge /> : null}
             </DialogDescription>
           </DialogHeader>
           {/* only the card scrolls: the word and the date stay where they are */}
-          <div className="min-h-0 overflow-y-auto px-6 py-4">
-            {viewing && editing ? (
-              <div className="space-y-3">
-                {editError ? <Alert variant="destructive">{editError}</Alert> : null}
+          <div
+            className={
+              card && editing
+                ? "flex min-h-0 flex-col"
+                : "min-h-0 overflow-y-auto px-6 py-4"
+            }
+          >
+            {card && editing ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                {editError ? (
+                  <Alert variant="destructive" className="mx-6 mt-4">
+                    {editError}
+                  </Alert>
+                ) : null}
                 <CardEditor
-                  initialContent={viewing.content}
-                  initialAudio={{ audioUk: viewing.audioUk || "", audioUs: viewing.audioUs || "" }}
+                  initialContent={card.content}
+                  initialAudio={{
+                    audioUk: card.audioUk || "",
+                    audioUs: card.audioUs || "",
+                  }}
                   saving={savingEdit}
+                  stickyActions
                   applyLabel={t("editor.save")}
-                  onApply={(edit) => void saveEdit(viewing, edit)}
+                  onApply={(edit) => void saveEdit(card, edit)}
                   onCancel={() => {
                     setEditing(false);
                     setEditError(undefined);
                   }}
                 />
               </div>
-            ) : viewing ? (
-              <CardBody content={viewing.content} />
+            ) : card ? (
+              <CardBody content={card.content} />
             ) : null}
           </div>
         </DialogContent>

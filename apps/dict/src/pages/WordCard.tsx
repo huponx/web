@@ -1,6 +1,6 @@
 import { AutoAlert, Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@huponx/ui-kit";
-import { Bookmark, BookmarkCheck, Copy, Pencil, Undo2, Volume2 } from "lucide-react";
-import { useState } from "react";
+import { Bookmark, BookmarkCheck, Check, Copy, Pencil, Undo2, Volume2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Word } from "../api";
 import { CardBody } from "./Saved";
@@ -40,6 +40,8 @@ export interface WordCardProps {
   notice?: { kind: "success" | "error"; text: string };
   onSave: (w: Word) => void;
   onCopy: (w: Word) => void;
+  /** The card was just copied: the copy button shows a tick. */
+  copied?: boolean;
   /** The edit the user applied; the card shows it instead of the entry. */
   override?: CardOverride;
   onApply: (w: Word, o: CardOverride) => void;
@@ -48,27 +50,40 @@ export interface WordCardProps {
   initial: CardOverride;
   /** The editor of this card opened or closed. */
   onEditing: (w: Word, editing: boolean) => void;
+  /** The card is written by hand (no dictionary entry): it opens in the editor and shows a badge. */
+  manual?: boolean;
 }
 
 /** One entry: headword, pronunciations, parts of speech, numbered meanings with examples. */
-export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, onCopy, override, onApply, onRevert, initial, onEditing }: WordCardProps) {
+export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, onCopy, copied, override, onApply, onRevert, initial, onEditing, manual = false }: WordCardProps) {
   const { t } = useTranslation();
   // the editor takes the place of the entry inside the card; Save waits until the edit is applied or dropped
-  const [editing, setEditingState] = useState(false);
+  const [editing, setEditingState] = useState(manual && !override);
   const setEditing = (on: boolean) => {
     setEditingState(on);
     onEditing(word, on);
   };
+  // a card made by hand opens in its editor: the page counts it as open from the start
+  useEffect(() => {
+    if (manual && !override) onEditing(word, true);
+    // once, when the card appears
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const uk = word.phoneticUk || (!word.phoneticUs ? word.phonetic : "");
   return (
-    <Card data-testid={`word-${word.text}`} className="glass:border-primary/30 glass:shadow-md">
+    <Card data-testid={`word-${word.text}`}>
       {/* the header (word and actions) is a tinted band across the top of the panel */}
-      <CardHeader className="-mt-5 flex flex-row flex-wrap items-center justify-between gap-2 rounded-t-[inherit] border-b bg-primary/10 py-3 glass:border-primary/20">
+      <CardHeader className="-mt-5 flex flex-row flex-wrap items-center justify-between gap-2 rounded-t-[inherit] border-b bg-primary/10 py-3 glass:bg-primary/[0.07] glass:border-primary/20 glass:shadow-[0_1px_0_0_rgb(255_255_255/0.8)]">
         <CardTitle className="text-xl">
           {word.text}
           {override ? (
             <Badge variant="outline" className="ml-2 align-middle font-normal">
               {t("lookup.edited")}
+            </Badge>
+          ) : null}
+          {manual ? (
+            <Badge variant="outline" className="ml-2 align-middle font-normal">
+              {t("lookup.manualBadge")}
             </Badge>
           ) : null}
         </CardTitle>
@@ -91,7 +106,7 @@ export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, 
             title={t("lookup.copyResult")}
             onClick={() => onCopy(word)}
           >
-            <Copy aria-hidden="true" />
+            {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
           </Button>
           {canSave ? (
             <Button
@@ -118,6 +133,7 @@ export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, 
             initialContent={initial.content}
             initialAudio={{ audioUk: initial.audioUk, audioUs: initial.audioUs }}
             applyLabel={t("editor.apply")}
+            requireContent={manual}
             onApply={(o) => {
               onApply(word, o);
               setEditing(false);

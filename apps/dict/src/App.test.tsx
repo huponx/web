@@ -461,40 +461,45 @@ describe("saved words", () => {
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(field.value));
   });
 
-  it("filters the list with the search box", async () => {
-    const many = {
-      words: ["apple", "banana", "grape"].map((word) => ({
-        word,
-        content: "",
-        audioUk: "",
-        audioUs: "",
-        createdAt: "2026-11-23T05:00:00Z",
-      })),
-      nextPageToken: "",
-      total: 3,
-    };
-    setup(["dictionary:word:read"], (c) =>
-      c.path.startsWith("/api/dictionary/saved") ? { body: many } : undefined,
-    );
+  it("searches in the service after the user stops typing", async () => {
+    const all = ["apple", "banana", "grape"].map((word) => ({
+      word,
+      content: "",
+      audioUk: "",
+      audioUs: "",
+      createdAt: "2026-11-23T05:00:00Z",
+    }));
+    // the service filters; its totals ignore the query
+    const calls = setup(["dictionary:word:read"], (c) => {
+      if (!c.path.startsWith("/api/dictionary/saved")) return undefined;
+      const q = new URLSearchParams(c.path.split("?")[1]).get("query") ?? "";
+      const words = all.filter((w) => w.word.includes(q.toLowerCase()));
+      return { body: { words, nextPageToken: "", total: 3, newTotal: 3 } };
+    });
+    const queries = () =>
+      calls
+        .filter((c) => c.path.startsWith("/api/dictionary/saved?"))
+        .map((c) => new URLSearchParams(c.path.split("?")[1]).get("query"));
     const user = userEvent.setup();
     await user.click(await screen.findByTestId("nav-saved"));
     expect(await screen.findByText("banana")).toBeTruthy();
-    await user.type(
-      screen.getByRole("textbox", { name: "Search saved words" }),
-      "AP",
-    );
-    expect(screen.queryByText("banana")).toBeNull();
+    const box = screen.getByRole("textbox", { name: "Search saved words" });
+    const before = queries().length;
+    await user.type(box, "AP");
+    // nothing is sent while the user types
+    expect(queries().length).toBe(before);
+    await waitFor(() => expect(screen.queryByText("banana")).toBeNull());
     expect(screen.getByText("apple")).toBeTruthy();
-    await user.clear(
-      screen.getByRole("textbox", { name: "Search saved words" }),
-    );
-    await user.type(
-      screen.getByRole("textbox", { name: "Search saved words" }),
-      "zzz",
-    );
+    expect(queries().slice(before)).toEqual(["AP"]);
+    await user.clear(box);
+    await waitFor(() => expect(screen.getByText("banana")).toBeTruthy());
+    expect(queries().at(-1)).toBeNull();
+    await user.type(box, "zzz");
     expect(
       await screen.findByText("No saved word matches your search."),
     ).toBeTruthy();
+    // the list is not empty, only the search: the totals stay
+    expect(screen.queryByText(/No saved words yet/)).toBeNull();
   });
 
   it("deletes a word after the confirmation", async () => {
@@ -536,6 +541,7 @@ describe("dictionary settings", () => {
     maxLookupWords: 20,
     removeAfterExport: true,
     removeAcknowledged: true,
+    freshDeck: false,
   };
   const withSettings =
     (
@@ -731,6 +737,21 @@ describe("dictionary settings", () => {
     expect(await screen.findByText("Settings saved.")).toBeTruthy();
   });
 
+  it("saves the choice of a new Anki deck on every export", async () => {
+    const calls = setup(["dictionary:word:read"], withSettings({}, {}));
+    const u = userEvent.setup();
+    await u.click(await screen.findByTestId("nav-settings"));
+    const sw = await screen.findByRole("switch", { name: "New deck on every export" });
+    expect(sw.getAttribute("aria-checked")).toBe("false"); // off: importing again updates the cards
+    await u.click(sw);
+    await u.click(screen.getByRole("button", { name: "Save settings" }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.method === "PUT")?.body).toEqual({
+        user: { ...user, freshDeck: true },
+      }),
+    );
+  });
+
   it("keeps the default on a dictionary that is on and needs one dictionary", async () => {
     setup(["dictionary:word:read"], withSettings({}, {}));
     const u = userEvent.setup();
@@ -799,6 +820,7 @@ describe("remove saved words after export", () => {
     maxLookupWords: 20,
     removeAfterExport: true,
     removeAcknowledged: true,
+    freshDeck: false,
   };
   const row = (w: string, exported: boolean) => ({
     word: w,
@@ -1417,6 +1439,13 @@ describe("card editing of both dictionaries and unsaved edits", () => {
     await user.click(screen.getByTestId("nav-saved"));
     await user.click(await screen.findByRole("button", { name: "Leave" }));
     await waitFor(() => expect(screen.queryByLabelText("Words")).toBeNull());
+    // back on Lookup the discarded edit is gone, and leaving again does not ask
+    await user.click(screen.getByTestId("nav-lookup"));
+    expect(await screen.findByText("used as a greeting")).toBeTruthy();
+    expect(screen.queryByText("mine")).toBeNull();
+    await user.click(screen.getByTestId("nav-saved"));
+    await waitFor(() => expect(screen.queryByLabelText("Words")).toBeNull());
+    expect(screen.queryByRole("button", { name: "Leave" })).toBeNull();
   });
 
   it("keeps the edited card when visiting another page and coming back", async () => {
@@ -1440,5 +1469,110 @@ describe("card editing of both dictionaries and unsaved edits", () => {
     await user.click(screen.getByTestId("nav-saved"));
     await waitFor(() => expect(screen.queryByLabelText("Words")).toBeNull());
     expect(screen.queryByText("Unsaved edits")).toBeNull();
+  });
+});
+
+describe("cards written by hand", () => {
+  const WRITE = ["dictionary:word:read", "dictionary:word:write"];
+  const notFound = { status: 404, body: { error: { code: "not_found", message: "x" } } };
+  const down = { status: 503, body: { error: { code: "unavailable", message: "Service unavailable" } } };
+  const make = (words: { status?: number; body: unknown }) => (c: Call) => {
+    if (c.method === "GET" && c.path.startsWith("/api/dictionary/saved")) return { body: { words: [{ word: "serendipity", content: "x", audioUk: "", audioUs: "", createdAt: "2026-11-23T05:00:00Z" }], nextPageToken: "", total: 1 } };
+    if (c.method === "POST" && c.path === "/api/dictionary/saved") return { body: { savedCount: 2 } };
+    if (c.path.startsWith("/api/dictionary/words/")) return words;
+    return undefined;
+  };
+  const post = (calls: Call[]) => calls.find((c) => c.method === "POST" && c.path === "/api/dictionary/saved");
+
+  async function typeInto(user: ReturnType<typeof userEvent.setup>, text: string) {
+    const box = await screen.findByRole("textbox", { name: "Card editor" });
+    await user.click(box);
+    await user.keyboard(text);
+  }
+
+  it("creates a card by hand for a word that was not found and saves it", async () => {
+    const calls = setup(WRITE, make(notFound));
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Words"), "zzz");
+    await user.click(screen.getByRole("button", { name: "Look up" }));
+    expect(await screen.findByText("No entry for: zzz")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Create card manually" }));
+    expect(screen.queryByText("No entry for: zzz")).toBeNull();
+    await typeInto(user, "my own meaning");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await user.click(await screen.findByRole("button", { name: "Save" }));
+    await waitFor(() => expect(post(calls)).toBeTruthy());
+    const body = post(calls)!.body as Record<string, string>;
+    expect(body.word).toBe("zzz");
+    expect(body.content).toContain("my own meaning");
+    expect(screen.getByText("manual")).toBeTruthy();
+  });
+
+  it("refuses an empty card and drops it when cancelled", async () => {
+    setup(WRITE, make(notFound));
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Words"), "zzz");
+    await user.click(screen.getByRole("button", { name: "Look up" }));
+    await user.click(await screen.findByRole("button", { name: "Create card manually" }));
+    await screen.findByRole("textbox", { name: "Card editor" });
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(await screen.findByText(/Write something first/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByTestId("word-zzz")).toBeNull();
+    expect(screen.getByText("No entry for: zzz")).toBeTruthy();
+  });
+
+  it("offers a card per word when several are missing", async () => {
+    setup(WRITE, (c) => (c.path === "/api/dictionary/lookup" ? { body: { words: [word], notFound: ["aaa", "bbb"] } } : undefined));
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Words"), "hello, aaa, bbb");
+    await user.click(screen.getByRole("button", { name: "Look up" }));
+    await user.click(await screen.findByRole("button", { name: "Create card: bbb" }));
+    expect(await screen.findByTestId("word-bbb")).toBeTruthy();
+    expect(screen.getByText("No entry for: aaa")).toBeTruthy();
+  });
+
+  it("offers to write the cards when the lookup fails, and saves without the dictionary", async () => {
+    const calls = setup(WRITE, make(down));
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Words"), "hello");
+    await user.click(screen.getByRole("button", { name: "Look up" }));
+    expect(await screen.findByText(/dictionary is unavailable/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Create card: hello" }));
+    await typeInto(user, "hi there");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await user.click(await screen.findByRole("button", { name: "Save" }));
+    await waitFor(() => expect(post(calls)).toBeTruthy());
+    expect((post(calls)!.body as Record<string, string>).content).toContain("hi there");
+  });
+
+  it("creates a card for any word with New card, checking the word", async () => {
+    const calls = setup(WRITE, make(notFound));
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "New card" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Continue to editor" }));
+    expect(await within(dialog).findByText("Enter a word.")).toBeTruthy();
+    await user.type(within(dialog).getByLabelText("Word"), "abc!");
+    expect(within(dialog).getByRole("alert").textContent).toMatch(/letters, digits/);
+    await user.clear(within(dialog).getByLabelText("Word"));
+    await user.type(within(dialog).getByLabelText("Word"), "serendipity");
+    expect(within(dialog).getByText(/already saved/)).toBeTruthy();
+    await user.click(within(dialog).getByRole("button", { name: "Continue to editor" }));
+    await typeInto(user, "new text");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await user.click(await screen.findByRole("button", { name: "Save override" }));
+    await waitFor(() => expect(post(calls)).toBeTruthy());
+    expect((post(calls)!.body as Record<string, string>).word).toBe("serendipity");
+  });
+
+  it("hides the buttons without the write permission", async () => {
+    setup(["dictionary:word:read"], make(notFound));
+    const user = userEvent.setup();
+    expect(screen.queryByRole("button", { name: "New card" })).toBeNull();
+    await user.type(await screen.findByLabelText("Words"), "zzz");
+    await user.click(screen.getByRole("button", { name: "Look up" }));
+    expect(await screen.findByText("No entry for: zzz")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Create card manually" })).toBeNull();
   });
 });
