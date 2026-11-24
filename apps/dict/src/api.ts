@@ -88,6 +88,8 @@ export interface UserSettings {
   removeAfterExport: boolean;
   /** The user answered what to do with the exported words that were in the list when remove came on. */
   removeAcknowledged: boolean;
+  /** Every export is a new deck for Anki (importing it again adds the cards again). Off: Anki updates the cards. */
+  freshDeck: boolean;
 }
 
 export interface MySettings {
@@ -118,6 +120,7 @@ export const DEFAULT_USER: UserSettings = {
   removeAfterExport: true,
   // the defaults stand in for settings that could not be read: do not ask the user anything on them
   removeAcknowledged: true,
+  freshDeck: false,
 };
 
 /** Remove after export is in effect: the system allows it and the user did not turn it off. */
@@ -158,6 +161,7 @@ export function parseSettings(
         maxLookupWords: u.maxLookupWords || MAX_LOOKUP_WORDS,
         removeAfterExport: u.removeAfterExport ?? false,
         removeAcknowledged: u.removeAcknowledged ?? false,
+        freshDeck: u.freshDeck ?? false,
       }
     : DEFAULT_USER;
   return { user, system };
@@ -313,13 +317,16 @@ export function useDictionary() {
         imageUrls.set(id, url);
         return url;
       },
-      list: (pageToken?: string) =>
+      list: (pageToken?: string, query?: string) =>
         client.api<SavedPage>(
           "GET",
-          `/api/dictionary/saved?pageSize=50${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""}`,
+          `/api/dictionary/saved?pageSize=50${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""}${query ? `&query=${encodeURIComponent(query)}` : ""}`,
         ),
-      /** All words of the list (at most the limit of the service): pages of 50 until the last one. */
-      listAll: async () => {
+      /**
+       * All words of the list (at most the limit of the service): pages of 50 until the last one. A query keeps the
+       * words that contain it (the service matches, ignoring case); the totals still count the whole list.
+       */
+      listAll: async (query?: string) => {
         const words: SavedWord[] = [];
         let token: string | undefined;
         let total = 0;
@@ -327,7 +334,7 @@ export function useDictionary() {
         do {
           const p: SavedPage = await client.api<SavedPage>(
             "GET",
-            `/api/dictionary/saved?pageSize=50${token ? `&pageToken=${encodeURIComponent(token)}` : ""}`,
+            `/api/dictionary/saved?pageSize=50${token ? `&pageToken=${encodeURIComponent(token)}` : ""}${query ? `&query=${encodeURIComponent(query)}` : ""}`,
           );
           words.push(...p.words);
           total = p.total;
