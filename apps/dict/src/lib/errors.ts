@@ -1,6 +1,7 @@
 import { ApiError } from "@huponx/auth-client";
 import type { TFunction } from "i18next";
 import { serviceCode } from "../api";
+import { ImageError } from "./image";
 
 /** A message the user can act on for an error of the dictionary routes. */
 export function errorMessage(e: unknown, t: TFunction): string {
@@ -15,7 +16,16 @@ export function errorMessage(e: unknown, t: TFunction): string {
       return t("errors.featureDisabled");
     case "DICTIONARY_DISABLED":
       return t("errors.dictionaryDisabled");
+    case "IMAGE_TOO_LARGE":
+      return t("errors.imageTooLarge");
+    case "IMAGE_UNSUPPORTED":
+      return t("errors.imageFormat");
+    case "IMAGE_QUOTA_EXCEEDED":
+      return t("errors.imageQuota");
+    case "IMAGES_DISABLED":
+      return t("errors.imagesDisabled");
   }
+  if (e instanceof ImageError) return t(e.problem === "tooLarge" ? "errors.imageTooLarge" : "errors.imageFormat");
   if (e instanceof ApiError) {
     if (e.code === "not_found") return t("errors.notFound");
     if (e.code === "unavailable" || e.code === "timeout") return t("errors.unavailable");

@@ -1,4 +1,20 @@
-import { AutoAlert, Alert, Button, Loading, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Switch, ToggleGroup, ToggleGroupItem } from "@huponx/ui-kit";
+import {
+  AutoAlert,
+  Alert,
+  Button,
+  Loading,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  Switch,
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@huponx/ui-kit";
+import { Lock } from "lucide-react";
 import { useId, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,7 +23,19 @@ import type { Dictionary, UserSettings } from "../api";
 import { errorMessage } from "../lib/errors";
 import { useSettings } from "../lib/settings";
 
-function DictionaryRow({ label, checked, onChange, offByAdmin }: { label: string; checked: boolean; onChange: (v: boolean) => void; offByAdmin: boolean }) {
+function DictionaryRow({
+  label,
+  hint,
+  checked,
+  onChange,
+  offByAdmin,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  offByAdmin: boolean;
+}) {
   const { t } = useTranslation();
   const id = useId();
   return (
@@ -16,9 +44,22 @@ function DictionaryRow({ label, checked, onChange, offByAdmin }: { label: string
         <span id={id} className="text-sm font-medium">
           {label}
         </span>
-        {offByAdmin ? <span className="text-sm text-muted-foreground">{t("settings.offByAdmin")}</span> : null}
+        {hint ? (
+          <span className="text-sm text-muted-foreground">{hint}</span>
+        ) : null}
+        {offByAdmin ? (
+          <span className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-md bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
+            <Lock className="size-3" aria-hidden="true" />
+            {t("settings.offByAdmin")}
+          </span>
+        ) : null}
       </div>
-      <Switch checked={checked && !offByAdmin} onCheckedChange={onChange} aria-labelledby={id} disabled={offByAdmin} />
+      <Switch
+        checked={checked && !offByAdmin}
+        onCheckedChange={onChange}
+        aria-labelledby={id}
+        disabled={offByAdmin}
+      />
     </div>
   );
 }
@@ -36,20 +77,32 @@ export function SettingsForm() {
   const [done, setDone] = useState<{ at: number }>();
 
   const on = (d: Dictionary) =>
-    d === "DICTIONARY_ENGLISH" ? draft.englishEnabled && system.englishEnabled : draft.englishViEnabled && system.englishViEnabled;
-  const enabled = (["DICTIONARY_ENGLISH", "DICTIONARY_ENGLISH_VIETNAMESE"] as const).filter(on);
+    d === "DICTIONARY_ENGLISH"
+      ? draft.englishEnabled && system.englishEnabled
+      : draft.englishViEnabled && system.englishViEnabled;
+  const enabled = (
+    ["DICTIONARY_ENGLISH", "DICTIONARY_ENGLISH_VIETNAMESE"] as const
+  ).filter(on);
   const n = Number(words);
   const wordsOk = Number.isInteger(n) && n >= 1 && n <= MAX_LOOKUP_WORDS;
   const valid = enabled.length > 0 && wordsOk;
 
   function toggle(d: Dictionary, v: boolean) {
     setDraft((cur) => {
-      const next = d === "DICTIONARY_ENGLISH" ? { ...cur, englishEnabled: v } : { ...cur, englishViEnabled: v };
+      const next =
+        d === "DICTIONARY_ENGLISH"
+          ? { ...cur, englishEnabled: v }
+          : { ...cur, englishViEnabled: v };
       // the default has to be one that is on
       const stillOn = (x: Dictionary) =>
-        x === "DICTIONARY_ENGLISH" ? next.englishEnabled && system.englishEnabled : next.englishViEnabled && system.englishViEnabled;
+        x === "DICTIONARY_ENGLISH"
+          ? next.englishEnabled && system.englishEnabled
+          : next.englishViEnabled && system.englishViEnabled;
       if (!stillOn(next.defaultDictionary)) {
-        const other: Dictionary = next.defaultDictionary === "DICTIONARY_ENGLISH" ? "DICTIONARY_ENGLISH_VIETNAMESE" : "DICTIONARY_ENGLISH";
+        const other: Dictionary =
+          next.defaultDictionary === "DICTIONARY_ENGLISH"
+            ? "DICTIONARY_ENGLISH_VIETNAMESE"
+            : "DICTIONARY_ENGLISH";
         if (stillOn(other)) next.defaultDictionary = other;
       }
       return next;
@@ -61,7 +114,11 @@ export function SettingsForm() {
     setBusy(true);
     setError(undefined);
     try {
-      await save({ ...draft, deckName: draft.deckName.trim(), maxLookupWords: n });
+      await save({
+        ...draft,
+        deckName: draft.deckName.trim(),
+        maxLookupWords: n,
+      });
       setDone({ at: Date.now() });
     } catch (e) {
       setError(errorMessage(e, t));
@@ -78,26 +135,49 @@ export function SettingsForm() {
           <CardDescription>{t("settings.dictionariesHint")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <DictionaryRow label={t("lookup.english")} checked={draft.englishEnabled} onChange={(v) => toggle("DICTIONARY_ENGLISH", v)} offByAdmin={!system.englishEnabled} />
+          <DictionaryRow
+            label={t("lookup.english")}
+            checked={draft.englishEnabled}
+            onChange={(v) => toggle("DICTIONARY_ENGLISH", v)}
+            offByAdmin={!system.englishEnabled}
+          />
           <DictionaryRow
             label={t("lookup.englishVietnamese")}
             checked={draft.englishViEnabled}
             onChange={(v) => toggle("DICTIONARY_ENGLISH_VIETNAMESE", v)}
             offByAdmin={!system.englishViEnabled}
           />
-          {enabled.length === 0 ? <p className="text-sm text-destructive">{t("settings.oneOn")}</p> : null}
+          {enabled.length === 0 ? (
+            <p className="text-sm text-destructive">{t("settings.oneOn")}</p>
+          ) : null}
           <div className="space-y-2">
             <Label id="default-dictionary">{t("settings.default")}</Label>
             <div>
               <ToggleGroup
                 type="single"
                 aria-labelledby="default-dictionary"
-                value={enabled.includes(draft.defaultDictionary) ? draft.defaultDictionary : ""}
-                onValueChange={(v) => v && setDraft((cur) => ({ ...cur, defaultDictionary: v as Dictionary }))}
+                value={
+                  enabled.includes(draft.defaultDictionary)
+                    ? draft.defaultDictionary
+                    : ""
+                }
+                onValueChange={(v) =>
+                  v &&
+                  setDraft((cur) => ({
+                    ...cur,
+                    defaultDictionary: v as Dictionary,
+                  }))
+                }
               >
                 {enabled.map((d) => (
-                  <ToggleGroupItem key={d} value={d} className="w-auto px-3 text-sm">
-                    {d === "DICTIONARY_ENGLISH" ? t("lookup.english") : t("lookup.englishVietnamese")}
+                  <ToggleGroupItem
+                    key={d}
+                    value={d}
+                    className="w-auto px-3 text-sm"
+                  >
+                    {d === "DICTIONARY_ENGLISH"
+                      ? t("lookup.english")
+                      : t("lookup.englishVietnamese")}
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
@@ -124,7 +204,9 @@ export function SettingsForm() {
               aria-invalid={!wordsOk || undefined}
               onChange={(e) => setWords(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">{t("settings.maxWordsHint", { max: MAX_LOOKUP_WORDS })}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("settings.maxWordsHint", { max: MAX_LOOKUP_WORDS })}
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="deck-default">{t("settings.deckName")}</Label>
@@ -133,10 +215,23 @@ export function SettingsForm() {
               value={draft.deckName}
               maxLength={64}
               placeholder={DEFAULT_DECK}
-              onChange={(e) => setDraft((cur) => ({ ...cur, deckName: e.target.value }))}
+              onChange={(e) =>
+                setDraft((cur) => ({ ...cur, deckName: e.target.value }))
+              }
             />
-            <p className="text-xs text-muted-foreground">{t("settings.deckNameHint")}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("settings.deckNameHint")}
+            </p>
           </div>
+          <DictionaryRow
+            label={t("settings.removeAfterExport")}
+            hint={t("settings.removeAfterExportHint")}
+            checked={draft.removeAfterExport}
+            onChange={(v) =>
+              setDraft((cur) => ({ ...cur, removeAfterExport: v }))
+            }
+            offByAdmin={!system.removeAfterExport}
+          />
         </CardContent>
       </Card>
       {error ? <Alert variant="destructive">{error}</Alert> : null}
