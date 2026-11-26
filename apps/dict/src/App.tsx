@@ -12,7 +12,12 @@ import type {
   ShellLabels,
   ShellLink,
 } from "@huponx/ui-kit";
-import { BookMarked, Search, Settings as SettingsIcon } from "lucide-react";
+import {
+  BookMarked,
+  GraduationCap,
+  Search,
+  Settings as SettingsIcon,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { AccountMenu } from "./AccountMenu";
@@ -20,6 +25,7 @@ import { DictLogo } from "./Logo";
 import { Lookup, LookupMemoProvider } from "./pages/Lookup";
 import { SettingsProvider } from "./lib/settings";
 import { RemovePrompt } from "./RemovePrompt";
+import { Review } from "./pages/Review";
 import { Saved } from "./pages/Saved";
 import { Settings } from "./pages/Settings";
 
@@ -60,6 +66,12 @@ function Shell() {
       icon: BookMarked,
       testId: "nav-saved",
     });
+    items.push({
+      to: "/review",
+      label: t("nav.review"),
+      icon: GraduationCap,
+      testId: "nav-review",
+    });
   }
 
   // pinned to the bottom of the sidebar, like the admin app
@@ -77,6 +89,7 @@ function Shell() {
   const breadcrumbs: Crumb[] = [
     { label: t("nav.home"), to: pathname === "/" ? undefined : "/" },
     ...(pathname === "/saved" ? [{ label: t("nav.saved") }] : []),
+    ...(pathname === "/review" ? [{ label: t("nav.review") }] : []),
     ...(pathname === "/settings" ? [{ label: t("nav.settings") }] : []),
   ];
 
@@ -126,6 +139,14 @@ function Shell() {
               element={
                 <Can perm="dictionary:word:read" fallback={denied}>
                   <Saved />
+                </Can>
+              }
+            />
+            <Route
+              path="/review"
+              element={
+                <Can perm="dictionary:word:read" fallback={denied}>
+                  <Review />
                 </Can>
               }
             />

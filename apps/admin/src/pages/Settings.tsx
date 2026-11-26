@@ -1,13 +1,13 @@
 import { useAuth } from "@huponx/auth-client";
 import type { Me } from "@huponx/auth-client";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label, ThemeSwitch, useAction, useLoad } from "@huponx/ui-kit";
+import { AvatarUpload, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label, ThemeSwitch, useAction, useLoad } from "@huponx/ui-kit";
+import type { AvatarChange } from "@huponx/ui-kit";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "../AccountMenu";
 import { useIdentity } from "../api";
-import { AvatarUpload } from "../components/AvatarUpload";
-import type { AvatarChange } from "../components/AvatarUpload";
+import { avatarLabels } from "../lib/avatarLabels";
 import { DoneAlert, ErrorAlert, Loading, PageTitle, SelectField, TextField } from "../components/common";
 import { announceAvatarChanged } from "../lib/avatarEvents";
 import { languages } from "../i18n";
@@ -54,7 +54,7 @@ function ProfileForm({ user, reload }: { user: { name: string; email: string; av
 
   return (
     <form className="flex flex-col gap-4" onSubmit={(ev) => void save(ev)}>
-      <AvatarUpload name={name} email={user.email} current={user.avatar} value={avatar} onChange={setAvatar} />
+      <AvatarUpload name={name} email={user.email} current={user.avatar} value={avatar} onChange={setAvatar} labels={avatarLabels(t)} />
       <div className="grid gap-4 md:grid-cols-2">
         <TextField label={t("users.form.email")} value={user.email} disabled readOnly />
         <TextField label={t("users.form.name")} value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
@@ -114,10 +114,13 @@ function SessionDetails() {
 
   const load = useCallback(() => {
     setLoading(true);
-    setError(undefined);
+    // an error from the last try stays until this one ends
     client
       .api<Me>("GET", "/auth/me")
-      .then(setData)
+      .then((me) => {
+        setError(undefined);
+        setData(me);
+      })
       .catch(setError)
       .finally(() => setLoading(false));
   }, [client]);

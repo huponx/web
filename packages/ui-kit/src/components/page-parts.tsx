@@ -44,7 +44,7 @@ export function errorText(e: unknown, fallback: string): string {
 export function ErrorAlert({ error }: { error: unknown }) {
   const m = useUiMessages();
   if (error === null || error === undefined) return null;
-  return <Alert variant="destructive">{errorText(error, m.somethingWrong)}</Alert>;
+  return <Alert variant="destructive">{m.apiError?.(error) ?? errorText(error, m.somethingWrong)}</Alert>;
 }
 
 /** The result of an action ("Role x created."); goes away by itself like in the dict app. */

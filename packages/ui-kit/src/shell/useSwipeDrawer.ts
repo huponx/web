@@ -11,10 +11,26 @@ const EDGE_MAX = 120;
 /** Distance that counts as a swipe (px). */
 const DISTANCE = 56;
 
+/** True when the touch began inside something that scrolls sideways (a row of chips, a wide table): that swipe is its own. */
+function inSideScroller(target: EventTarget | null): boolean {
+  for (let el = target instanceof Element ? target : null; el && el !== document.body; el = el.parentElement) {
+    if (el.scrollWidth > el.clientWidth && /auto|scroll/.test(getComputedStyle(el).overflowX)) return true;
+  }
+  return false;
+}
+
+/** True when the touch began in a modal dialog or on a slider: dragging there (a crop, a zoom bar) is not a swipe of the drawer. */
+function inOwnDrag(target: EventTarget | null, drawerOpen: boolean): boolean {
+  // the open drawer is itself a dialog, and a swipe in it must still close it
+  const selector = drawerOpen ? 'input[type="range"]' : '[role="dialog"], [role="alertdialog"], input[type="range"]';
+  return target instanceof Element && target.closest(selector) !== null;
+}
+
 /**
  * Swipe gestures of the mobile drawer: from the left edge to the right opens it, to the left closes it.
  * The touches are watched on the whole document (the drawer is in a portal); only a swipe to the right
- * that began in the edge zone is cancelled, so the scrolling of the page is never blocked. A mostly vertical move is a scroll, not a swipe.
+ * that began in the edge zone is cancelled, so the scrolling of the page is never blocked. A mostly vertical move is a scroll, not a swipe,
+ * and neither is a swipe that began inside an element that scrolls sideways, in a dialog or on a slider.
  */
 export function useSwipeDrawer(open: boolean, setOpen: (open: boolean) => void) {
   const state = useRef({ open, setOpen });
@@ -24,7 +40,7 @@ export function useSwipeDrawer(open: boolean, setOpen: (open: boolean) => void) 
     let start: { x: number; y: number; edge: boolean } | null = null;
     const onStart = (e: TouchEvent) => {
       const t = e.touches[0];
-      if (!t || e.touches.length !== 1 || window.innerWidth >= MOBILE_MAX) {
+      if (!t || e.touches.length !== 1 || window.innerWidth >= MOBILE_MAX || inOwnDrag(e.target, state.current.open) || inSideScroller(e.target)) {
         start = null;
         return;
       }

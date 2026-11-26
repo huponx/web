@@ -1,6 +1,7 @@
 import { useAuth } from "@huponx/auth-client";
-import { Card, ErrorNotice, Loading, Notice, PageTitle } from "@huponx/ui";
+import { Alert, Card, CardContent, ErrorAlert, Loading, PageTitle } from "@huponx/ui-kit";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface Invoice {
   id: string;
@@ -13,6 +14,7 @@ interface Invoice {
  * added to routes.yaml the gateway answers 404 and this page shows that answer.
  */
 export function Invoices() {
+  const { t } = useTranslation();
   const { client } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>();
   const [error, setError] = useState<unknown>();
@@ -26,18 +28,20 @@ export function Invoices() {
 
   return (
     <>
-      <PageTitle>Invoices</PageTitle>
+      <PageTitle>{t("invoices.title")}</PageTitle>
       <Card>
-        <Notice kind="warn">Sample page: connect it to the bill service by adding its routes to the gateway.</Notice>
-        <ErrorNotice error={error} />
-        {!invoices && !error ? <Loading /> : null}
-        {invoices ? (
-          <ul>
-            {invoices.map((e) => (
-              <li key={e.id}>{e.number}</li>
-            ))}
-          </ul>
-        ) : null}
+        <CardContent className="flex flex-col gap-4">
+          <Alert variant="warning">{t("invoices.sample")}</Alert>
+          <ErrorAlert error={error} />
+          {!invoices && !error ? <Loading /> : null}
+          {invoices ? (
+            <ul className="list-disc pl-5 text-sm">
+              {invoices.map((e) => (
+                <li key={e.id}>{e.number}</li>
+              ))}
+            </ul>
+          ) : null}
+        </CardContent>
       </Card>
     </>
   );

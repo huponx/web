@@ -1,4 +1,4 @@
-import { Alert, Button, Input, Label } from "@huponx/ui-kit";
+import { Alert, Button } from "@huponx/ui-kit";
 import { EditorContent, useEditor } from "@tiptap/react";
 import {
   Bold,
@@ -22,11 +22,14 @@ import {
   PLACEHOLDER_US,
   toEditorHtml,
 } from "../lib/cardHtml";
-import { errorMessage } from "../lib/errors";
+import { audioRef, isAudioRef } from "../lib/audio";
+import { normalizeAudioInput, probeAudio } from "../lib/audioUrl";
+import { formatBytes } from "../lib/bytes";
+import { errorMessage, Localized } from "../lib/errors";
+import { useSettings } from "../lib/settings";
+import AudioField from "./AudioField";
 import { cardExtensions } from "./cardExtensions";
 
-/** What the service takes of a card (content). */
-export const MAX_CONTENT_BYTES = 64 * 1024;
 const MAX_AUDIO = 500;
 
 export interface CardEdit {
@@ -50,7 +53,7 @@ export interface CardEditorProps {
 }
 
 function audioOk(url: string): boolean {
-  if (url === "") return true;
+  if (url === "" || isAudioRef(url)) return true;
   if (url.length > MAX_AUDIO) return false;
   try {
     return new URL(url).protocol === "https:";
@@ -75,7 +78,7 @@ const PROSE =
   "[&_.is-selected_.card-image-handle]:block [&_.card-image-handle]:[@media(pointer:coarse)]:block " +
   "[&_.audio-slot]:mx-0.5 [&_.audio-slot]:inline-block [&_.audio-slot]:rounded-md [&_.audio-slot]:border [&_.audio-slot]:bg-muted [&_.audio-slot]:px-1.5 [&_.audio-slot]:text-xs [&_.audio-slot]:text-muted-foreground";
 
-/** Rich text editor of the back of a card (bold, lists, images from a file, a drop or the clipboard) and its two audio URLs. */
+/** Rich text editor of the back of a card (bold, lists, images from a file, a drop or the clipboard) and its two audio fields (a URL, or an uploaded file). */
 export default function CardEditor({
   initialContent,
   initialAudio,
@@ -88,16 +91,23 @@ export default function CardEditor({
 }: CardEditorProps) {
   const { t } = useTranslation();
   const api = useDictionary();
+  // what the service takes of a card (content): the setting of the administrators
+  const maxContentBytes = useSettings().settings.system.maxContentBytes;
   const [audioUk, setAudioUk] = useState(initialAudio.audioUk);
   const [audioUs, setAudioUs] = useState(initialAudio.audioUs);
   const [pending, setPending] = useState(0);
-  const [error, setError] = useState<string>();
+  // the audio field that is sending a file
+  const [uploadingAudio, setUploadingAudio] = useState<"uk" | "us">();
+  // the audio addresses are being checked; the ones that did not load and that the user chose to keep
+  const [checking, setChecking] = useState(false);
+  const keepAudio = useRef(new Set<string>());
+  const [error, setError] = useState<unknown>();
   const fileInput = useRef<HTMLInputElement>(null);
   // the editor is made once: its handlers read the current functions from here
   const insertFiles = useRef<(files: File[], pos?: number) => void>(
     () => undefined,
   );
-  const applyRef = useRef<() => void>(() => undefined);
+  const applyRef = useRef<() => void | Promise<void>>(() => undefined);
   const pendingRef = useRef(0);
   const extensions = useMemo(() => cardExtensions(api.imageUrl), [api]);
 
@@ -116,7 +126,7 @@ export default function CardEditor({
         if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey))
           return false;
         event.preventDefault();
-        if (pendingRef.current === 0) applyRef.current();
+        if (pendingRef.current === 0) void applyRef.current();
         return true;
       },
       handlePaste: (_view, event) => {
@@ -136,7 +146,7 @@ export default function CardEditor({
           return true;
         }
         if (/<img\b/i.test(data.getData("text/html")))
-          setError(t("editor.imageUnreadable"));
+          setError(new Localized("editor.imageUnreadable"));
         return true;
       },
       handleDrop: (view, event, _slice, moved) => {
@@ -157,25 +167,41 @@ export default function CardEditor({
 
   insertFiles.current = (files, pos) => {
     if (!editor) return;
-    setError(undefined);
     let at = pos;
     for (const f of files) {
       setPending((n) => n + 1);
       api
         .uploadImage(f)
         .then((id) => {
+          setError(undefined);
           const node = { type: "image", attrs: { src: `dictimg:${id}` } };
           if (at !== undefined)
             editor.chain().focus().insertContentAt(at, node).run();
           else editor.chain().focus().insertContent(node).run();
           at = undefined;
         })
-        .catch((e) => setError(errorMessage(e, t)))
+        .catch((e) => setError(e))
         .finally(() => setPending((n) => n - 1));
     }
   };
 
   useEffect(() => () => editor?.destroy(), [editor]);
+
+  function uploadAudio(kind: "uk" | "us", file: File) {
+    setPending((n) => n + 1);
+    setUploadingAudio(kind);
+    api
+      .uploadAudio(file)
+      .then((id) => {
+        setError(undefined);
+        (kind === "uk" ? setAudioUk : setAudioUs)(audioRef(id));
+      })
+      .catch((e) => setError(e))
+      .finally(() => {
+        setPending((n) => n - 1);
+        setUploadingAudio(undefined);
+      });
+  }
 
   function onPick(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -183,20 +209,64 @@ export default function CardEditor({
     insertFiles.current(files);
   }
 
-  function apply() {
-    if (!editor) return;
-    if (!audioOk(audioUk.trim()) || !audioOk(audioUs.trim()))
-      return setError(t("editor.badAudio"));
-    const uk = audioUk.trim();
-    const us = audioUs.trim();
+  /**
+   * The first address that does not load, as the region it is for; an address that was not changed, or that the
+   * user kept after the warning, is not asked again.
+   */
+  async function missingAudio(
+    uk: string,
+    us: string,
+  ): Promise<string | undefined> {
+    const todo = [
+      { region: t("lookup.uk"), url: uk, was: initialAudio.audioUk },
+      { region: t("lookup.us"), url: us, was: initialAudio.audioUs },
+    ].filter(
+      (a) =>
+        a.url &&
+        !isAudioRef(a.url) &&
+        a.url !== a.was &&
+        !keepAudio.current.has(a.url),
+    );
+    const results = await Promise.all(todo.map((a) => probeAudio(a.url)));
+    const i = results.findIndex((r) => r === false);
+    if (i < 0) return undefined;
+    keepAudio.current.add(todo[i]!.url);
+    return todo[i]!.region;
+  }
+
+  async function apply() {
+    if (!editor || checking) return;
+    const uk = isAudioRef(audioUk) ? audioUk : normalizeAudioInput(audioUk);
+    const us = isAudioRef(audioUs) ? audioUs : normalizeAudioInput(audioUs);
+    setAudioUk(uk);
+    setAudioUs(us);
+    if (!audioOk(uk) || !audioOk(us)) return setError(new Localized("editor.badAudio"));
+    setChecking(true);
+    let missing: string | undefined;
+    try {
+      missing = await missingAudio(uk, us);
+    } finally {
+      setChecking(false);
+    }
+    // the next Apply keeps the address, in case the file plays for the user and not for the check
+    if (missing) return setError(new Localized("editor.audioMissing", { region: missing }));
+    setError(undefined);
     let content = fromEditorHtml(editor.getHTML());
     // a sound tag without an address would play nothing
     if (!uk) content = content.split(PLACEHOLDER_UK).join("");
     if (!us) content = content.split(PLACEHOLDER_US).join("");
-    if (requireContent && !uk && !us && !/<(img|audio)\b/i.test(content) && content.replace(/<[^>]*>|&nbsp;/g, "").trim() === "")
-      return setError(t("editor.empty"));
-    if (new Blob([content]).size > MAX_CONTENT_BYTES)
-      return setError(t("editor.tooLarge"));
+    if (
+      requireContent &&
+      !uk &&
+      !us &&
+      !/<(img|audio)\b/i.test(content) &&
+      content.replace(/<[^>]*>|&nbsp;/g, "").trim() === ""
+    )
+      return setError(new Localized("editor.empty"));
+    if (new Blob([content]).size > maxContentBytes)
+      return setError(
+        new Localized("editor.tooLarge", { limit: formatBytes(maxContentBytes) }),
+      );
     onApply({ content, audioUk: uk, audioUs: us });
   }
 
@@ -210,7 +280,7 @@ export default function CardEditor({
       !(e.target as HTMLElement).closest(".ProseMirror")
     ) {
       e.preventDefault();
-      if (pending === 0) apply();
+      if (pending === 0) void apply();
     }
   }
 
@@ -343,29 +413,27 @@ export default function CardEditor({
           </p>
         ) : null}
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1">
-            <Label htmlFor="audio-uk">{t("editor.audioUk")}</Label>
-            <Input
-              id="audio-uk"
-              type="url"
-              inputMode="url"
-              value={audioUk}
-              onChange={(e) => setAudioUk(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="audio-us">{t("editor.audioUs")}</Label>
-            <Input
-              id="audio-us"
-              type="url"
-              inputMode="url"
-              value={audioUs}
-              onChange={(e) => setAudioUs(e.target.value)}
-            />
-          </div>
+          <AudioField
+            id="audio-uk"
+            label={t("editor.audioUk")}
+            region={t("lookup.uk")}
+            value={audioUk}
+            onChange={setAudioUk}
+            onUpload={(f) => uploadAudio("uk", f)}
+            uploading={uploadingAudio === "uk"}
+          />
+          <AudioField
+            id="audio-us"
+            label={t("editor.audioUs")}
+            region={t("lookup.us")}
+            value={audioUs}
+            onChange={setAudioUs}
+            onUpload={(f) => uploadAudio("us", f)}
+            uploading={uploadingAudio === "us"}
+          />
         </div>
         <p className="text-xs text-muted-foreground">{t("editor.audioHint")}</p>
-        {error ? <Alert variant="destructive">{error}</Alert> : null}
+        {error ? <Alert variant="destructive">{errorMessage(error, t)}</Alert> : null}
       </div>
       <div
         className={
@@ -384,9 +452,9 @@ export default function CardEditor({
         </Button>
         <Button
           type="button"
-          busy={saving}
+          busy={saving || checking}
           disabled={pending > 0}
-          onClick={apply}
+          onClick={() => void apply()}
         >
           {applyLabel}
         </Button>

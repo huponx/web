@@ -1,5 +1,5 @@
 import { Can, useAuth } from "@huponx/auth-client";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useAction, useFlash, useLoad } from "@huponx/ui-kit";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, DeleteCard, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -117,7 +117,7 @@ function Editor({ policy, reload, createdNote }: { policy?: ExchangePolicy; relo
   );
 }
 
-function DeleteCard({ policy }: { policy: ExchangePolicy }) {
+function DeleteSection({ policy }: { policy: ExchangePolicy }) {
   const { t } = useTranslation();
   const api = useIdentity();
   const navigate = useNavigate();
@@ -131,21 +131,16 @@ function DeleteCard({ policy }: { policy: ExchangePolicy }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("exchange.form.deleteTitle")}</CardTitle>
-        <CardDescription>{t("exchange.form.deleteHint")}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <ErrorAlert error={a.error} />
-        <Actions>
-          <Button variant="destructive" busy={a.busy} onClick={() => void remove()}>
-            {t("exchange.form.delete")}
-          </Button>
-        </Actions>
-      </CardContent>
+    <DeleteCard
+      title={t("exchange.form.deleteTitle")}
+      description={t("exchange.form.deleteHint")}
+      label={t("exchange.form.delete")}
+      busy={a.busy}
+      error={a.error}
+      onDelete={() => void remove()}
+    >
       {dialog}
-    </Card>
+    </DeleteCard>
   );
 }
 
@@ -169,7 +164,7 @@ export function ExchangeForm() {
     <div className="flex flex-col gap-6">
       <Editor key={`${policy.clientId}/${policy.audience}`} policy={policy} reload={policies.reload} createdNote={state?.created ? t("exchange.form.created") : undefined} />
       <Can perm="identity:exchange:write">
-        <DeleteCard policy={policy} />
+        <DeleteSection policy={policy} />
       </Can>
     </div>
   );

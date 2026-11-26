@@ -4,12 +4,25 @@
     "password": "Password",
     "continue": "Continue",
     "backToSignIn": "Back to sign in",
-    "back": "Back"
+    "back": "Back",
+    "somethingWrong": "Something went wrong.",
+    "required": "This field is required.",
+    "invalidEmail": "Enter a valid email address.",
+    "invalidFormat": "Use the format shown below the field.",
+    "clearField": "Clear {{label}}"
   },
   "login": {
     "title": "Sign in",
     "submit": "Sign in",
-    "forgot": "Forgot your password?"
+    "forgot": "Forgot your password?",
+    "register": "Create an account"
+  },
+  "register": {
+    "title": "Create an account",
+    "name": "Name",
+    "submit": "Create the account",
+    "sentTitle": "Check your e-mail",
+    "sent": "If the address can be used, we sent a link to set your password. Open it to finish creating the account."
   },
   "mfa": {
     "title": "Verification",
@@ -62,23 +75,26 @@
   },
   "errors": {
     "pageTitle": "Something went wrong",
-    "csrf_expired": "The form expired. Please try again.",
-    "rate_limited": "Too many attempts. Please wait a few minutes.",
-    "invalid_credentials": "Wrong e-mail or password.",
-    "invalid_code": "Wrong code. Check the clock of your device and try again.",
-    "invalid_mfa_code": "Wrong code.",
-    "invalid_password_or_code": "Wrong password or code.",
-    "challenge_expired": "Too many wrong attempts or the request expired. Please sign in again.",
-    "unauthenticated": "Please sign in again.",
-    "invalid_link": "This link is not valid or has expired. Ask for a new one.",
-    "mfa_forced": "Multi-factor authentication is required for your account.",
-    "mfa_enabled": "Multi-factor authentication is already on.",
-    "password_mismatch": "The two passwords are not the same.",
-    "password_too_short": "The password must have at least 12 characters.",
-    "password_too_long": "The password is too long.",
-    "password_common": "The password is too common.",
-    "password_same": "The password must differ from the previous one.",
-    "password_email": "The password must not contain the e-mail address.",
+    "code": {
+      "csrf_expired": "The form expired. Please try again.",
+      "rate_limited": "Too many attempts. Please wait a few minutes.",
+      "invalid_credentials": "Wrong e-mail or password.",
+      "invalid_code": "Wrong code. Check the clock of your device and try again.",
+      "invalid_mfa_code": "Wrong code.",
+      "invalid_password_or_code": "Wrong password or code.",
+      "challenge_expired": "Too many wrong attempts or the request expired. Please sign in again.",
+      "unauthenticated": "Please sign in again.",
+      "invalid_link": "This link is not valid or has expired. Ask for a new one.",
+      "mfa_forced": "Multi-factor authentication is required for your account.",
+      "mfa_enabled": "Multi-factor authentication is already on.",
+      "password_mismatch": "The two passwords are not the same.",
+      "password_too_short": "The password must have at least 12 characters.",
+      "password_too_long": "The password is too long.",
+      "password_common": "The password is too common.",
+      "password_same": "The password must differ from the previous one.",
+      "password_email": "The password must not contain the e-mail address.",
+      "invalid_email": "Enter a valid e-mail address."
+    },
     "internal": "Something went wrong. Please try again.",
     "network": "The server cannot be reached. Please try again.",
     "page": {

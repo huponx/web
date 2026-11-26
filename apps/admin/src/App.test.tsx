@@ -74,6 +74,26 @@ function renderApp(
   return calls;
 }
 
+describe("user menu", () => {
+  afterEach(() => {
+    delete window.__env__;
+  });
+
+  it("links back to the portal when PORTAL_URL is configured", async () => {
+    window.__env__ = { API_BASE: "https://api.example.com", PORTAL_URL: "https://example.com" };
+    renderApp([]);
+    await userEvent.setup().click(await screen.findByRole("button", { name: "User menu" }));
+    expect(await screen.findByRole("menuitem", { name: "Back to the portal" })).toHaveAttribute("href", "https://example.com/");
+  });
+
+  it("has no such item without PORTAL_URL", async () => {
+    renderApp([]);
+    await userEvent.setup().click(await screen.findByRole("button", { name: "User menu" }));
+    await screen.findByRole("menuitem", { name: "Sign out" });
+    expect(screen.queryByRole("menuitem", { name: "Back to the portal" })).toBeNull();
+  });
+});
+
 describe("admin menu", () => {
   it("shows only the pages the user may use", async () => {
     renderApp(["identity:role:read", "identity:mfa:read"]);
@@ -1159,6 +1179,22 @@ describe("dictionary settings page", () => {
     englishViEnabled: true,
     removeAfterExport: true,
     exportedRetentionHours: 168,
+    maxCategories: 50,
+    maxCategoryNameLength: 40,
+    exportMaxBytes: 3 * 1024 * 1024,
+    exportPartMaxBytes: 3 * 1024 * 1024,
+    exportSyncMaxWords: 2000,
+    exportMaxBytesCeiling: 10 * 1024 * 1024,
+    exportPartMaxBytesCeiling: 50 * 1024 * 1024,
+    maxContentBytes: 64 * 1024,
+    maxContentBytesCeiling: 256 * 1024,
+    // the gateway writes int64 as a string
+    contentUserQuota: "268435456",
+    imageUserQuota: "20971520",
+    audioUserQuota: "10485760",
+    contentUserQuotaCeiling: "1073741824",
+    imageUserQuotaCeiling: "1073741824",
+    audioUserQuotaCeiling: "1073741824",
   };
   const answer = (c: Call) =>
     c.url.endsWith("/api/dictionary/settings") && c.method === "GET"
@@ -1194,6 +1230,15 @@ describe("dictionary settings page", () => {
     const keep = screen.getByLabelText("Keep removed words for (hours)");
     await user.clear(keep);
     await user.type(keep, "48");
+    const cats = screen.getByLabelText("Max categories per user");
+    await user.clear(cats);
+    await user.type(cats, "20");
+    const nameLen = screen.getByLabelText("Max category name length");
+    await user.clear(nameLen);
+    await user.type(nameLen, "10");
+    const syncWords = screen.getByLabelText("Max words of an export at once");
+    await user.clear(syncWords);
+    await user.type(syncWords, "1500");
     await user.click(screen.getByRole("button", { name: "Save settings" }));
     const put = calls.find((c) => c.method === "PUT");
     expect(JSON.parse(put!.body!)).toEqual({
@@ -1205,9 +1250,111 @@ describe("dictionary settings page", () => {
         english_vi_enabled: false,
         remove_after_export: false,
         exported_retention_hours: 48,
+        max_categories: 20,
+        max_category_name_length: 10,
+        export_max_bytes: 3 * 1024 * 1024,
+        export_part_max_bytes: 3 * 1024 * 1024,
+        export_sync_max_words: 1500,
+        max_content_bytes: 64 * 1024,
+        content_user_quota: 256 * 1024 * 1024,
+        image_user_quota: 20 * 1024 * 1024,
+        audio_user_quota: 10 * 1024 * 1024,
       },
     });
     expect(await screen.findByText("Dictionary settings saved.")).toBeTruthy();
+  });
+
+  it("offers the export sizes up to the ceiling and saves the chosen ones", async () => {
+    const calls = renderApp(
+      ["dictionary:settings:*"],
+      "/dictionary",
+      (c: Call) =>
+        c.method === "GET"
+          ? {
+              settings: {
+                ...settings,
+                exportMaxBytesCeiling: 6 * 1024 * 1024,
+                exportPartMaxBytesCeiling: 25 * 1024 * 1024,
+              },
+            }
+          : { settings },
+    );
+    const user = userEvent.setup();
+    // the sizes of one export: the choices stop at the ceiling (6 MiB), the current 3 MiB is selected
+    const sync = await screen.findByRole("combobox", {
+      name: "Max size of an export",
+    });
+    expect(sync.textContent).toContain("3 MiB");
+    await user.click(sync);
+    expect(
+      (await screen.findAllByRole("option")).map((o) => o.textContent),
+    ).toEqual(["1 MiB", "3 MiB", "6 MiB"]);
+    await user.click(screen.getByRole("option", { name: "6 MiB" }));
+
+    const part = screen.getByRole("combobox", {
+      name: "Max size of an export part",
+    });
+    await user.click(part);
+    expect(
+      (await screen.findAllByRole("option")).map((o) => o.textContent),
+    ).toEqual(["3 MiB", "6 MiB", "10 MiB", "25 MiB"]);
+    await user.click(screen.getByRole("option", { name: "25 MiB" }));
+
+    await user.click(screen.getByRole("button", { name: "Save settings" }));
+    const put = JSON.parse(calls.find((c) => c.method === "PUT")!.body!);
+    expect(put.settings.export_max_bytes).toBe(6 * 1024 * 1024);
+    expect(put.settings.export_part_max_bytes).toBe(25 * 1024 * 1024);
+  });
+
+  it("offers the storage sizes up to the ceiling and saves the chosen ones", async () => {
+    const calls = renderApp(
+      ["dictionary:settings:*"],
+      "/dictionary",
+      (c: Call) =>
+        c.method === "GET"
+          ? {
+              settings: {
+                ...settings,
+                maxContentBytesCeiling: 128 * 1024,
+                imageUserQuotaCeiling: String(50 * 1024 * 1024),
+              },
+            }
+          : { settings },
+    );
+    const user = userEvent.setup();
+    const content = await screen.findByRole("combobox", {
+      name: "Max content of a word",
+    });
+    expect(content.textContent).toContain("64 KiB");
+    await user.click(content);
+    expect(
+      (await screen.findAllByRole("option")).map((o) => o.textContent),
+    ).toEqual(["16 KiB", "32 KiB", "64 KiB", "128 KiB"]);
+    await user.click(screen.getByRole("option", { name: "128 KiB" }));
+
+    const image = screen.getByRole("combobox", {
+      name: "Image quota per user",
+    });
+    expect(image.textContent).toContain("20 MiB");
+    await user.click(image);
+    expect(
+      (await screen.findAllByRole("option")).map((o) => o.textContent),
+    ).toEqual(["1 MiB", "5 MiB", "10 MiB", "20 MiB", "50 MiB"]);
+    await user.click(screen.getByRole("option", { name: "50 MiB" }));
+
+    const quota = screen.getByRole("combobox", {
+      name: "Content quota per user",
+    });
+    expect(quota.textContent).toContain("256 MiB");
+    await user.click(quota);
+    await user.click(await screen.findByRole("option", { name: "64 MiB" }));
+
+    await user.click(screen.getByRole("button", { name: "Save settings" }));
+    const put = JSON.parse(calls.find((c) => c.method === "PUT")!.body!);
+    expect(put.settings.max_content_bytes).toBe(128 * 1024);
+    expect(put.settings.image_user_quota).toBe(50 * 1024 * 1024);
+    expect(put.settings.content_user_quota).toBe(64 * 1024 * 1024);
+    expect(put.settings.audio_user_quota).toBe(10 * 1024 * 1024);
   });
 
   it("does not let both dictionaries be turned off", async () => {
@@ -1318,5 +1465,84 @@ describe("system style card", () => {
     await vi.waitFor(() =>
       expect(document.documentElement.dataset.palette).toBe("sunset"),
     );
+  });
+});
+
+describe("dictionary storage of a user", () => {
+  const MIB = 1024 * 1024;
+  const quota = (over: Record<string, string> = {}) => ({
+    used: { content: String(12 * 1024), image: String(3 * MIB), audio: "0" },
+    override: { content: "0", image: "0", audio: "0", ...over },
+    effective: {
+      content: String(256 * MIB),
+      image: over.image ?? String(20 * MIB),
+      audio: String(10 * MIB),
+    },
+  });
+  const user = {
+    id: "u1",
+    email: "ann@example.com",
+    name: "Ann",
+    locale: "en",
+    disabled: false,
+    roles: [],
+    mfaEnabled: false,
+    mfaEnforced: false,
+    createdAt: "0",
+    status: "USER_STATUS_ACTIVE",
+  };
+  const answer = (c: Call) =>
+    c.url.endsWith("/api/users/u1")
+      ? { user }
+      : c.url.endsWith("/quota")
+        ? c.method === "PUT"
+          ? quota({ image: String(50 * MIB) })
+          : quota()
+        : {};
+
+  it("shows what the user stores against the limit and sets an own limit", async () => {
+    const calls = renderApp(
+      ["identity:user:read", "dictionary:settings:*"],
+      "/users/u1",
+      answer,
+    );
+    const u = userEvent.setup();
+    const image = await screen.findByTestId("quota-image");
+    expect(within(image).getByTestId("quota-image-usage").textContent).toBe(
+      "3 MiB of 20 MiB (default)",
+    );
+    expect(screen.getByTestId("quota-content-usage").textContent).toBe(
+      "12 KiB of 256 MiB (default)",
+    );
+    await u.type(within(image).getByLabelText("Own limit (MiB)"), "50");
+    await u.click(screen.getByRole("button", { name: "Save limits" }));
+    const put = calls.find((c) => c.method === "PUT" && c.url.endsWith("/quota"));
+    expect(put!.url).toBe(
+      "https://api.example.com/api/dictionary/users/u1/quota",
+    );
+    expect(JSON.parse(put!.body!)).toEqual({
+      quotas: { content: 0, image: 50 * MIB, audio: 0 },
+    });
+    expect(await screen.findByText("Storage limits saved.")).toBeTruthy();
+    expect(screen.getByTestId("quota-image-usage").textContent).toContain(
+      "(own limit)",
+    );
+  });
+
+  it("is hidden without dictionary:settings:read and read only without write", async () => {
+    renderApp(["identity:user:read"], "/users/u1", answer);
+    await screen.findByText("ann@example.com");
+    expect(screen.queryByTestId("quota-image")).toBeNull();
+  });
+
+  it("shows the usage but no inputs with only the read permission", async () => {
+    renderApp(
+      ["identity:user:read", "dictionary:settings:read"],
+      "/users/u1",
+      answer,
+    );
+    expect(await screen.findByTestId("quota-image")).toBeTruthy();
+    expect(screen.queryByLabelText("Own limit (MiB)")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save limits" })).toBeNull();
   });
 });

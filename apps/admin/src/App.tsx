@@ -1,5 +1,5 @@
 import { RequireAuth, useAuth } from "@huponx/auth-client";
-import { AppShell, Button, UiMessagesProvider, systemStyleOf, useSystemStyle } from "@huponx/ui-kit";
+import { AppShell, Button, UiMessagesProvider, systemStyleOf, translateApiError, useSystemStyle } from "@huponx/ui-kit";
 import type { Crumb, SystemStyleReply, NavItem, ShellLabels, ShellLink } from "@huponx/ui-kit";
 import { useTranslation } from "react-i18next";
 import { matchPath, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
@@ -85,11 +85,12 @@ function Shell() {
 }
 
 export function App() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   // the texts of the shared components of the kit (loading, field errors, ...) in the language of the app
   const messages = {
     loading: t("common.loading"),
     somethingWrong: t("common.somethingWrong"),
+    apiError: (e: unknown) => translateApiError(e, i18n, t("common.somethingWrong")),
     required: t("common.required"),
     invalidEmail: t("common.invalidEmail"),
     invalidFormat: t("common.invalidFormat"),

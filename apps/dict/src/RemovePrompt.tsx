@@ -28,7 +28,7 @@ export function RemovePrompt() {
   const [exported, setExported] = useState(0);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<unknown>();
   const handled = useRef<string>();
 
   const allowed = can("dictionary:word:read") && can("dictionary:word:write");
@@ -74,16 +74,16 @@ export function RemovePrompt() {
 
   async function answer(remove: boolean) {
     setBusy(true);
-    setError(undefined);
     try {
       if (remove) {
         await api.removeExportedWords();
         window.dispatchEvent(new Event(SAVED_CHANGED));
       }
       await save({ ...settings.user, removeAcknowledged: true });
+      setError(undefined);
       setOpen(false);
     } catch (e) {
-      setError(errorMessage(e, t));
+      setError(e);
     } finally {
       setBusy(false);
     }
@@ -99,7 +99,7 @@ export function RemovePrompt() {
             {t("removePrompt.message", { count: exported })}
           </DialogDescription>
         </DialogHeader>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {error ? <p className="text-sm text-destructive">{errorMessage(error, t)}</p> : null}
         <DialogFooter>
           <Button
             type="button"

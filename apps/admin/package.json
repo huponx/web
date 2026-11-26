@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@huponx/auth-client": "workspace:*",
-    "@huponx/ui": "workspace:*",
     "@huponx/ui-kit": "workspace:^",
     "@tailwindcss/vite": "^4.3.5",
     "i18next": "^27.2.3",

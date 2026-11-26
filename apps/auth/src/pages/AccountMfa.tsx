@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { ApiError, authApi } from "../api";
 import type { MfaStatus } from "../api";
-import { AuthLayout, ErrorAlert, Field, Form, SubmitButton, go, useSubmit } from "../components/common";
+import { AuthLayout, ErrorAlert, TextField, Form, SubmitButton, go, useSubmit } from "../components/common";
 import { ErrorPage } from "./ErrorPage";
 
 /** Turn multi-factor authentication on (QR code, confirmation, recovery codes) or see its status and turn it off. */
@@ -76,10 +76,10 @@ export function AccountMfa() {
           <Alert>{t("account.forced")}</Alert>
         ) : (
           <>
-            <ErrorAlert message={s.error} />
+            <ErrorAlert error={s.error} />
             <Form onSubmit={() => void disable()}>
-              <Field label={t("common.password")} type="password" name="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-              <Field label={t("account.codeOrRecovery")} name="code" autoComplete="one-time-code" required value={code} onChange={(e) => setCode(e.target.value)} />
+              <TextField label={t("common.password")} type="password" name="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+              <TextField label={t("account.codeOrRecovery")} name="code" autoComplete="one-time-code" required value={code} onChange={(e) => setCode(e.target.value)} />
               <SubmitButton busy={s.busy} variant="destructive">
                 {t("account.turnOff")}
               </SubmitButton>
@@ -96,9 +96,9 @@ export function AccountMfa() {
       <p className="text-center text-sm text-muted-foreground">
         {t("account.typeKey")} <code className="break-all">{status.secret}</code>
       </p>
-      <ErrorAlert message={s.error} />
+      <ErrorAlert error={s.error} />
       <Form onSubmit={() => void confirm()}>
-        <Field label={t("account.code")} name="code" inputMode="numeric" autoComplete="one-time-code" required autoFocus value={code} onChange={(e) => setCode(e.target.value)} />
+        <TextField label={t("account.code")} name="code" inputMode="numeric" autoComplete="one-time-code" required autoFocus value={code} onChange={(e) => setCode(e.target.value)} />
         <SubmitButton busy={s.busy}>{t("account.turnOn")}</SubmitButton>
       </Form>
       {back}

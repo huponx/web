@@ -1,33 +1,35 @@
-import { AutoAlert, Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@huponx/ui-kit";
-import { Bookmark, BookmarkCheck, Check, Copy, Pencil, Undo2, Volume2 } from "lucide-react";
+import {
+  AutoAlert,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@huponx/ui-kit";
+import {
+  Bookmark,
+  BookmarkCheck,
+  Check,
+  Copy,
+  Pencil,
+  Undo2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { errorMessage } from "../lib/errors";
 import type { Word } from "../api";
+import { hasAudioSlot } from "../lib/cardHtml";
 import { CardBody } from "./Saved";
-import { CardEditor } from "./LazyCardEditor";
+import { CardEditor, preloadOn, usePreloadCardEditor } from "./LazyCardEditor";
+import { Play } from "./PlayButton";
 
 /** What the user changed on the card of a lookup (not saved yet): the back of the card and the two audio URLs. */
 export interface CardOverride {
   content: string;
   audioUk: string;
   audioUs: string;
-}
-
-function Play({ url, region }: { url: string; region: string }) {
-  const { t } = useTranslation();
-  if (!url) return null;
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon-sm"
-      aria-label={t("lookup.play", { region })}
-      title={t("lookup.play", { region })}
-      onClick={() => void new Audio(url).play().catch(() => undefined)}
-    >
-      <Volume2 aria-hidden="true" />
-    </Button>
-  );
 }
 
 export interface WordCardProps {
@@ -37,7 +39,7 @@ export interface WordCardProps {
   /** The word is already in the saved list: saving again overwrites it. */
   alreadySaved: boolean;
   /** Result of the last copy or save of this card; the page clears it after a moment. */
-  notice?: { kind: "success" | "error"; text: string };
+  notice?: { kind: "success" | "error"; text: unknown };
   onSave: (w: Word) => void;
   onCopy: (w: Word) => void;
   /** The card was just copied: the copy button shows a tick. */
@@ -52,13 +54,32 @@ export interface WordCardProps {
   onEditing: (w: Word, editing: boolean) => void;
   /** The card is written by hand (no dictionary entry): it opens in the editor and shows a badge. */
   manual?: boolean;
+  /** Shown before the copy and save buttons while the card is not in its editor (the category picker). */
+  categorySlot?: ReactNode;
 }
 
 /** One entry: headword, pronunciations, parts of speech, numbered meanings with examples. */
-export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, onCopy, copied, override, onApply, onRevert, initial, onEditing, manual = false }: WordCardProps) {
+export function WordCard({
+  word,
+  canSave,
+  saving,
+  alreadySaved,
+  notice,
+  onSave,
+  onCopy,
+  copied,
+  override,
+  onApply,
+  onRevert,
+  initial,
+  onEditing,
+  manual = false,
+  categorySlot,
+}: WordCardProps) {
   const { t } = useTranslation();
   // the editor takes the place of the entry inside the card; Save waits until the edit is applied or dropped
   const [editing, setEditingState] = useState(manual && !override);
+  usePreloadCardEditor(canSave);
   const setEditing = (on: boolean) => {
     setEditingState(on);
     onEditing(word, on);
@@ -88,13 +109,29 @@ export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, 
           ) : null}
         </CardTitle>
         <div className="flex gap-1">
+          {canSave && !editing ? categorySlot : null}
           {canSave && !editing ? (
-            <Button type="button" variant="outline" size="icon-sm" aria-label={t("lookup.edit")} title={t("lookup.edit")} onClick={() => setEditing(true)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label={t("lookup.edit")}
+              title={t("lookup.edit")}
+              onClick={() => setEditing(true)}
+              {...preloadOn}
+            >
               <Pencil aria-hidden="true" />
             </Button>
           ) : null}
           {override && !editing ? (
-            <Button type="button" variant="outline" size="icon-sm" aria-label={t("lookup.revert")} title={t("lookup.revert")} onClick={() => onRevert(word)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label={t("lookup.revert")}
+              title={t("lookup.revert")}
+              onClick={() => onRevert(word)}
+            >
               <Undo2 aria-hidden="true" />
             </Button>
           ) : null}
@@ -106,7 +143,11 @@ export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, 
             title={t("lookup.copyResult")}
             onClick={() => onCopy(word)}
           >
-            {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+            {copied ? (
+              <Check aria-hidden="true" />
+            ) : (
+              <Copy aria-hidden="true" />
+            )}
           </Button>
           {canSave ? (
             <Button
@@ -115,23 +156,35 @@ export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, 
               variant={alreadySaved ? "destructive" : "default"}
               busy={saving}
               disabled={editing}
-              aria-label={alreadySaved ? t("lookup.saveOverride") : t("lookup.save")}
+              aria-label={
+                alreadySaved ? t("lookup.saveOverride") : t("lookup.save")
+              }
               title={alreadySaved ? t("lookup.saveOverride") : t("lookup.save")}
               onClick={() => onSave(word)}
             >
-              {alreadySaved ? <BookmarkCheck aria-hidden="true" /> : <Bookmark aria-hidden="true" />}
+              {alreadySaved ? (
+                <BookmarkCheck aria-hidden="true" />
+              ) : (
+                <Bookmark aria-hidden="true" />
+              )}
             </Button>
           ) : null}
         </div>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
-        <AutoAlert variant={notice?.kind === "success" ? "success" : "destructive"} watch={notice}>
-          {notice?.text}
+        <AutoAlert
+          variant={notice?.kind === "success" ? "success" : "destructive"}
+          watch={notice}
+        >
+          {notice ? errorMessage(notice.text, t) : null}
         </AutoAlert>
         {editing ? (
           <CardEditor
             initialContent={initial.content}
-            initialAudio={{ audioUk: initial.audioUk, audioUs: initial.audioUs }}
+            initialAudio={{
+              audioUk: initial.audioUk,
+              audioUs: initial.audioUs,
+            }}
             applyLabel={t("editor.apply")}
             requireContent={manual}
             onApply={(o) => {
@@ -142,15 +195,16 @@ export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, 
           />
         ) : override ? (
           <>
-            {override.audioUk || override.audioUs ? (
+            {(override.audioUk && !hasAudioSlot(override.content, "uk")) ||
+            (override.audioUs && !hasAudioSlot(override.content, "us")) ? (
               <div className="flex flex-wrap items-center gap-x-4 text-muted-foreground">
-                {override.audioUk ? (
+                {override.audioUk && !hasAudioSlot(override.content, "uk") ? (
                   <span className="inline-flex items-center">
                     {t("lookup.uk")}
                     <Play url={override.audioUk} region={t("lookup.uk")} />
                   </span>
                 ) : null}
-                {override.audioUs ? (
+                {override.audioUs && !hasAudioSlot(override.content, "us") ? (
                   <span className="inline-flex items-center">
                     {t("lookup.us")}
                     <Play url={override.audioUs} region={t("lookup.us")} />
@@ -158,50 +212,56 @@ export function WordCard({ word, canSave, saving, alreadySaved, notice, onSave, 
                 ) : null}
               </div>
             ) : null}
-            <CardBody content={override.content} />
+            <CardBody
+              content={override.content}
+              audioUk={override.audioUk}
+              audioUs={override.audioUs}
+            />
           </>
         ) : (
           <>
-        {uk || word.audioUk || word.phoneticUs || word.audioUs ? (
-          <div className="flex flex-wrap items-center gap-x-4 text-muted-foreground">
-            {uk || word.audioUk ? (
-              <span className="inline-flex items-center">
-                {t("lookup.uk")} {uk}
-                <Play url={word.audioUk} region={t("lookup.uk")} />
-              </span>
-            ) : null}
-            {word.phoneticUs || word.audioUs ? (
-              <span className="inline-flex items-center">
-                {t("lookup.us")} {word.phoneticUs}
-                <Play url={word.audioUs} region={t("lookup.us")} />
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-        {word.partOfSpeech.length > 0 ? <p className="italic">{word.partOfSpeech.join(", ")}</p> : null}
-        {word.meanings.length === 0 ? (
-          <p className="text-muted-foreground">{t("lookup.noMeanings")}</p>
-        ) : (
-          <ol className="list-decimal space-y-2 pl-5">
-            {word.meanings.map((m, i) => (
-              <li key={i}>
-                {m.definition}
-                {m.machineTranslated ? (
-                  <Badge variant="outline" className="ml-2 font-normal">
-                    {t("lookup.machine")}
-                  </Badge>
+            {uk || word.audioUk || word.phoneticUs || word.audioUs ? (
+              <div className="flex flex-wrap items-center gap-x-4 text-muted-foreground">
+                {uk || word.audioUk ? (
+                  <span className="inline-flex items-center">
+                    {t("lookup.uk")} {uk}
+                    <Play url={word.audioUk} region={t("lookup.uk")} />
+                  </span>
                 ) : null}
-                {m.examples.length > 0 ? (
-                  <ul className="mt-1 list-disc space-y-0.5 pl-5 italic text-muted-foreground">
-                    {m.examples.map((e, j) => (
-                      <li key={j}>{e}</li>
-                    ))}
-                  </ul>
+                {word.phoneticUs || word.audioUs ? (
+                  <span className="inline-flex items-center">
+                    {t("lookup.us")} {word.phoneticUs}
+                    <Play url={word.audioUs} region={t("lookup.us")} />
+                  </span>
                 ) : null}
-              </li>
-            ))}
-          </ol>
-        )}
+              </div>
+            ) : null}
+            {word.partOfSpeech.length > 0 ? (
+              <p className="italic">{word.partOfSpeech.join(", ")}</p>
+            ) : null}
+            {word.meanings.length === 0 ? (
+              <p className="text-muted-foreground">{t("lookup.noMeanings")}</p>
+            ) : (
+              <ol className="list-decimal space-y-2 pl-5">
+                {word.meanings.map((m, i) => (
+                  <li key={i}>
+                    {m.definition}
+                    {m.machineTranslated ? (
+                      <Badge variant="outline" className="ml-2 font-normal">
+                        {t("lookup.machine")}
+                      </Badge>
+                    ) : null}
+                    {m.examples.length > 0 ? (
+                      <ul className="mt-1 list-disc space-y-0.5 pl-5 italic text-muted-foreground">
+                        {m.examples.map((e, j) => (
+                          <li key={j}>{e}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            )}
           </>
         )}
       </CardContent>
