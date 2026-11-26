@@ -43,7 +43,8 @@ export interface ExchangePolicy {
   maxChainDepth: number;
 }
 
-export type UserStatus = "USER_STATUS_PENDING" | "USER_STATUS_ACTIVE" | "USER_STATUS_DISABLED";
+export type UserStatus =
+  "USER_STATUS_PENDING" | "USER_STATUS_ACTIVE" | "USER_STATUS_DISABLED";
 
 export interface User {
   id: string;
@@ -103,7 +104,9 @@ export interface SystemApp {
 }
 
 /** The status of a user, with a fallback for answers that carry only `disabled`. */
-export function statusOf(u: Pick<User, "status" | "disabled">): "pending" | "active" | "disabled" {
+export function statusOf(
+  u: Pick<User, "status" | "disabled">,
+): "pending" | "active" | "disabled" {
   if (u.status === "USER_STATUS_PENDING") return "pending";
   if (u.status === "USER_STATUS_DISABLED" || u.disabled) return "disabled";
   return "active";
@@ -134,6 +137,65 @@ export interface DictionarySettings {
   removeAfterExport: boolean;
   /** Hours a word that left the list is kept before the cleanup deletes it. */
   exportedRetentionHours: number;
+  /** Categories one user may have, and the longest category name (characters). */
+  maxCategories: number;
+  maxCategoryNameLength: number;
+  /** Largest .apkg of a synchronous export and largest part of an export job, in bytes. */
+  exportMaxBytes: number;
+  exportPartMaxBytes: number;
+  /** The most words a synchronous export packs; a longer list is exported in parts. */
+  exportSyncMaxWords: number;
+  /** The most the two sizes can be set to (the configuration of the deployment, read only). */
+  exportMaxBytesCeiling: number;
+  exportPartMaxBytesCeiling: number;
+  /** The largest content of one word, in bytes, and what one user may keep of content, images and audio. */
+  maxContentBytes: number;
+  contentUserQuota: number;
+  imageUserQuota: number;
+  audioUserQuota: number;
+  /** The most the four sizes above can be set to (the configuration of the deployment, read only). */
+  maxContentBytesCeiling: number;
+  contentUserQuotaCeiling: number;
+  imageUserQuotaCeiling: number;
+  audioUserQuotaCeiling: number;
+}
+
+/** Bytes of each kind of storage of a user. */
+export interface StorageQuota {
+  content: number;
+  image: number;
+  audio: number;
+}
+
+/** What a user stores, the own limits an administrator set (0: none, the system setting applies) and the limits in effect. */
+export interface UserQuota {
+  used: StorageQuota;
+  override: StorageQuota;
+  effective: StorageQuota;
+}
+
+/** The gateway writes int64 as a JSON string (protobuf JSON). */
+type Int64 = string | number | undefined;
+
+function settingsOf(r: Record<string, unknown>): DictionarySettings {
+  const n = (k: string) => Number(r[k] ?? 0);
+  return {
+    ...(r as unknown as DictionarySettings),
+    contentUserQuota: n("contentUserQuota"),
+    imageUserQuota: n("imageUserQuota"),
+    audioUserQuota: n("audioUserQuota"),
+    contentUserQuotaCeiling: n("contentUserQuotaCeiling"),
+    imageUserQuotaCeiling: n("imageUserQuotaCeiling"),
+    audioUserQuotaCeiling: n("audioUserQuotaCeiling"),
+  };
+}
+
+function quotaOf(r: Partial<Record<keyof StorageQuota, Int64>> | undefined): StorageQuota {
+  return { content: Number(r?.content ?? 0), image: Number(r?.image ?? 0), audio: Number(r?.audio ?? 0) };
+}
+
+function userQuotaOf(r: { used?: object; override?: object; effective?: object }): UserQuota {
+  return { used: quotaOf(r.used), override: quotaOf(r.override), effective: quotaOf(r.effective) };
 }
 
 export interface UserMfa {
@@ -169,7 +231,9 @@ function query(params: Record<string, string | undefined>): string {
 }
 
 /** Follows the page tokens until the list is complete (for pickers, which need every item). */
-async function drain<T>(page: (token: string) => Promise<Page<T>>): Promise<T[]> {
+async function drain<T>(
+  page: (token: string) => Promise<Page<T>>,
+): Promise<T[]> {
   const out: T[] = [];
   let token = "";
   do {
@@ -182,15 +246,36 @@ async function drain<T>(page: (token: string) => Promise<Page<T>>): Promise<T[]>
 
 /** Typed calls of the routes in gatekeeper/routes.yaml. */
 export function identityApi(c: AuthClient) {
-  const rolesPage = (q: string, token: string, size?: string): Promise<Page<Role>> =>
+  const rolesPage = (
+    q: string,
+    token: string,
+    size?: string,
+  ): Promise<Page<Role>> =>
     c
-      .api<{ roles?: Role[]; nextPageToken?: string }>("GET", `/api/roles${query({ query: q, page_size: size, page_token: token })}`)
+      .api<{ roles?: Role[]; nextPageToken?: string }>(
+        "GET",
+        `/api/roles${query({ query: q, page_size: size, page_token: token })}`,
+      )
       .then((r) => ({ items: r.roles ?? [], next: r.nextPageToken ?? "" }));
-  const permissionsPage = (q: string, token: string, size?: string): Promise<Page<Permission>> =>
+  const permissionsPage = (
+    q: string,
+    token: string,
+    size?: string,
+  ): Promise<Page<Permission>> =>
     c
-      .api<{ permissions?: Permission[]; nextPageToken?: string }>("GET", `/api/permissions${query({ query: q, page_size: size, page_token: token })}`)
-      .then((r) => ({ items: r.permissions ?? [], next: r.nextPageToken ?? "" }));
-  const clientsPage = (f: { query?: string; type?: ClientType }, token: string, size?: string): Promise<Page<IdentityClient>> =>
+      .api<{ permissions?: Permission[]; nextPageToken?: string }>(
+        "GET",
+        `/api/permissions${query({ query: q, page_size: size, page_token: token })}`,
+      )
+      .then((r) => ({
+        items: r.permissions ?? [],
+        next: r.nextPageToken ?? "",
+      }));
+  const clientsPage = (
+    f: { query?: string; type?: ClientType },
+    token: string,
+    size?: string,
+  ): Promise<Page<IdentityClient>> =>
     c
       .api<{ clients?: IdentityClient[]; nextPageToken?: string }>(
         "GET",
@@ -213,82 +298,190 @@ export function identityApi(c: AuthClient) {
     // roles
     /** Every role (follows the pages); see listRolesPage for a single page. */
     listRoles: (q = "") => drain((t) => rolesPage(q, t)),
-    listRolesPage: (q = "", token = "") => rolesPage(q, token, String(PAGE_SIZE)),
-    createRole: (role: Role) => c.api<{ role: Role }>("POST", "/api/roles", { role }).then((r) => r.role),
+    listRolesPage: (q = "", token = "") =>
+      rolesPage(q, token, String(PAGE_SIZE)),
+    createRole: (role: Role) =>
+      c.api<{ role: Role }>("POST", "/api/roles", { role }).then((r) => r.role),
     setRolePermissions: (role: string, permissions: string[]) =>
-      c.api<{ role: Role }>("PUT", `/api/roles/${e(role)}/permissions`, { permissions }).then((r) => r.role),
-    updateRole: (name: string, role: { description: string; permissions: string[] }) =>
-      c.api<{ role: Role }>("PUT", `/api/roles/${e(name)}`, role).then((r) => r.role),
-    deleteRole: (name: string) => c.api<unknown>("DELETE", `/api/roles/${e(name)}`),
+      c
+        .api<{ role: Role }>("PUT", `/api/roles/${e(role)}/permissions`, {
+          permissions,
+        })
+        .then((r) => r.role),
+    updateRole: (
+      name: string,
+      role: { description: string; permissions: string[] },
+    ) =>
+      c
+        .api<{ role: Role }>("PUT", `/api/roles/${e(name)}`, role)
+        .then((r) => r.role),
+    deleteRole: (name: string) =>
+      c.api<unknown>("DELETE", `/api/roles/${e(name)}`),
     // permission catalog
     listPermissions: (q = "") => drain((t) => permissionsPage(q, t)),
-    listPermissionsPage: (q = "", token = "") => permissionsPage(q, token, String(PAGE_SIZE)),
+    listPermissionsPage: (q = "", token = "") =>
+      permissionsPage(q, token, String(PAGE_SIZE)),
     createPermission: (p: { name: string; description: string }) =>
-      c.api<{ permission: Permission }>("POST", "/api/permissions", { permission: p }).then((r) => r.permission),
+      c
+        .api<{ permission: Permission }>("POST", "/api/permissions", {
+          permission: p,
+        })
+        .then((r) => r.permission),
     updatePermission: (name: string, description: string) =>
-      c.api<{ permission: Permission }>("PUT", `/api/permissions/${e(name)}`, { description }).then((r) => r.permission),
-    deletePermission: (name: string) => c.api<unknown>("DELETE", `/api/permissions/${e(name)}`),
+      c
+        .api<{ permission: Permission }>("PUT", `/api/permissions/${e(name)}`, {
+          description,
+        })
+        .then((r) => r.permission),
+    deletePermission: (name: string) =>
+      c.api<unknown>("DELETE", `/api/permissions/${e(name)}`),
     assignRole: (role: string, who: { user_id?: string; client_id?: string }) =>
       c.api<unknown>("POST", `/api/roles/${e(role)}/assignments`, who),
-    revokeRole: (role: string, who: { user_id?: string; client_id?: string }) => {
+    revokeRole: (
+      role: string,
+      who: { user_id?: string; client_id?: string },
+    ) => {
       const q = new URLSearchParams(who as Record<string, string>);
       return c.api<unknown>("DELETE", `/api/roles/${e(role)}/assignments?${q}`);
     },
 
     // clients
-    listClients: (f: { query?: string; type?: ClientType } = {}) => drain((t) => clientsPage(f, t)),
-    listClientsPage: (f: { query?: string; type?: ClientType } = {}, token = "") => clientsPage(f, token, String(PAGE_SIZE)),
+    listClients: (f: { query?: string; type?: ClientType } = {}) =>
+      drain((t) => clientsPage(f, t)),
+    listClientsPage: (
+      f: { query?: string; type?: ClientType } = {},
+      token = "",
+    ) => clientsPage(f, token, String(PAGE_SIZE)),
     createClient: (client: NewClient) =>
-      c.api<{ client: IdentityClient; clientSecret: string }>("POST", "/api/clients", { client }),
+      c.api<{ client: IdentityClient; clientSecret: string }>(
+        "POST",
+        "/api/clients",
+        { client },
+      ),
     updateClient: (id: string, fields: Omit<NewClient, "client_id" | "type">) =>
-      c.api<{ client: IdentityClient }>("PUT", `/api/clients/${e(id)}`, fields).then((r) => r.client),
+      c
+        .api<{ client: IdentityClient }>("PUT", `/api/clients/${e(id)}`, fields)
+        .then((r) => r.client),
     setClientDisabled: (id: string, disabled: boolean) =>
-      c.api<{ client: IdentityClient }>("PUT", `/api/clients/${e(id)}/disabled`, { disabled }).then((r) => r.client),
-    deleteClient: (id: string) => c.api<unknown>("DELETE", `/api/clients/${e(id)}`),
+      c
+        .api<{ client: IdentityClient }>(
+          "PUT",
+          `/api/clients/${e(id)}/disabled`,
+          { disabled },
+        )
+        .then((r) => r.client),
+    deleteClient: (id: string) =>
+      c.api<unknown>("DELETE", `/api/clients/${e(id)}`),
     rotateSecret: (id: string) =>
-      c.api<{ clientSecret: string }>("POST", `/api/clients/${e(id)}/rotate-secret`).then((r) => r.clientSecret),
+      c
+        .api<{ clientSecret: string }>(
+          "POST",
+          `/api/clients/${e(id)}/rotate-secret`,
+        )
+        .then((r) => r.clientSecret),
 
     // dictionary settings
-    getDictionarySettings: () => c.api<{ settings: DictionarySettings }>("GET", "/api/dictionary/settings").then((r) => r.settings),
+    getDictionarySettings: () =>
+      c
+        .api<{ settings: Record<string, unknown> }>(
+          "GET",
+          "/api/dictionary/settings",
+        )
+        .then((r) => settingsOf(r.settings)),
     updateDictionarySettings: (s: DictionarySettings) =>
       c
-        .api<{ settings: DictionarySettings }>("PUT", "/api/dictionary/settings", {
-          settings: {
-            max_saved_words: s.maxSavedWords,
-            allow_export_deck: s.allowExportDeck,
-            allow_export_link: s.allowExportLink,
-            english_enabled: s.englishEnabled,
-            english_vi_enabled: s.englishViEnabled,
-            remove_after_export: s.removeAfterExport,
-            exported_retention_hours: s.exportedRetentionHours,
+        .api<{ settings: Record<string, unknown> }>(
+          "PUT",
+          "/api/dictionary/settings",
+          {
+            settings: {
+              max_saved_words: s.maxSavedWords,
+              allow_export_deck: s.allowExportDeck,
+              allow_export_link: s.allowExportLink,
+              english_enabled: s.englishEnabled,
+              english_vi_enabled: s.englishViEnabled,
+              remove_after_export: s.removeAfterExport,
+              exported_retention_hours: s.exportedRetentionHours,
+              max_categories: s.maxCategories,
+              max_category_name_length: s.maxCategoryNameLength,
+              export_max_bytes: s.exportMaxBytes,
+              export_part_max_bytes: s.exportPartMaxBytes,
+              export_sync_max_words: s.exportSyncMaxWords,
+              max_content_bytes: s.maxContentBytes,
+              content_user_quota: s.contentUserQuota,
+              image_user_quota: s.imageUserQuota,
+              audio_user_quota: s.audioUserQuota,
+            },
           },
-        })
-        .then((r) => r.settings),
+        )
+        .then((r) => settingsOf(r.settings)),
+
+    // the storage limits of one user
+    getUserQuota: (userId: string) =>
+      c
+        .api<{ used?: object; override?: object; effective?: object }>(
+          "GET",
+          `/api/dictionary/users/${encodeURIComponent(userId)}/quota`,
+        )
+        .then(userQuotaOf),
+    /** Sets all three own limits; 0 for a kind removes its limit. */
+    setUserQuota: (userId: string, q: StorageQuota) =>
+      c
+        .api<{ used?: object; override?: object; effective?: object }>(
+          "PUT",
+          `/api/dictionary/users/${encodeURIComponent(userId)}/quota`,
+          { quotas: q },
+        )
+        .then(userQuotaOf),
 
     // token exchange
-    listPolicies: (f: { clientId?: string; query?: string; audience?: string } = {}) => drain((t) => policiesPage(f, t)),
-    listPoliciesPage: (f: { clientId?: string; query?: string; audience?: string } = {}, token = "") =>
-      policiesPage(f, token, String(PAGE_SIZE)),
+    listPolicies: (
+      f: { clientId?: string; query?: string; audience?: string } = {},
+    ) => drain((t) => policiesPage(f, t)),
+    listPoliciesPage: (
+      f: { clientId?: string; query?: string; audience?: string } = {},
+      token = "",
+    ) => policiesPage(f, token, String(PAGE_SIZE)),
     setPolicy: (policy: ExchangePolicy, del = false) =>
       c.api<unknown>("PUT", "/api/exchange-policies", {
-        policy: { client_id: policy.clientId, audience: policy.audience, max_scope: policy.maxScope, max_chain_depth: policy.maxChainDepth },
+        policy: {
+          client_id: policy.clientId,
+          audience: policy.audience,
+          max_scope: policy.maxScope,
+          max_chain_depth: policy.maxChainDepth,
+        },
         delete: del,
       }),
 
     // the look of the web apps, one value for the whole system: any signed-in user reads it, identity:settings:write sets it
     // together with the palette of each style ({saas, glass, mono} to a palette name)
     getUiStyle: () =>
-      c.api<SystemStyleReply>("GET", "/api/ui-style").then((r) => ({ uiStyle: r.uiStyle ?? "saas", uiPalettes: r.uiPalettes ?? {} })),
-    updateUiStyle: (v: { uiStyle: string; uiPalettes: Record<string, string> }) =>
-      c.api<SystemStyleReply>("PUT", "/api/ui-style", { ui_style: v.uiStyle, ui_palettes: v.uiPalettes }).then((r) => ({
-        uiStyle: r.uiStyle ?? v.uiStyle,
-        uiPalettes: r.uiPalettes ?? v.uiPalettes,
-      })),
+      c
+        .api<SystemStyleReply>("GET", "/api/ui-style")
+        .then((r) => ({
+          uiStyle: r.uiStyle ?? "saas",
+          uiPalettes: r.uiPalettes ?? {},
+        })),
+    updateUiStyle: (v: {
+      uiStyle: string;
+      uiPalettes: Record<string, string>;
+    }) =>
+      c
+        .api<SystemStyleReply>("PUT", "/api/ui-style", {
+          ui_style: v.uiStyle,
+          ui_palettes: v.uiPalettes,
+        })
+        .then((r) => ({
+          uiStyle: r.uiStyle ?? v.uiStyle,
+          uiPalettes: r.uiPalettes ?? v.uiPalettes,
+        })),
     // the signed in user: no permission needed, the user is the one of the session
     getMe: () => c.api<{ user: User }>("GET", "/api/me").then((r) => r.user),
-    updateMe: (u: { name?: string; locale?: string; theme?: string }) => c.api<{ user: User }>("PUT", "/api/me", u).then((r) => r.user),
+    updateMe: (u: { name?: string; locale?: string; theme?: string }) =>
+      c.api<{ user: User }>("PUT", "/api/me", u).then((r) => r.user),
     /** Stores the picture; without one the picture is removed. */
-    setMyAvatar: (a?: AvatarImage) => c.api<unknown>("PUT", "/api/me/avatar", a ?? {}),
+    setMyAvatar: (a?: AvatarImage) =>
+      c.api<unknown>("PUT", "/api/me/avatar", a ?? {}),
 
     // users
     listUsers: (f: UserFilter | string, pageToken = "") => {
@@ -296,32 +489,59 @@ export function identityApi(c: AuthClient) {
       const q = new URLSearchParams({ page_size: "25" });
       if (filter.email) q.set("query", filter.email);
       if (filter.name) q.set("name", filter.name);
-      if (filter.status) q.set("status", `USER_STATUS_${filter.status.toUpperCase()}`);
+      if (filter.status)
+        q.set("status", `USER_STATUS_${filter.status.toUpperCase()}`);
       if (filter.role) q.set("role", filter.role);
       if (pageToken) q.set("page_token", pageToken);
-      return c.api<{ users: User[]; nextPageToken: string }>("GET", `/api/users?${q}`);
+      return c.api<{ users: User[]; nextPageToken: string }>(
+        "GET",
+        `/api/users?${q}`,
+      );
     },
     getUserStats: () => c.api<UserStats>("GET", "/api/user-stats"),
     /** How many roles / catalog permissions there are (the `total` of a one item page). */
-    countRoles: () => c.api<{ total?: string }>("GET", "/api/roles?page_size=1").then((r) => Number(r.total ?? 0)),
-    countPermissions: () => c.api<{ total?: string }>("GET", "/api/permissions?page_size=1").then((r) => Number(r.total ?? 0)),
+    countRoles: () =>
+      c
+        .api<{ total?: string }>("GET", "/api/roles?page_size=1")
+        .then((r) => Number(r.total ?? 0)),
+    countPermissions: () =>
+      c
+        .api<{ total?: string }>("GET", "/api/permissions?page_size=1")
+        .then((r) => Number(r.total ?? 0)),
     /** The applications of the system (ArgoCD); fails with 404 when the gateway has no ArgoCD configured. */
-    systemStatus: () => c.api<{ apps?: SystemApp[]; checkedAt?: string }>("GET", "/api/system/status"),
-    getUser: (id: string) => c.api<{ user: User }>("GET", `/api/users/${e(id)}`).then((r) => r.user),
-    createUser: (u: NewUser) => c.api<{ user: User }>("POST", "/api/users", u).then((r) => r.user),
+    systemStatus: () =>
+      c.api<{ apps?: SystemApp[]; checkedAt?: string }>(
+        "GET",
+        "/api/system/status",
+      ),
+    getUser: (id: string) =>
+      c.api<{ user: User }>("GET", `/api/users/${e(id)}`).then((r) => r.user),
+    createUser: (u: NewUser) =>
+      c.api<{ user: User }>("POST", "/api/users", u).then((r) => r.user),
     updateUser: (id: string, u: { name: string; locale: string }) =>
-      c.api<{ user: User }>("PUT", `/api/users/${e(id)}`, u).then((r) => r.user),
+      c
+        .api<{ user: User }>("PUT", `/api/users/${e(id)}`, u)
+        .then((r) => r.user),
     /** Stores the picture; without one the picture is removed. */
-    setAvatar: (id: string, a?: AvatarImage) => c.api<unknown>("PUT", `/api/users/${e(id)}/avatar`, a ?? {}),
-    sendWelcome: (id: string) => c.api<unknown>("POST", `/api/users/${e(id)}/welcome`),
-    setDisabled: (id: string, disabled: boolean) => c.api<unknown>("PUT", `/api/users/${e(id)}/disabled`, { disabled }),
-    sendReset: (id: string) => c.api<unknown>("POST", `/api/users/${e(id)}/password-reset`),
+    setAvatar: (id: string, a?: AvatarImage) =>
+      c.api<unknown>("PUT", `/api/users/${e(id)}/avatar`, a ?? {}),
+    sendWelcome: (id: string) =>
+      c.api<unknown>("POST", `/api/users/${e(id)}/welcome`),
+    setDisabled: (id: string, disabled: boolean) =>
+      c.api<unknown>("PUT", `/api/users/${e(id)}/disabled`, { disabled }),
+    sendReset: (id: string) =>
+      c.api<unknown>("POST", `/api/users/${e(id)}/password-reset`),
+    deleteUser: (id: string) =>
+      c.api<unknown>("DELETE", `/api/users/${e(id)}`),
 
     // MFA
     getMfa: (id: string) => c.api<UserMfa>("GET", `/api/users/${e(id)}/mfa`),
-    setMfa: (id: string, enabled: boolean) => c.api<unknown>("PUT", `/api/users/${e(id)}/mfa`, { enabled }),
-    enforceMfa: (id: string, enforced: boolean) => c.api<unknown>("PUT", `/api/users/${e(id)}/mfa/enforced`, { enforced }),
-    resetMfa: (id: string) => c.api<unknown>("POST", `/api/users/${e(id)}/mfa/reset`),
+    setMfa: (id: string, enabled: boolean) =>
+      c.api<unknown>("PUT", `/api/users/${e(id)}/mfa`, { enabled }),
+    enforceMfa: (id: string, enforced: boolean) =>
+      c.api<unknown>("PUT", `/api/users/${e(id)}/mfa/enforced`, { enforced }),
+    resetMfa: (id: string) =>
+      c.api<unknown>("POST", `/api/users/${e(id)}/mfa/reset`),
   };
 }
 

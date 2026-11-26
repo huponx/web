@@ -1,17 +1,19 @@
 import { Can, useAuth } from "@huponx/auth-client";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, useAction, useFlash, useLoad } from "@huponx/ui-kit";
+import { AvatarUpload, Badge, Button, Card, CardContent, CardHeader, CardTitle, useAction, useFlash, useLoad } from "@huponx/ui-kit";
+import type { AvatarChange } from "@huponx/ui-kit";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { statusOf, useIdentity } from "../api";
 import type { User } from "../api";
-import { AvatarUpload } from "../components/AvatarUpload";
-import type { AvatarChange } from "../components/AvatarUpload";
+import { avatarLabels } from "../lib/avatarLabels";
 import { Actions, DoneAlert, ErrorAlert, Loading, PageTitle, SelectField, TextField } from "../components/common";
 import { formatDateTime } from "../lib/date";
 import { announceAvatarChanged } from "../lib/avatarEvents";
+import { useConfirm } from "../components/ConfirmDialog";
 import { RoleCards } from "../components/RoleCards";
 import { UserMfa } from "./UserMfa";
+import { UserStorage } from "./UserStorage";
 
 const LOCALES = [
   { value: "en", label: "English" },
@@ -31,11 +33,19 @@ function AccountCard({ user, onChanged }: { user: User; onChanged: () => void })
   const { t, i18n } = useTranslation();
   const api = useIdentity();
   const a = useAction();
+  const navigate = useNavigate();
+  const { confirm, dialog } = useConfirm();
   const status = statusOf(user);
 
   async function act(fn: () => Promise<unknown>, message: string, changed = false) {
     const r = await a.run(async () => (await fn(), true), message);
     if (r && changed) onChanged();
+  }
+
+  async function remove() {
+    if (!(await confirm({ title: t("users.account.deleteTitle"), message: t("users.account.confirmDelete", { email: user.email }), confirmLabel: t("common.delete") }))) return;
+    const done = await a.run(async () => (await api.deleteUser(user.id), true));
+    if (done) navigate("/users", { state: { deleted: user.email } });
   }
 
   return (
@@ -76,10 +86,14 @@ function AccountCard({ user, onChanged }: { user: User; onChanged: () => void })
             >
               {user.disabled ? t("users.account.enable") : t("users.account.disable")}
             </Button>
+            <Button variant="destructive" busy={a.busy} onClick={() => void remove()}>
+              {t("users.account.delete")}
+            </Button>
           </Actions>
         </Can>
         <ErrorAlert error={a.error} />
         <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
+        {dialog}
       </CardContent>
     </Card>
   );
@@ -148,7 +162,7 @@ function Editor({ user, reload, createdNote }: { user?: User; reload: () => void
             <CardTitle>{t("users.form.profile")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <AvatarUpload name={name} email={email} current={user?.avatar} value={avatar} onChange={setAvatar} disabled={!canWrite} />
+            <AvatarUpload name={name} email={email} current={user?.avatar} value={avatar} onChange={setAvatar} disabled={!canWrite} labels={avatarLabels(t)} />
             <div className="grid gap-4 md:grid-cols-2">
               <TextField
                 label={t("users.form.email")}
@@ -209,6 +223,9 @@ export function UserForm() {
     <div className="flex flex-col gap-6">
       <Editor key={data.id} user={data} reload={reload} createdNote={note} />
       <AccountCard user={data} onChanged={reload} />
+      <Can perm="dictionary:settings:read">
+        <UserStorage userId={data.id} />
+      </Can>
       <Can perm="identity:mfa:read">
         <Card>
           <CardContent className="pt-6">

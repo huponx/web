@@ -14,6 +14,7 @@ type Answer = { status?: number; json?: unknown } | undefined;
 
 const assign = vi.fn();
 let systemStyle = "saas";
+let registration = false;
 
 /** Stands in for identity: `answer` gets every call (the CSRF fetch is answered here) and returns the response. */
 function renderAt(path: string, answer: (c: Call) => Answer = () => ({ json: {} })) {
@@ -24,7 +25,7 @@ function renderAt(path: string, answer: (c: Call) => Answer = () => ({ json: {} 
       const c: Call = { method: init?.method ?? "GET", url, body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : undefined };
       if (url === "/auth-api/csrf") return Promise.resolve(new Response(JSON.stringify({ csrf: "tok" }), { status: 200 }));
       // the look of the system is read by every page; it is not a call the tests count
-      if (url === "/auth-api/ui-style") return Promise.resolve(new Response(JSON.stringify({ uiStyle: systemStyle, uiPalettes: { saas: "aurora", glass: "ocean", mono: "aurora" } }), { status: 200 }));
+      if (url === "/auth-api/ui-style") return Promise.resolve(new Response(JSON.stringify({ uiStyle: systemStyle, uiPalettes: { saas: "aurora", glass: "ocean", mono: "aurora" }, registration }), { status: 200 }));
       calls.push(c);
       const a = answer(c) ?? { json: {} };
       return Promise.resolve(new Response(JSON.stringify(a.json ?? {}), { status: a.status ?? 200 }));
@@ -46,6 +47,7 @@ const fail = (status: number, code: string): Answer => ({ status, json: { code, 
 
 beforeEach(() => {
   systemStyle = "saas";
+  registration = false;
   localStorage.clear();
   resetCsrf();
   assign.mockReset();
@@ -227,6 +229,39 @@ describe("forced password change", () => {
     await user.click(screen.getByRole("button", { name: "Set the password" }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith("/account/mfa?return_to=x"));
     expect(calls.find((c) => c.method === "POST")?.body).toMatchObject({ c: "chal", password: "a-long-password-1", password2: "a-long-password-2" });
+  });
+});
+
+describe("register", () => {
+  it("offers the link on the sign in page only when registration is open", async () => {
+    renderAt("/login");
+    await screen.findByLabelText("E-mail");
+    expect(screen.queryByRole("link", { name: "Create an account" })).toBeNull();
+  });
+
+  it("links to the registration when it is open", async () => {
+    registration = true;
+    renderAt("/login");
+    expect(await screen.findByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/register");
+  });
+
+  it("sends the e-mail, the name and the language, and hides the form", async () => {
+    const calls = renderAt("/register");
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("Name"), "An");
+    await user.type(screen.getByLabelText("E-mail"), "a@example.com");
+    await user.click(screen.getByRole("button", { name: "Create the account" }));
+    expect(await screen.findByText(/we sent a link to set your password/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("E-mail")).toBeNull();
+    expect(calls[0]).toMatchObject({ url: "/auth-api/register", body: { email: "a@example.com", name: "An", locale: "en" } });
+  });
+
+  it("shows the translated error of the server", async () => {
+    renderAt("/register", () => fail(429, "rate_limited"));
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("E-mail"), "a@example.com");
+    await user.click(screen.getByRole("button", { name: "Create the account" }));
+    expect(await screen.findByText("Too many attempts. Please wait a few minutes.")).toBeInTheDocument();
   });
 });
 

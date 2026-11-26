@@ -1,5 +1,5 @@
 import { Can, useAuth } from "@huponx/auth-client";
-import { Badge, Button, Card, CardContent, cn, useLoad, usePaged } from "@huponx/ui-kit";
+import { Badge, Button, Card, CardContent, cn, useFlash, useLoad, usePaged } from "@huponx/ui-kit";
 import { ChevronDown, ChevronUp, KeyRound, Plus, ShieldCheck, UserCheck, UserMinus, UserX, Users as UsersIcon, Clock, LogIn, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,7 +8,7 @@ import { statusOf, useIdentity } from "../api";
 import type { UserFilter, UserStats } from "../api";
 import { formatDate, formatDateTime } from "../lib/date";
 
-import { ActionLabel, Actions, BadgeList, DataTable, ErrorAlert, LoadMore, Loading, PageTitle, ROW_ACTION, SelectField, TextField } from "../components/common";
+import { ActionLabel, Actions, BadgeList, DataTable, DoneAlert, ErrorAlert, LoadMore, Loading, PageTitle, ROW_ACTION, SelectField, TextField } from "../components/common";
 
 const ALL = "all"; // Radix Select has no empty value
 const n = (v: string | undefined) => Number(v ?? 0);
@@ -86,6 +86,8 @@ function Stats() {
 }
 
 export function Users() {
+  // set by the edit page after it deleted the account
+  const deleted = useFlash<{ deleted?: string }>()?.deleted;
   const { t, i18n } = useTranslation();
   const lang = i18n.resolvedLanguage ?? "en";
   const api = useIdentity();
@@ -169,6 +171,7 @@ export function Users() {
             </Actions>
           </form>
           <ErrorAlert error={first.error} />
+          {deleted ? <DoneAlert>{t("users.account.deleted", { email: deleted })}</DoneAlert> : null}
           {first.loading ? <Loading /> : null}
           {first.data ? (
             <DataTable

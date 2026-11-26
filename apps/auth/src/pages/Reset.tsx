@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import { authApi } from "../api";
-import { AuthLayout, ErrorAlert, Field, Form, SubmitButton, useSubmit } from "../components/common";
+import { AuthLayout, ErrorAlert, TextField, Form, SubmitButton, useSubmit } from "../components/common";
 
 const link = "text-center text-sm text-primary underline-offset-4 hover:underline";
 
@@ -48,9 +48,9 @@ export function Reset() {
     );
   return (
     <AuthLayout title={t("reset.title")}>
-      <ErrorAlert message={s.error} />
+      <ErrorAlert error={s.error} />
       <Form onSubmit={() => void submit()}>
-        <Field
+        <TextField
           label={t("reset.new")}
           type="password"
           name="password"

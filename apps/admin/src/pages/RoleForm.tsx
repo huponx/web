@@ -1,5 +1,5 @@
 import { Can, useAuth } from "@huponx/auth-client";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useAction, useFlash, useLoad } from "@huponx/ui-kit";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, DeleteCard, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -83,7 +83,7 @@ function Editor({ role, catalog, reload, createdNote }: { role?: Role; catalog?:
 }
 
 /** Deleting is refused while a user or a client holds the role (identity checks it again). */
-function DeleteCard({ role }: { role: Role }) {
+function DeleteSection({ role }: { role: Role }) {
   const { t } = useTranslation();
   const api = useIdentity();
   const navigate = useNavigate();
@@ -98,21 +98,17 @@ function DeleteCard({ role }: { role: Role }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("roles.form.deleteTitle")}</CardTitle>
-        <CardDescription>{held > 0 ? t("roles.form.heldBy", { count: held }) : t("roles.form.deleteHint")}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <ErrorAlert error={a.error} />
-        <Actions>
-          <Button variant="destructive" disabled={held > 0} busy={a.busy} onClick={() => void remove()}>
-            {t("roles.form.delete")}
-          </Button>
-        </Actions>
-      </CardContent>
+    <DeleteCard
+      title={t("roles.form.deleteTitle")}
+      description={held > 0 ? t("roles.form.heldBy", { count: held }) : t("roles.form.deleteHint")}
+      label={t("roles.form.delete")}
+      disabled={held > 0}
+      busy={a.busy}
+      error={a.error}
+      onDelete={() => void remove()}
+    >
       {dialog}
-    </Card>
+    </DeleteCard>
   );
 }
 
@@ -140,7 +136,7 @@ export function RoleForm() {
         createdNote={state?.created ? t("roles.new.created", { name: state.created }) : undefined}
       />
       <Can perm="identity:role:write">
-        <DeleteCard role={role} />
+        <DeleteSection role={role} />
       </Can>
     </div>
   );

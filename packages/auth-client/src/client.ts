@@ -16,16 +16,23 @@ export interface Me {
   expires_at: string;
 }
 
-/** An error answer of the gateway: `{"error": {"code": "...", "message": "..."}}`. */
+/**
+ * An error answer of the gateway: `{"error": {"code", "reason", "params", "message"}}`. `reason` (a stable key) and
+ * `params` are for the UI to translate; `message` is the English text of the server.
+ */
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
+  readonly reason?: string;
+  readonly params?: Record<string, string>;
 
-  constructor(status: number, code: string, message: string) {
+  constructor(status: number, code: string, message: string, reason?: string, params?: Record<string, string>) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.reason = reason;
+    this.params = params;
   }
 }
 
@@ -67,8 +74,8 @@ const LOOP_WINDOW_MS = 15_000;
 
 function bodyError(status: number, text: string): ApiError {
   try {
-    const e = (JSON.parse(text) as { error?: { code?: string; message?: string } }).error;
-    if (e) return new ApiError(status, e.code ?? "error", e.message ?? `HTTP ${status}`);
+    const e = (JSON.parse(text) as { error?: { code?: string; message?: string; reason?: string; params?: Record<string, string> } }).error;
+    if (e) return new ApiError(status, e.code ?? "error", e.message ?? `HTTP ${status}`, e.reason || undefined, e.params);
   } catch {
     // not JSON: a proxy or a gateway outage
   }

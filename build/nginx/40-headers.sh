@@ -22,8 +22,9 @@ esac
 # img-src blob: the dict app shows the card images (stored by the dictionary service, fetched with the session
 # and turned into blob URLs).
 # media-src: the dict app plays the pronunciations straight from the dictionary sources (the hosts of
-# DICTIONARY_AUDIO_HOSTS of the dictionary service); no other app plays audio.
-media="'self' https://api.dictionaryapi.dev https://upload.wikimedia.org https://ssl.gstatic.com"
+# DICTIONARY_AUDIO_HOSTS of the dictionary service, Cambridge Dictionary included) and the audio files the user
+# uploaded (fetched with the session and turned into blob URLs); no other app plays audio.
+media="'self' blob: https://api.dictionaryapi.dev https://upload.wikimedia.org https://ssl.gstatic.com https://dictionary.cambridge.org"
 
 csp="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src ${media}; font-src 'self'; connect-src 'self' ${origin}; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'"
 

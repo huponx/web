@@ -35,6 +35,7 @@
     "breadcrumb": "Đường dẫn",
     "userMenu": "Menu người dùng",
     "signOut": "Đăng xuất",
+    "portal": "Về cổng ứng dụng",
     "language": "Ngôn ngữ",
     "theme": {
       "group": "Giao diện",
@@ -115,9 +116,18 @@
       "description": "Kiểu giao diện của mọi ứng dụng (quản trị, từ điển, đăng nhập) cho mọi người dùng. Sáng/tối vẫn là lựa chọn của từng người.",
       "save": "Lưu giao diện",
       "saved": "Đã lưu giao diện hệ thống.",
-      "saas": { "name": "SaaS tinh gọn", "hint": "Đổ bóng mềm, thẻ bo tròn, màu nhấn tím." },
-      "glass": { "name": "Kính", "hint": "Nền gradient, thẻ mờ kính, nút dạng viên thuốc." },
-      "mono": { "name": "Mono tối giản", "hint": "Phẳng, đen trắng, góc vuông." }
+      "saas": {
+        "name": "SaaS tinh gọn",
+        "hint": "Đổ bóng mềm, thẻ bo tròn, màu nhấn tím."
+      },
+      "glass": {
+        "name": "Kính",
+        "hint": "Nền gradient, thẻ mờ kính, nút dạng viên thuốc."
+      },
+      "mono": {
+        "name": "Mono tối giản",
+        "hint": "Phẳng, đen trắng, góc vuông."
+      }
     },
     "palette": {
       "title": "Màu sắc",
@@ -210,7 +220,11 @@
       "pendingHint": "Người dùng chưa đặt mật khẩu. Tài khoản sẽ hoạt động khi họ đặt mật khẩu qua liên kết trong email chào mừng.",
       "resendWelcome": "Gửi lại email chào mừng",
       "welcomeSent": "Đã gửi email chào mừng.",
-      "lastLogin": "Đăng nhập gần nhất:"
+      "lastLogin": "Đăng nhập gần nhất:",
+      "delete": "Xóa tài khoản",
+      "deleteTitle": "Xóa tài khoản",
+      "confirmDelete": "Xóa tài khoản {{email}}? Người dùng bị đăng xuất ngay và không thể đăng nhập lại, dữ liệu của họ (từ đã lưu, tệp) được xóa dần ở nền. Không thể hoàn tác.",
+      "deleted": "Đã xóa tài khoản {{email}}."
     },
     "mfa": {
       "title": "Xác thực đa yếu tố",
@@ -246,7 +260,7 @@
       "file": "Tệp ảnh",
       "upload": "Tải ảnh lên",
       "remove": "Xóa ảnh",
-      "hint": "PNG, JPEG hoặc WebP. Ảnh được cắt vuông và thu nhỏ còn {{side}}x{{side}} ngay trên trình duyệt trước khi lưu.",
+      "hint": "PNG, JPEG hoặc WebP. Ảnh được thu về {{side}}x{{side}} ngay trên trình duyệt trước khi lưu.",
       "size": "Ảnh sau khi thu nhỏ: {{kb}} KB.",
       "failedAfterCreate": "Không lưu được ảnh: hãy tải lên lại.",
       "error": {
@@ -254,7 +268,11 @@
         "size": "Tệp lớn hơn 5 MB.",
         "decode": "Không đọc được tệp này như một bức ảnh.",
         "encode": "Không xử lý được ảnh."
-      }
+      },
+      "cropTitle": "Chọn phần ảnh muốn giữ",
+      "cropHint": "Kéo để dời, dùng thanh trượt để phóng to.",
+      "zoom": "Thu phóng",
+      "cropUse": "Dùng ảnh"
     },
     "never": "Chưa từng",
     "stats": {
@@ -269,15 +287,40 @@
       "neverSignedIn": "Chưa từng đăng nhập",
       "expand": "Hiện tất cả thống kê",
       "collapse": "Thu gọn thống kê"
+    },
+    "storage": {
+      "title": "Dung lượng từ điển",
+      "description": "Người dùng này đang lưu bao nhiêu so với hạn mức đang áp dụng. Hạn mức đặt ở đây thay cho mặc định trong cài đặt hệ thống.",
+      "content": "Content của từ",
+      "image": "Ảnh",
+      "audio": "Âm thanh",
+      "usage": "{{used}} / {{limit}}",
+      "own": "(hạn mức riêng)",
+      "default": "(mặc định)",
+      "override": "Hạn mức riêng (MiB)",
+      "defaultPlaceholder": "Mặc định",
+      "useDefault": "Dùng mặc định",
+      "save": "Lưu hạn mức",
+      "saved": "Đã lưu hạn mức dung lượng."
     }
   },
   "dictionary": {
     "title": "Từ điển",
     "intro": "Cài đặt của từ điển cho mọi người dùng.",
-    "limits": "Từ đã lưu",
+    "limits": "Giới hạn",
     "maxSaved": "Số từ lưu tối đa mỗi người dùng",
-    "maxSavedHint": "Từ 1 đến 1000. Từ đã lưu vượt mức khi hạ giới hạn vẫn được giữ; chỉ việc lưu từ mới bị từ chối.",
+    "maxSavedHint": "Từ 1 đến 1000000. Số từ mỗi người dùng có thể giữ trong danh sách đã lưu trước khi xuất.",
+    "maxCategories": "Số danh mục tối đa mỗi người dùng",
+    "maxCategoriesHint": "Từ 1 đến 200. Số danh mục mỗi người dùng có thể tạo để nhóm các từ đã lưu.",
+    "maxCategoryName": "Độ dài tên danh mục tối đa",
+    "maxCategoryNameHint": "Từ 1 đến 100. Số ký tự tối đa của tên một danh mục.",
     "export": "Xuất",
+    "exportMaxBytes": "Dung lượng tối đa của một lần xuất",
+    "exportMaxBytesHint": "Dung lượng tối đa của tệp .apkg tải về một lần (Xuất thành bộ thẻ Anki và Xuất thành liên kết). Bộ thẻ lớn hơn sẽ bị từ chối: hãy xóa bớt từ hoặc xuất theo từng phần. Các mức chọn dừng ở giới hạn của hệ thống triển khai.",
+    "exportPartMaxBytes": "Dung lượng tối đa của một phần khi xuất",
+    "exportPartMaxBytesHint": "Dung lượng tối đa của mỗi phần khi xuất một danh sách dài. Phần lớn hơn nghĩa là ít tệp phải nhập vào Anki hơn, nhưng máy chủ tốn nhiều bộ nhớ hơn khi tạo (khoảng 2 đến 3 lần dung lượng). Thay đổi áp dụng cho phần tiếp theo của lần xuất đang chạy. Các mức chọn dừng ở giới hạn của hệ thống triển khai.",
+    "exportSyncMaxWords": "Số từ tối đa của một lần xuất trực tiếp",
+    "exportSyncMaxWordsHint": "Số từ nhiều nhất mà Xuất thành bộ thẻ Anki và Xuất thành liên kết đóng gói trong một yêu cầu (1 đến 5000). Danh sách dài hơn sẽ bị từ chối và phải xuất theo từng phần. Giá trị cao hơn tốn nhiều bộ nhớ máy chủ hơn cho mỗi yêu cầu.",
     "exportDeck": "Xuất thành bộ thẻ Anki",
     "exportDeckHint": "Người dùng có thể tải các từ đã lưu thành tệp .apkg.",
     "exportLink": "Xuất thành liên kết",
@@ -293,7 +336,17 @@
     "englishViHint": "Định nghĩa tiếng Việt của từ tiếng Anh.",
     "oneOn": "Phải còn ít nhất một từ điển được bật.",
     "save": "Lưu cài đặt",
-    "saved": "Đã lưu cài đặt từ điển."
+    "saved": "Đã lưu cài đặt từ điển.",
+    "storage": "Dung lượng",
+    "storageHint": "Mỗi người dùng được lưu tối đa bao nhiêu. Giới hạn của riêng một người dùng đặt ở trang của người đó.",
+    "maxContentBytes": "Content tối đa của một từ",
+    "maxContentBytesHint": "Thẻ (content) lớn nhất của một từ đã lưu. Thẻ lớn hơn bị từ chối. Các lựa chọn dừng ở mức trần của hệ thống triển khai.",
+    "contentUserQuota": "Quota content mỗi người dùng",
+    "contentUserQuotaHint": "Tổng content của các từ trong danh sách đã lưu của một người dùng. Khi đầy, người dùng phải export hoặc xóa bớt từ trước khi lưu thêm. Từ đã export và rời khỏi danh sách không được tính.",
+    "imageUserQuota": "Quota ảnh mỗi người dùng",
+    "imageUserQuotaHint": "Tổng dung lượng ảnh một người dùng đã tải lên cho các thẻ.",
+    "audioUserQuota": "Quota âm thanh mỗi người dùng",
+    "audioUserQuotaHint": "Tổng dung lượng file âm thanh một người dùng đã tải lên cho các thẻ."
   },
   "roles": {
     "title": "Vai trò & Quyền",
@@ -500,6 +553,79 @@
       "deleteTitle": "Xóa policy",
       "deleteHint": "Việc đổi token của client này cho audience này sẽ ngừng hoạt động (mặc định từ chối).",
       "delete": "Xóa policy"
+    }
+  },
+  "errors": {
+    "code": {
+      "invalid_argument": "Yêu cầu không hợp lệ.",
+      "not_found": "Không tìm thấy.",
+      "conflict": "Mục này đã tồn tại.",
+      "failed_precondition": "Không thể thực hiện ở trạng thái hiện tại.",
+      "forbidden": "Bạn không có quyền thực hiện thao tác này.",
+      "unauthenticated": "Vui lòng đăng nhập lại.",
+      "rate_limited": "Quá nhiều yêu cầu. Vui lòng đợi một lát.",
+      "unavailable": "Dịch vụ hiện không khả dụng. Hãy thử lại sau.",
+      "timeout": "Dịch vụ phản hồi quá lâu. Hãy thử lại.",
+      "internal": "Đã xảy ra lỗi. Vui lòng thử lại.",
+      "unimplemented": "Chưa hỗ trợ thao tác này.",
+      "invalid_request": "Yêu cầu không hợp lệ."
+    },
+    "reason": {
+      "user_token_required": "Cần đăng nhập bằng tài khoản người dùng.",
+      "name_too_long": "Tên quá dài.",
+      "unsupported_locale": "Ngôn ngữ này không được hỗ trợ.",
+      "unsupported_theme": "Giao diện này không được hỗ trợ.",
+      "unknown_permission": "Có quyền chưa nằm trong danh mục. Hãy thêm quyền đó trước.",
+      "client_not_disabled": "Hãy vô hiệu hóa ứng dụng trước khi xóa.",
+      "last_admin": "Đây là quản trị viên cuối cùng. Hãy gán vai trò admin cho người dùng khác trước.",
+      "role_in_use": "Vẫn còn người dùng hoặc ứng dụng đang giữ vai trò này.",
+      "permission_in_use": "Vẫn còn vai trò đang giữ quyền này.",
+      "permission_held_by_roles": "Quyền này đang được các vai trò sau giữ: {{roles}}.",
+      "password_already_set": "Người dùng đã có mật khẩu.",
+      "mfa_required_for_user": "Người dùng này bắt buộc dùng xác thực nhiều lớp.",
+      "mfa_disabled_on_server": "Máy chủ này đã tắt xác thực nhiều lớp.",
+      "mfa_not_enrolled": "Người dùng chưa đăng ký lớp xác thực thứ hai.",
+      "mfa_enroll_first": "Người dùng phải đăng ký ứng dụng xác thực trước. Dùng “Bắt buộc” để áp dụng cho mọi lần đăng nhập.",
+      "jti_ttl_required": "Cần mã token và thời hạn.",
+      "id_or_email_required": "Cần mã người dùng hoặc e-mail.",
+      "valid_email_required": "Cần một e-mail hợp lệ.",
+      "user_id_required": "Cần chọn người dùng.",
+      "cannot_delete_self": "Bạn không thể xóa tài khoản của chính mình.",
+      "role_name_required": "Cần tên vai trò.",
+      "invalid_permission": "“{{name}}” không phải là quyền hợp lệ.",
+      "role_subject_required": "Hãy chọn một vai trò và đúng một người dùng hoặc ứng dụng.",
+      "client_resource_required": "Cần ứng dụng và tài nguyên.",
+      "type_required": "Cần chọn loại.",
+      "unknown_grant": "“{{grant}}” không phải loại cấp quyền hợp lệ.",
+      "public_client_grant": "Ứng dụng công khai không thể dùng “{{grant}}”.",
+      "invalid_uri": "“{{uri}}” không phải địa chỉ hợp lệ.",
+      "invalid_backchannel_logout_uri": "Địa chỉ đăng xuất back-channel không hợp lệ.",
+      "client_id_required": "Cần chọn ứng dụng.",
+      "own_session_client": "Đây là ứng dụng của chính phiên đăng nhập của bạn.",
+      "client_audience_required": "Cần ứng dụng và đối tượng (audience).",
+      "max_chain_depth_range": "Độ sâu chuỗi tối đa phải từ 1 đến 5.",
+      "app_name_invalid": "Đây không phải tên ứng dụng hợp lệ.",
+      "settings_too_large": "Cài đặt quá lớn.",
+      "settings_not_object": "Cài đặt phải là một đối tượng JSON.",
+      "avatar_too_large": "Ảnh lớn hơn 64 KiB.",
+      "avatar_mime_type": "Ảnh phải là PNG, JPEG hoặc WebP.",
+      "avatar_invalid": "Tệp không phải ảnh {{mime_type}} hợp lệ.",
+      "avatar_dimensions": "Ảnh tối đa 512×512 điểm ảnh.",
+      "description_too_long": "Mô tả quá dài.",
+      "ui_style_invalid": "Kiểu giao diện phải là saas, glass hoặc mono.",
+      "ui_palettes_keys_invalid": "Khóa bảng màu phải là saas, glass hoặc mono.",
+      "ui_palettes_values_invalid": "Bảng màu phải là aurora, ocean, sunset, mint, rose hoặc graphite.",
+      "password_too_short": "Mật khẩu phải có ít nhất 12 ký tự.",
+      "password_too_long": "Mật khẩu quá dài.",
+      "password_common": "Mật khẩu quá phổ biến.",
+      "password_same": "Mật khẩu phải khác mật khẩu trước.",
+      "password_email": "Mật khẩu không được chứa địa chỉ e-mail.",
+      "invalid_page_token": "Liên kết trang không hợp lệ. Hãy tải lại danh sách.",
+      "page_size_negative": "Số mục mỗi trang không được âm.",
+      "user_not_found": "Không tìm thấy người dùng.",
+      "user_id_invalid": "Mã người dùng không hợp lệ.",
+      "settings_required": "Cần có cài đặt.",
+      "quota_range": "Hạn mức {{kind}} phải từ {{min}} đến {{max}} byte, hoặc 0 để dùng mặc định."
     }
   }
 }

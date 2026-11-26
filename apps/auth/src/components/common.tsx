@@ -1,25 +1,23 @@
 import {
-  Alert,
   Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  Input,
-  Label,
   ThemeSwitch,
   TooltipProvider,
   rememberLanguageChoice,
+  translateApiError,
   useAccountLocale,
   useAccountTheme,
   useAction,
 } from "@huponx/ui-kit";
 import type { ButtonProps } from "@huponx/ui-kit";
-import { useEffect, useId, useState } from "react";
-import type { FormEvent, InputHTMLAttributes, ReactNode } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ApiError, authApi } from "../api";
+import { authApi } from "../api";
 import { LANGUAGE_STORAGE_KEY, languages } from "../i18n";
 import type { Next } from "../api";
 import { MmLogo } from "./MmLogo";
@@ -82,28 +80,10 @@ function Preferences({ signedIn }: { signedIn?: boolean }) {
   );
 }
 
-/** A labelled input. */
-export function Field({ label, hint, ...rest }: { label: string; hint?: string } & InputHTMLAttributes<HTMLInputElement>) {
-  const id = useId();
-  return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Input id={id} {...rest} />
-      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
-    </div>
-  );
-}
-
-/** Texts of the error codes of /auth-api; an unknown code shows the message of the server. */
+/** Texts of the error codes of /auth-api (`errors.code.*`); an unknown code shows the message of the server. */
 export function useErrorText() {
   const { t, i18n } = useTranslation();
-  return (err: unknown): string => {
-    if (err instanceof ApiError) {
-      const key = `errors.${err.code}`;
-      return i18n.exists(key) ? t(key) : err.message || t("errors.internal");
-    }
-    return t("errors.network");
-  };
+  return (err: unknown): string => translateApiError(err, i18n, t("errors.internal")) ?? t("errors.network");
 }
 
 /**
@@ -122,10 +102,6 @@ export function useSubmit() {
   const errorText = useErrorText();
   const { busy, error, run } = useAction();
   return { busy, error: error === undefined ? undefined : errorText(error), run };
-}
-
-export function ErrorAlert({ message }: { message?: string }) {
-  return message ? <Alert variant="destructive">{message}</Alert> : null;
 }
 
 /** A form whose submit is handled by `onSubmit` (no page reload). */
@@ -155,3 +131,6 @@ export function SubmitButton({ busy, children, ...rest }: { busy: boolean; child
 export function isTheme(v: unknown): v is "light" | "dark" | "system" {
   return v === "light" || v === "dark" || v === "system";
 }
+
+// the field and the error alert are the ones of the kit, like in the other apps
+export { ErrorAlert, TextField } from "@huponx/ui-kit";

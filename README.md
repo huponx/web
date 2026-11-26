@@ -5,20 +5,21 @@ Web clients of the platform: a pnpm workspace (React 18, TypeScript, Vite).
 ```
 packages/auth-client   @huponx/auth-client  session client of the gateway: createClient, AuthProvider, useAuth,
                                             RequireAuth, Can, permission matcher
-packages/ui            @huponx/ui           layout, tables, forms, notices, modal (plain CSS; bill)
 packages/ui-kit        @huponx/ui-kit       shadcn/ui + Tailwind + Radix: components, light/dark/system theme, app shell
-                                            (collapsible sidebar, header with breadcrumb and avatar menu); admin and dict
+                                            (collapsible sidebar, header with breadcrumb and avatar menu); admin, auth, bill and dict
 apps/dict              dictionary: look words up (English, English-Vietnamese), save words, export an Anki deck,
                                             copy input or result as an Anki card (routes `/api/dictionary/...`, permissions
                                             `dictionary:word:read` and `:write`)
-apps/bill              same frame for the bill service
+apps/bill              same frame for the bill service (i18n en/vi, account menu with the way back to the portal; no business pages yet)
+apps/portal            the root domain (example.com): the apps the user may use (cards from `APPS`, filtered by permission),
+                       profile (name, language, theme, picture), security (change password, link to MFA); see "Portal" below
 apps/admin             administration of identity: users, roles, clients, exchange policies, MFA per user
 apps/auth              the pages of sign in (login, MFA, forced password change, forgot/reset password, account MFA,
                        sign out confirmation) with the same ui-kit; served by identity, see "Auth pages" below
 build/<app>/Dockerfile one image per app (nginx-unprivileged, port 8080); build/nginx has the shared config
 charts/<app>           Helm chart: the `web-application` chart as dependency (alias `application`)
 e2e/                   Playwright against a real identity + gatekeeper
-.github/               ci.yaml (4 apps, language node) and the four workflows of huponx/actions
+.github/               ci.yaml (5 apps, language node) and the four workflows of huponx/actions
 ```
 
 ## Auth pages (`apps/auth`)
@@ -28,7 +29,7 @@ same origin (so the `sid` and `csrf` cookies, the CSRF check and the redirects o
 no CORS) and answers their JSON calls under `/auth-api/*`.
 
 - The paths are the ones identity always had (`/login`, `/login/mfa`, `/login/password`, `/password/forgot`,
-  `/password/reset`, `/account/mfa`) plus `/logout` (confirmation) and `/error?e=<code>`.
+  `/password/reset`, `/account/mfa`, `/register` when `IDENTITY_REGISTRATION_ENABLED`) plus `/logout` (confirmation) and `/error?e=<code>`.
 - The CI builds the image `ghcr.io/huponx/auth-ui:<tag>`; the identity Dockerfile copies its
   `/usr/share/nginx/html` into `/ui` (`ARG AUTH_UI_IMAGE`). A new version of the pages reaches users with the next
   identity release: bump the tag in `identity/build/identity/Dockerfile` (`identity/scripts/check-auth-ui.sh` fails the
@@ -77,17 +78,53 @@ For local development `apps/*/public/config.js` points at `http://localhost:8081
 `connect-src` of the Content-Security-Policy from the same `API_BASE` when the container starts
 (`build/nginx/40-headers.sh`), so the CSP allows the gateway origin only; `frame-ancestors 'none'`.
 
+Other keys, all optional:
+
+| Key | App | Meaning |
+| --- | --- | --- |
+| `PORTAL_URL` | admin, dict, bill | address of the portal (`https://example.com`; `http` only on localhost). The user menu then has "Back to the portal". Without it, or with an address that is malformed or not https, there is no item. Local default: `http://localhost:3004`. `AccountMenu` of the kit takes it as `portal` (`portalHref` checks the address), so a new app adds the item the same way |
+| `APPS` | portal | the cards of the home page, see "Portal" |
+
 ## Develop
 
 ```sh
 make install
-make dev-admin        # http://localhost:3002 (dict :3000, bill :3001)
+make dev-admin        # http://localhost:3002 (dict :3000, bill :3001, portal :3004)
 make ci               # lint, typecheck, test, build
 ```
 
 Local gateway: run identity and gatekeeper (see `gatekeeper/scripts/e2e.sh` for a complete recipe) on
-`http://localhost:8081` (identity on its default 8080/9090, see LOCAL.md at the workspace root) with `GATEKEEPER_UI_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002`
+`http://localhost:8081` (identity on its default 8080/9090, see LOCAL.md at the workspace root) with `GATEKEEPER_UI_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3004`
 and the routes of the chart (`make routes` in `gatekeeper`).
+
+## Portal (`apps/portal`)
+
+The app of the root domain (`example.com`): after the sign in the user sees the applications they may use, and keeps
+their own account. Local: `make dev-portal` (http://localhost:3004).
+
+- **Home** (`/`): a card per application. The list is the runtime configuration `APPS` of `config.js`, a JSON string
+  `[{"name","url","icon?","perm?","widget?"}]` (`src/lib/apps.ts` parses it safely: a broken value is an empty list, an address
+  must be https, http only on localhost). A card with a `perm` shows only for a user who holds it (`can(perm)`), so the
+  roles decide what appears (`member`: Dict, `billing`: Bill); the gateway still checks the permission on every call.
+  `icon` is the name of a picture of the portal (`book-open`, `receipt`, `layout-grid`), never an address: the CSP loads
+  no picture from another origin. Admin is not listed on purpose: whoever needs it types the URL.
+  `widget` (only `dict-review` so far; an unknown value is ignored) replaces the plain card by a panel. The Dict panel
+  (`src/components/DictPanel.tsx`) reads `GET /api/dictionary/review?limit=1` (permission `dictionary:word:read`, so it is
+  not called without it) and shows New / Learning / To review, the saved words, and either "Start reviewing" (a link to
+  `<dict>/review`) or "all caught up" with the time to come back. A failure shows a muted note and keeps the link to the
+  app. The counts are read again when the tab becomes visible. Bill keeps the plain card.
+- **Profile** (`/profile`): name, language, theme (`PUT /api/me`) and picture (`PUT /api/me/avatar`); the e-mail and the
+  roles are read only. The saved language and theme apply at once.
+  The picture control (`AvatarUpload` in ui-kit, shared with admin) lets the user drag and zoom the square to keep before
+  it is resized to 256x256; the crop math is in `packages/ui-kit/src/lib/crop.ts`.
+- **Security** (`/security`): change the password (`POST /api/me/password`: current password, new password with the
+  policy of identity; the answer ends every session, so the page offers "Sign in again") and multi-factor
+  authentication on the page itself (`GET`/`POST /api/me/mfa`, `POST /api/me/mfa/disable`: QR code, first code,
+  recovery codes, turn off with password and code; hidden when MFA is off on the server).
+- All of them are public routes of the gateway (a signed in user, no permission). Registration is not here: a visitor has
+  no session, so it lives in the sign in pages (`/register`, `POST /auth-api/register`, off unless
+  `IDENTITY_REGISTRATION_ENABLED`).
+- Texts: `src/i18n/{en,vi}.json`; every server error is translated by `translateApiError` (`errors.reason.*`).
 
 ## Admin app
 
@@ -138,7 +175,6 @@ in `packages/ui-kit/src/styles.css` (`:root` and `.dark`).
 - **Add a shadcn component**: `components.json` of `packages/ui-kit` is set up for the shadcn CLI (Vite, no RSC),
   but the kit imports with relative paths, not the `@/` alias (the alias belongs to the admin app). After adding a
   component with the CLI, change its `@/` imports to relative ones and export it from `src/index.ts`.
-- `@huponx/ui` (dict and bill) is unchanged; moving them to the kit later is a separate step.
 
 ## Tests
 
@@ -290,10 +326,10 @@ Commands use the [GitHub CLI](https://cli.github.com) (`gh auth login` first, wi
 
    - required checks on `main`: `ci`, `diff`, `cve`, `pr-title`;
    - each ArgoCD (one per environment) has a root app with `path: applications/<env>`;
-   - after the first publish set `targetRevision` in `applications/<env>/{dict,bill,admin}.yaml` to the published version; later versions come from the deployment PRs.
+   - after the first publish set `targetRevision` in `applications/<env>/{dict,bill,admin,portal}.yaml` to the published version; later versions come from the deployment PRs.
 
 7. **Per environment** (the apps only work together with the gateway):
-   - hosts of the apps and `API_BASE` (the gateway URL) in `applications/<env>/{dict,bill,admin}.yaml`;
+   - hosts of the apps and `API_BASE` (the gateway URL) in `applications/<env>/{dict,bill,admin,portal}.yaml` (the portal sits on the root domain, and also has `APPS`; admin, dict and bill also have `PORTAL_URL`, the root domain of the environment);
    - each app origin in `GATEKEEPER_UI_ORIGINS` (`applications/<env>/gatekeeper.yaml`, one per line) and as a post logout URI of the `gatekeeper` client (`post_logout_uris` in the identity setup Job config, see the identity README);
    - the apps must share the registrable domain with the gateway, otherwise browsers block the session cookie;
    - the first admin comes from the identity setup Job (password from the Secret `identity-admin`, changed at the first login); the roles and permissions of other users are managed in the admin app.

@@ -9,9 +9,13 @@ export function useLoad<T>(load: () => Promise<T>, deps: readonly unknown[]) {
   const fn = useCallback(load, deps);
   useEffect(() => {
     let live = true;
-    setError(undefined);
+    // an error from the last try stays on screen until this one ends
     fn().then(
-      (d) => live && setData(d),
+      (d) => {
+        if (!live) return;
+        setError(undefined);
+        setData(d);
+      },
       (err) => live && setError(err),
     );
     return () => {

@@ -4,12 +4,25 @@
     "password": "Mật khẩu",
     "continue": "Tiếp tục",
     "backToSignIn": "Quay lại đăng nhập",
-    "back": "Quay lại"
+    "back": "Quay lại",
+    "somethingWrong": "Đã có lỗi xảy ra.",
+    "required": "Trường này là bắt buộc.",
+    "invalidEmail": "Nhập địa chỉ email hợp lệ.",
+    "invalidFormat": "Hãy dùng đúng định dạng gợi ý bên dưới ô nhập.",
+    "clearField": "Xóa {{label}}"
   },
   "login": {
     "title": "Đăng nhập",
     "submit": "Đăng nhập",
-    "forgot": "Quên mật khẩu?"
+    "forgot": "Quên mật khẩu?",
+    "register": "Tạo tài khoản"
+  },
+  "register": {
+    "title": "Tạo tài khoản",
+    "name": "Tên",
+    "submit": "Tạo tài khoản",
+    "sentTitle": "Kiểm tra e-mail của bạn",
+    "sent": "Nếu địa chỉ dùng được, chúng tôi đã gửi liên kết để đặt mật khẩu. Hãy mở liên kết để hoàn tất việc tạo tài khoản."
   },
   "mfa": {
     "title": "Xác minh",
@@ -62,23 +75,26 @@
   },
   "errors": {
     "pageTitle": "Đã xảy ra lỗi",
-    "csrf_expired": "Biểu mẫu đã hết hạn. Hãy thử lại.",
-    "rate_limited": "Quá nhiều lần thử. Hãy đợi vài phút.",
-    "invalid_credentials": "Sai e-mail hoặc mật khẩu.",
-    "invalid_code": "Sai mã. Hãy kiểm tra đồng hồ của thiết bị và thử lại.",
-    "invalid_mfa_code": "Sai mã.",
-    "invalid_password_or_code": "Sai mật khẩu hoặc mã.",
-    "challenge_expired": "Sai quá nhiều lần hoặc yêu cầu đã hết hạn. Hãy đăng nhập lại.",
-    "unauthenticated": "Hãy đăng nhập lại.",
-    "invalid_link": "Liên kết này không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.",
-    "mfa_forced": "Tài khoản của bạn bắt buộc dùng xác thực nhiều yếu tố.",
-    "mfa_enabled": "Xác thực nhiều yếu tố đã được bật.",
-    "password_mismatch": "Hai mật khẩu không giống nhau.",
-    "password_too_short": "Mật khẩu phải có ít nhất 12 ký tự.",
-    "password_too_long": "Mật khẩu quá dài.",
-    "password_common": "Mật khẩu quá phổ biến.",
-    "password_same": "Mật khẩu phải khác mật khẩu trước.",
-    "password_email": "Mật khẩu không được chứa địa chỉ e-mail.",
+    "code": {
+      "csrf_expired": "Biểu mẫu đã hết hạn. Hãy thử lại.",
+      "rate_limited": "Quá nhiều lần thử. Hãy đợi vài phút.",
+      "invalid_credentials": "Sai e-mail hoặc mật khẩu.",
+      "invalid_code": "Sai mã. Hãy kiểm tra đồng hồ của thiết bị và thử lại.",
+      "invalid_mfa_code": "Sai mã.",
+      "invalid_password_or_code": "Sai mật khẩu hoặc mã.",
+      "challenge_expired": "Sai quá nhiều lần hoặc yêu cầu đã hết hạn. Hãy đăng nhập lại.",
+      "unauthenticated": "Hãy đăng nhập lại.",
+      "invalid_link": "Liên kết này không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.",
+      "mfa_forced": "Tài khoản của bạn bắt buộc dùng xác thực nhiều yếu tố.",
+      "mfa_enabled": "Xác thực nhiều yếu tố đã được bật.",
+      "password_mismatch": "Hai mật khẩu không giống nhau.",
+      "password_too_short": "Mật khẩu phải có ít nhất 12 ký tự.",
+      "password_too_long": "Mật khẩu quá dài.",
+      "password_common": "Mật khẩu quá phổ biến.",
+      "password_same": "Mật khẩu phải khác mật khẩu trước.",
+      "password_email": "Mật khẩu không được chứa địa chỉ e-mail.",
+      "invalid_email": "Hãy nhập địa chỉ e-mail hợp lệ."
+    },
     "internal": "Đã xảy ra lỗi. Hãy thử lại.",
     "network": "Không kết nối được máy chủ. Hãy thử lại.",
     "page": {

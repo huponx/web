@@ -1,4 +1,5 @@
-import { useSystemStyle } from "@huponx/ui-kit";
+import { translateApiError, UiMessagesProvider, useSystemStyle } from "@huponx/ui-kit";
+import { useTranslation } from "react-i18next";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { authApi } from "./api";
 import { Apps } from "./pages/Apps";
@@ -9,6 +10,7 @@ import { Login } from "./pages/Login";
 import { LoginMfa } from "./pages/LoginMfa";
 import { LoginPassword } from "./pages/LoginPassword";
 import { Logout } from "./pages/Logout";
+import { Register } from "./pages/Register";
 import { Reset } from "./pages/Reset";
 
 // the paths are the ones identity has always used, so e-mailed links and return_to values keep working
@@ -19,13 +21,24 @@ function SystemStyle() {
 }
 
 export function App() {
+  const { t, i18n } = useTranslation();
+  // the texts of the shared components of the kit (field errors, ...) in the language of the app
+  const messages = {
+    somethingWrong: t("common.somethingWrong"),
+    apiError: (e: unknown) => translateApiError(e, i18n, t("common.somethingWrong")),
+    required: t("common.required"),
+    invalidEmail: t("common.invalidEmail"),
+    invalidFormat: t("common.invalidFormat"),
+    clearField: (label: string) => t("common.clearField", { label }),
+  };
   return (
-    <>
+    <UiMessagesProvider value={messages}>
     <SystemStyle />
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/login/mfa" element={<LoginMfa />} />
       <Route path="/login/password" element={<LoginPassword />} />
+      <Route path="/register" element={<Register />} />
       <Route path="/password/forgot" element={<Forgot />} />
       <Route path="/password/reset" element={<Reset />} />
       <Route path="/account/mfa" element={<AccountMfa />} />
@@ -34,6 +47,6 @@ export function App() {
       <Route path="/error" element={<ErrorPage />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
-    </>
+    </UiMessagesProvider>
   );
 }
