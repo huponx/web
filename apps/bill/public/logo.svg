@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Bill">
+  <title>Bill</title>
+  <rect x="2" y="2" width="28" height="28" rx="7" fill="#3b4fd8"/>
+  <path d="M10 7h12v18l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5V7Z" fill="#ffffff"/>
+  <rect x="12.5" y="11" width="7" height="1.8" rx=".9" fill="#f5b942"/>
+  <rect x="12.5" y="14.8" width="7" height="1.8" rx=".9" fill="#3b4fd8" fill-opacity=".55"/>
+  <rect x="12.5" y="18.6" width="4.5" height="1.8" rx=".9" fill="#3b4fd8" fill-opacity=".55"/>
+</svg>

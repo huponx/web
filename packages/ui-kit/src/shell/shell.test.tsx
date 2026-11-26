@@ -173,6 +173,42 @@ describe("swipe gestures of the drawer", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("ignores a swipe that begins inside something that scrolls sideways", () => {
+    window.innerWidth = 390;
+    renderShell();
+    const row = document.createElement("div");
+    row.style.overflowX = "auto";
+    Object.defineProperty(row, "scrollWidth", { value: 600 });
+    Object.defineProperty(row, "clientWidth", { value: 300 });
+    document.body.append(row);
+    const point = (x: number) => ({ clientX: x, clientY: 300, identifier: 1, target: row });
+    const fire = (type: string, x: number) =>
+      act(() => {
+        fireEvent(row, Object.assign(new Event(type, { bubbles: true }), { touches: type === "touchstart" ? [point(x)] : [], changedTouches: [point(x)] }));
+      });
+    fire("touchstart", 30);
+    fire("touchend", 160);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    row.remove();
+  });
+
+  it("ignores a drag that begins on a slider or in a dialog", () => {
+    window.innerWidth = 390;
+    renderShell();
+    const slider = document.createElement("input");
+    slider.type = "range";
+    document.body.append(slider);
+    const point = (x: number) => ({ clientX: x, clientY: 300, identifier: 1, target: slider });
+    const fire = (type: string, x: number) =>
+      act(() => {
+        fireEvent(slider, Object.assign(new Event(type, { bubbles: true }), { touches: type === "touchstart" ? [point(x)] : [], changedTouches: [point(x)] }));
+      });
+    fire("touchstart", 30);
+    fire("touchend", 160);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    slider.remove();
+  });
+
   it("does nothing on a wide screen", () => {
     window.innerWidth = 1280;
     renderShell();

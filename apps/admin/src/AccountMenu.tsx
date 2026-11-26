@@ -1,6 +1,7 @@
 import { useAuth } from "@huponx/auth-client";
 import {
   AccountMenuView,
+  portalHref,
   rememberLanguageChoice,
   useAccountLocale,
   useAccountProfile,
@@ -13,6 +14,12 @@ import { AVATAR_CHANGED } from "./lib/avatarEvents";
 import { LANGUAGE_STORAGE_KEY, languages } from "./i18n";
 import type { LanguageCode } from "./i18n";
 import type { AccountProfile } from "@huponx/ui-kit";
+
+/** The link back to the portal; none when PORTAL_URL is not configured. */
+function portalLink(label: string) {
+  const href = portalHref(window.__env__?.PORTAL_URL);
+  return href ? { href, label } : undefined;
+}
 
 const languageCodes = languages.map((l) => l.code);
 
@@ -62,6 +69,7 @@ export function AccountMenu() {
       name={profile.name || user?.name || user?.email || user?.sub || ""}
       image={profile.avatar || undefined}
       label={t("shell.userMenu")}
+      portal={portalLink(t("shell.portal"))}
       settings={{ to: "/settings", label: t("nav.settings") }}
       language={{ label: t("shell.language"), value: language, options: languages.map((l) => ({ value: l.code, label: l.label })), onChange: setLanguage }}
       signOut={{ label: t("shell.signOut"), onSelect: () => void logout() }}

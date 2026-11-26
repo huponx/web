@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError, authApi } from "../api";
-import { AuthLayout, ErrorAlert, Field, Form, SubmitButton, go, useSubmit } from "../components/common";
+import { AuthLayout, ErrorAlert, TextField, Form, SubmitButton, go, useSubmit } from "../components/common";
 
 /** The second factor of a sign in (the challenge `c` was created by the password step). */
 export function LoginMfa() {
@@ -34,9 +34,9 @@ export function LoginMfa() {
   if (!ready) return null;
   return (
     <AuthLayout title={t("mfa.title")}>
-      <ErrorAlert message={s.error} />
+      <ErrorAlert error={s.error} />
       <Form onSubmit={() => void submit()}>
-        <Field label={t("mfa.code")} name="code" inputMode="text" autoComplete="one-time-code" required autoFocus value={code} onChange={(e) => setCode(e.target.value)} />
+        <TextField label={t("mfa.code")} name="code" inputMode="text" autoComplete="one-time-code" required autoFocus value={code} onChange={(e) => setCode(e.target.value)} />
         <SubmitButton busy={s.busy}>{t("mfa.submit")}</SubmitButton>
       </Form>
     </AuthLayout>

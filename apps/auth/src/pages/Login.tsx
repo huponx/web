@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { authApi } from "../api";
 import { LANGUAGE_STORAGE_KEY, languages } from "../i18n";
-import { AuthLayout, ErrorAlert, Field, Form, SubmitButton, go, isTheme, useSubmit } from "../components/common";
+import { AuthLayout, ErrorAlert, TextField, Form, SubmitButton, go, isTheme, useSubmit } from "../components/common";
 
 export function Login() {
   const { t, i18n } = useTranslation();
@@ -18,6 +18,18 @@ export function Login() {
   // the theme and the language when the page opened: a difference at submit is a choice made here, which the account takes
   const opened = useRef({ theme, language: i18n.resolvedLanguage ?? "en" });
   const navigate = useNavigate();
+  // the link to the registration shows only when the server has it open
+  const [canRegister, setCanRegister] = useState(false);
+  useEffect(() => {
+    let live = true;
+    authApi.registrationOpen().then(
+      (open) => live && setCanRegister(open),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
   const returnTo = params.get("return_to");
 
   // already signed in: the applications, not the form (a return_to means a flow is under way: leave it alone)
@@ -57,15 +69,20 @@ export function Login() {
 
   return (
     <AuthLayout title={t("login.title")}>
-      <ErrorAlert message={s.error ?? (reason ? t(`errors.${reason}`) : undefined)} />
+      <ErrorAlert error={s.error ?? (reason ? t(`errors.code.${reason}`) : undefined)} />
       <Form onSubmit={() => void submit()}>
-        <Field label={t("common.email")} type="email" name="email" autoComplete="username" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
-        <Field label={t("common.password")} type="password" name="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        <TextField label={t("common.email")} type="email" name="email" autoComplete="username" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
+        <TextField label={t("common.password")} type="password" name="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         <SubmitButton busy={s.busy}>{t("login.submit")}</SubmitButton>
       </Form>
       <Link className="text-center text-sm text-primary underline-offset-4 hover:underline" to="/password/forgot">
         {t("login.forgot")}
       </Link>
+      {canRegister && (
+        <Link className="text-center text-sm text-primary underline-offset-4 hover:underline" to="/register">
+          {t("login.register")}
+        </Link>
+      )}
     </AuthLayout>
   );
 }

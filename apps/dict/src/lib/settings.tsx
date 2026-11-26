@@ -19,15 +19,23 @@ interface Value {
   known: boolean;
   /** Stores the preferences; rejects when the service refuses them. */
   save: (user: UserSettings) => Promise<MySettings>;
+  /** Records when the FSRS parameters were last fitted (after Optimize or Restore): empty `trainedAt` is the defaults. */
+  setFsrs: (trainedAt: string, reviewCount: number) => void;
 }
 
-const DEFAULTS: MySettings = { user: DEFAULT_USER, system: DEFAULT_SYSTEM };
+const DEFAULTS: MySettings = {
+  user: DEFAULT_USER,
+  system: DEFAULT_SYSTEM,
+  fsrsTrainedAt: "",
+  fsrsReviewCount: 0,
+};
 
 const SettingsContext = createContext<Value>({
   settings: DEFAULTS,
   loaded: true,
   known: false,
   save: () => Promise.reject(new Error("no settings provider")),
+  setFsrs: () => undefined,
 });
 
 /**
@@ -62,16 +70,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const save = useCallback(
     async (user: UserSettings) => {
       const s = await api.saveSettings(user);
-      setSettings(s);
+      // the answer of a save does not carry the state of the FSRS parameters: keep what is known
+      setSettings((prev) => ({
+        ...s,
+        fsrsTrainedAt: prev.fsrsTrainedAt,
+        fsrsReviewCount: prev.fsrsReviewCount,
+      }));
       setKnown(true);
       return s;
     },
     [api],
   );
 
+  const setFsrs = useCallback(
+    (fsrsTrainedAt: string, fsrsReviewCount: number) =>
+      setSettings((prev) => ({ ...prev, fsrsTrainedAt, fsrsReviewCount })),
+    [],
+  );
+
   const value = useMemo(
-    () => ({ settings, loaded, known, save }),
-    [settings, loaded, known, save],
+    () => ({ settings, loaded, known, save, setFsrs }),
+    [settings, loaded, known, save, setFsrs],
   );
   return (
     <SettingsContext.Provider value={value}>

@@ -36,7 +36,7 @@ export function Logout() {
     );
   return (
     <AuthLayout title={t("logout.title")}>
-      <ErrorAlert message={s.error} />
+      <ErrorAlert error={s.error} />
       <Form onSubmit={() => void submit()}>
         <SubmitButton busy={s.busy}>{t("logout.submit")}</SubmitButton>
       </Form>
