@@ -10,6 +10,7 @@
   "scripts": {
     "dev:dict": "pnpm --filter @huponx/dict dev",
     "dev:bill": "pnpm --filter @huponx/bill dev",
+    "dev:portal": "pnpm --filter @huponx/portal dev",
     "dev:admin": "pnpm --filter @huponx/admin dev",
     "dev:auth": "pnpm --filter @huponx/auth dev",
     "lint": "eslint .",

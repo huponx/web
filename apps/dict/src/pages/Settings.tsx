@@ -3,6 +3,7 @@ import {
   Alert,
   Button,
   Loading,
+  Progress,
   Card,
   CardContent,
   CardDescription,
@@ -10,18 +11,84 @@ import {
   CardTitle,
   Input,
   Label,
-  Switch,
+  SwitchRow,
   ToggleGroup,
   ToggleGroupItem,
 } from "@huponx/ui-kit";
 import { Lock } from "lucide-react";
-import { useId, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { DEFAULT_DECK, MAX_LOOKUP_WORDS } from "../api";
-import type { Dictionary, UserSettings } from "../api";
+import {
+  DEFAULT_DECK,
+  MAX_DESIRED_RETENTION,
+  MAX_LOOKUP_WORDS,
+  MAX_REVIEW_MAX_PER_DAY,
+  MAX_REVIEW_NEW_PER_DAY,
+  MIN_DESIRED_RETENTION,
+  useDictionary,
+} from "../api";
+import type {
+  Dictionary,
+  OptimizeResult,
+  ReviewAlgorithm,
+  UserSettings,
+} from "../api";
+import { formatBytes } from "../lib/bytes";
 import { errorMessage } from "../lib/errors";
 import { useSettings } from "../lib/settings";
+import { nearlyFull, useStorage } from "../lib/useStorage";
+
+/** What the user stores of content, images and audio against the limits that apply to them. */
+function StorageCard() {
+  const { t } = useTranslation();
+  const { storage } = useStorage();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("settings.storage")}</CardTitle>
+        <CardDescription>{t("settings.storageHint")}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {storage ? (
+          (["content", "image", "audio"] as const).map((k) => {
+            const u = storage[k];
+            return (
+              <div key={k} className="space-y-1.5" data-testid={`storage-${k}`}>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+                  <span className="text-sm font-medium">
+                    {t(`settings.storage_${k}`)}
+                  </span>
+                  <span
+                    className={
+                      nearlyFull(u)
+                        ? "text-sm font-medium text-destructive"
+                        : "text-sm text-muted-foreground"
+                    }
+                  >
+                    {t("settings.storageUsage", {
+                      used: formatBytes(u.used),
+                      limit: formatBytes(u.limit),
+                    })}
+                  </span>
+                </div>
+                <Progress
+                  value={Math.min(u.used, u.limit)}
+                  max={Math.max(u.limit, 1)}
+                  tone={nearlyFull(u) ? "destructive" : "primary"}
+                  className="h-1.5"
+                  aria-label={t(`settings.storage_${k}`)}
+                />
+              </div>
+            );
+          })
+        ) : (
+          <Loading />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 function DictionaryRow({
   label,
@@ -37,29 +104,107 @@ function DictionaryRow({
   offByAdmin: boolean;
 }) {
   const { t } = useTranslation();
-  const id = useId();
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex flex-col">
-        <span id={id} className="text-sm font-medium">
-          {label}
-        </span>
-        {hint ? (
-          <span className="text-sm text-muted-foreground">{hint}</span>
-        ) : null}
-        {offByAdmin ? (
+    <SwitchRow
+      label={label}
+      hint={hint}
+      checked={checked && !offByAdmin}
+      onChange={onChange}
+      disabled={offByAdmin}
+      extra={
+        offByAdmin ? (
           <span className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-md bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
             <Lock className="size-3" aria-hidden="true" />
             {t("settings.offByAdmin")}
           </span>
+        ) : null
+      }
+    />
+  );
+}
+
+/**
+ * FSRS parameters of the user: fit them to the own review history, see when that was last done and go back to the
+ * defaults. The service fits on request only and stores the result when it predicts better than the defaults.
+ */
+function FsrsParameters() {
+  const { t } = useTranslation();
+  const api = useDictionary();
+  const { settings, setFsrs } = useSettings();
+  const [busy, setBusy] = useState<"optimize" | "restore">();
+  const [result, setResult] = useState<OptimizeResult>();
+  const [error, setError] = useState<unknown>();
+  const trained = settings.fsrsTrainedAt;
+
+  async function run(restore: boolean) {
+    setBusy(restore ? "restore" : "optimize");
+    // the notices below stay on screen while it runs and change their content when it is over
+    try {
+      const r = await api.optimizeReview(restore);
+      setError(undefined);
+      if (restore) {
+        setFsrs("", 0);
+        setResult(undefined);
+      } else {
+        setResult(r);
+        if (r.applied) setFsrs(r.trainedAt, r.reviewCount);
+      }
+    } catch (e) {
+      setResult(undefined);
+      setError(e);
+    } finally {
+      setBusy(undefined);
+    }
+  }
+
+  return (
+    <div className="space-y-2" data-testid="fsrs-parameters">
+      <Label>{t("settings.fsrsParameters")}</Label>
+      <p className="text-xs text-muted-foreground">
+        {trained
+          ? t("settings.fsrsTrained", {
+              count: settings.fsrsReviewCount,
+              date: new Date(trained).toLocaleDateString(),
+            })
+          : t("settings.fsrsDefault")}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          busy={busy === "optimize"}
+          disabled={busy !== undefined}
+          onClick={() => void run(false)}
+        >
+          {t("settings.fsrsOptimize")}
+        </Button>
+        {trained ? (
+          <Button
+            type="button"
+            variant="outline"
+            busy={busy === "restore"}
+            disabled={busy !== undefined}
+            onClick={() => void run(true)}
+          >
+            {t("settings.fsrsRestore")}
+          </Button>
         ) : null}
       </div>
-      <Switch
-        checked={checked && !offByAdmin}
-        onCheckedChange={onChange}
-        aria-labelledby={id}
-        disabled={offByAdmin}
-      />
+      {error ? <Alert variant="destructive">{errorMessage(error, t)}</Alert> : null}
+      {result ? (
+        <Alert
+          variant={result.applied ? "success" : "default"}
+          data-testid="fsrs-result"
+        >
+          {result.applied
+            ? t("settings.fsrsApplied", {
+                count: result.reviewCount,
+                before: result.lossDefault.toFixed(3),
+                after: result.lossTrained.toFixed(3),
+              })
+            : t("settings.fsrsNotApplied", { reason: result.reason })}
+        </Alert>
+      ) : null}
     </div>
   );
 }
@@ -72,8 +217,11 @@ export function SettingsForm() {
   const [draft, setDraft] = useState<UserSettings>(user);
   // text of the number field, so it can be empty or half typed
   const [words, setWords] = useState(String(user.maxLookupWords));
+  const [newPerDay, setNewPerDay] = useState(String(user.reviewNewPerDay));
+  const [maxPerDay, setMaxPerDay] = useState(String(user.reviewMaxPerDay));
+  const [retention, setRetention] = useState(String(user.desiredRetention));
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<unknown>();
   const [done, setDone] = useState<{ at: number }>();
 
   const on = (d: Dictionary) =>
@@ -85,7 +233,32 @@ export function SettingsForm() {
   ).filter(on);
   const n = Number(words);
   const wordsOk = Number.isInteger(n) && n >= 1 && n <= MAX_LOOKUP_WORDS;
-  const valid = enabled.length > 0 && wordsOk;
+  const perDay = Number(newPerDay);
+  const perDayOk =
+    newPerDay.trim() !== "" &&
+    Number.isInteger(perDay) &&
+    perDay >= 0 &&
+    perDay <= MAX_REVIEW_NEW_PER_DAY;
+  const maxPerDayN = Number(maxPerDay);
+  const maxPerDayOk =
+    maxPerDay.trim() !== "" &&
+    Number.isInteger(maxPerDayN) &&
+    maxPerDayN >= 0 &&
+    maxPerDayN <= MAX_REVIEW_MAX_PER_DAY;
+  const retentionN = Number(retention);
+  const retentionOk =
+    retention.trim() !== "" &&
+    Number.isInteger(retentionN) &&
+    retentionN >= MIN_DESIRED_RETENTION &&
+    retentionN <= MAX_DESIRED_RETENTION;
+  const fsrs = draft.reviewAlgorithm === "fsrs";
+  // the retention only matters (and is only checked) while FSRS is chosen
+  const valid =
+    enabled.length > 0 &&
+    wordsOk &&
+    perDayOk &&
+    maxPerDayOk &&
+    (!fsrs || retentionOk);
 
   function toggle(d: Dictionary, v: boolean) {
     setDraft((cur) => {
@@ -112,16 +285,19 @@ export function SettingsForm() {
   async function submit(ev: FormEvent) {
     ev.preventDefault();
     setBusy(true);
-    setError(undefined);
     try {
       await save({
         ...draft,
         deckName: draft.deckName.trim(),
         maxLookupWords: n,
+        reviewNewPerDay: perDay,
+        reviewMaxPerDay: maxPerDayN,
+        desiredRetention: retentionOk ? retentionN : draft.desiredRetention,
       });
+      setError(undefined);
       setDone({ at: Date.now() });
     } catch (e) {
-      setError(errorMessage(e, t));
+      setError(e);
     } finally {
       setBusy(false);
     }
@@ -241,7 +417,110 @@ export function SettingsForm() {
           />
         </CardContent>
       </Card>
-      {error ? <Alert variant="destructive">{error}</Alert> : null}
+      <StorageCard />
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("settings.reviewTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="review-new">{t("settings.reviewNewPerDay")}</Label>
+            <Input
+              id="review-new"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={MAX_REVIEW_NEW_PER_DAY}
+              step={1}
+              value={newPerDay}
+              className="max-w-32"
+              aria-invalid={!perDayOk || undefined}
+              onChange={(e) => setNewPerDay(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("settings.reviewNewPerDayHint", {
+                max: MAX_REVIEW_NEW_PER_DAY,
+              })}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="review-max">{t("settings.reviewMaxPerDay")}</Label>
+            <Input
+              id="review-max"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={MAX_REVIEW_MAX_PER_DAY}
+              step={1}
+              value={maxPerDay}
+              className="max-w-32"
+              aria-invalid={!maxPerDayOk || undefined}
+              onChange={(e) => setMaxPerDay(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("settings.reviewMaxPerDayHint", {
+                max: MAX_REVIEW_MAX_PER_DAY,
+              })}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label id="review-algorithm">{t("settings.reviewAlgorithm")}</Label>
+            <div>
+              <ToggleGroup
+                type="single"
+                aria-labelledby="review-algorithm"
+                value={draft.reviewAlgorithm}
+                onValueChange={(v) =>
+                  v &&
+                  setDraft((cur) => ({
+                    ...cur,
+                    reviewAlgorithm: v as ReviewAlgorithm,
+                  }))
+                }
+              >
+                <ToggleGroupItem value="sm2" className="w-auto px-3 text-sm">
+                  {t("settings.reviewAlgorithmSm2")}
+                </ToggleGroupItem>
+                <ToggleGroupItem value="fsrs" className="w-auto px-3 text-sm">
+                  {t("settings.reviewAlgorithmFsrs")}
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("settings.reviewAlgorithmHint")}
+            </p>
+          </div>
+          {fsrs ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="desired-retention">
+                  {t("settings.desiredRetention")}
+                </Label>
+                <Input
+                  id="desired-retention"
+                  type="number"
+                  inputMode="numeric"
+                  min={MIN_DESIRED_RETENTION}
+                  max={MAX_DESIRED_RETENTION}
+                  step={1}
+                  value={retention}
+                  className="max-w-32"
+                  aria-invalid={!retentionOk || undefined}
+                  onChange={(e) => setRetention(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t("settings.desiredRetentionHint", {
+                    min: MIN_DESIRED_RETENTION,
+                    max: MAX_DESIRED_RETENTION,
+                  })}
+                </p>
+              </div>
+              <FsrsParameters />
+            </>
+          ) : null}
+        </CardContent>
+      </Card>
+      {error ? <Alert variant="destructive">{errorMessage(error, t)}</Alert> : null}
       <AutoAlert variant="success" watch={done}>
         {done ? t("settings.saved") : undefined}
       </AutoAlert>

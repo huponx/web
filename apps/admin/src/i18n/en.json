@@ -35,6 +35,7 @@
     "breadcrumb": "Breadcrumb",
     "userMenu": "User menu",
     "signOut": "Sign out",
+    "portal": "Back to the portal",
     "language": "Language",
     "theme": {
       "group": "Theme",
@@ -115,9 +116,18 @@
       "description": "The look of every app (admin, dictionary, sign in) for every user. Light and dark stay a personal choice.",
       "save": "Save style",
       "saved": "System style saved.",
-      "saas": { "name": "Refined SaaS", "hint": "Soft shadows, rounded cards, violet accent." },
-      "glass": { "name": "Glass", "hint": "Gradient background, frosted cards, pill buttons." },
-      "mono": { "name": "Minimal mono", "hint": "Flat, black and white, square corners." }
+      "saas": {
+        "name": "Refined SaaS",
+        "hint": "Soft shadows, rounded cards, violet accent."
+      },
+      "glass": {
+        "name": "Glass",
+        "hint": "Gradient background, frosted cards, pill buttons."
+      },
+      "mono": {
+        "name": "Minimal mono",
+        "hint": "Flat, black and white, square corners."
+      }
     },
     "palette": {
       "title": "Colours",
@@ -210,7 +220,11 @@
       "pendingHint": "The user has not set a password yet. The account becomes active when they do, through the link in the welcome email.",
       "resendWelcome": "Resend welcome email",
       "welcomeSent": "Welcome email sent.",
-      "lastLogin": "Last login:"
+      "lastLogin": "Last login:",
+      "delete": "Delete account",
+      "deleteTitle": "Delete account",
+      "confirmDelete": "Delete the account {{email}}? The user signs out at once and cannot sign in again, and their data (words, files) is deleted in the background. This cannot be undone.",
+      "deleted": "The account {{email}} was deleted."
     },
     "mfa": {
       "title": "Multi-factor authentication",
@@ -246,7 +260,7 @@
       "file": "Picture file",
       "upload": "Upload picture",
       "remove": "Remove picture",
-      "hint": "PNG, JPEG or WebP. It is cropped to a square and resized to {{side}}x{{side}} in your browser before it is saved.",
+      "hint": "PNG, JPEG or WebP. It is resized to {{side}}x{{side}} in your browser before it is saved.",
       "size": "Resized picture: {{kb}} KB.",
       "failedAfterCreate": "The picture could not be saved: upload it again.",
       "error": {
@@ -254,7 +268,11 @@
         "size": "The file is larger than 5 MB.",
         "decode": "The file could not be read as a picture.",
         "encode": "The picture could not be prepared."
-      }
+      },
+      "cropTitle": "Choose the part to keep",
+      "cropHint": "Drag to move, use the slider to zoom in.",
+      "zoom": "Zoom",
+      "cropUse": "Use picture"
     },
     "never": "Never",
     "stats": {
@@ -269,15 +287,40 @@
       "neverSignedIn": "Never signed in",
       "expand": "Show all statistics",
       "collapse": "Show fewer statistics"
+    },
+    "storage": {
+      "title": "Dictionary storage",
+      "description": "What this user stores against the limit in effect. A limit set here replaces the default of the system settings.",
+      "content": "Word content",
+      "image": "Images",
+      "audio": "Audio",
+      "usage": "{{used}} of {{limit}}",
+      "own": "(own limit)",
+      "default": "(default)",
+      "override": "Own limit (MiB)",
+      "defaultPlaceholder": "Default",
+      "useDefault": "Use default",
+      "save": "Save limits",
+      "saved": "Storage limits saved."
     }
   },
   "dictionary": {
     "title": "Dictionary",
     "intro": "Settings of the dictionary for every user.",
-    "limits": "Saved words",
+    "limits": "Limits",
     "maxSaved": "Max saved words per user",
-    "maxSavedHint": "From 1 to 1000. Words a user saved above a lower limit stay; only saving a new word is refused.",
+    "maxSavedHint": "From 1 to 1000000. The number of words each user can keep in their saved list before exporting.",
+    "maxCategories": "Max categories per user",
+    "maxCategoriesHint": "From 1 to 200. The number of categories each user can create to group their saved words.",
+    "maxCategoryName": "Max category name length",
+    "maxCategoryNameHint": "From 1 to 100. The number of characters a category name can have.",
     "export": "Export",
+    "exportMaxBytes": "Max size of an export",
+    "exportMaxBytesHint": "The largest .apkg of an export that downloads at once (Export as Anki deck and Export as link). A larger deck is refused: delete some words, or export in parts. The choices stop at the limit of the deployment.",
+    "exportPartMaxBytes": "Max size of an export part",
+    "exportPartMaxBytesHint": "The largest part of an export of a long list. A larger part means fewer files to import in Anki, and more memory on the server while it is built (about 2 to 3 times the size). The change applies to the next part of an export that is running. The choices stop at the limit of the deployment.",
+    "exportSyncMaxWords": "Max words of an export at once",
+    "exportSyncMaxWordsHint": "The most words Export as Anki deck and Export as link pack in one request (1 to 5000). A longer list is refused and has to be exported in parts. A higher value uses more memory of the server for each request.",
     "exportDeck": "Export as Anki deck",
     "exportDeckHint": "Users can download the saved words as an .apkg file.",
     "exportLink": "Export as link",
@@ -293,7 +336,17 @@
     "englishViHint": "Vietnamese definitions of English words.",
     "oneOn": "At least one dictionary must stay enabled.",
     "save": "Save settings",
-    "saved": "Dictionary settings saved."
+    "saved": "Dictionary settings saved.",
+    "storage": "Storage",
+    "storageHint": "How much each user can store. The limit of a single user can be changed on the page of that user.",
+    "maxContentBytes": "Max content of a word",
+    "maxContentBytesHint": "The largest card (content) of one saved word. A larger one is refused. The choices stop at the limit of the deployment.",
+    "contentUserQuota": "Content quota per user",
+    "contentUserQuotaHint": "The total content of the words in a user's saved list. When it is full the user must export or delete words before saving more. Words that were exported and left the list do not count.",
+    "imageUserQuota": "Image quota per user",
+    "imageUserQuotaHint": "The total size of the images a user uploaded for their cards.",
+    "audioUserQuota": "Audio quota per user",
+    "audioUserQuotaHint": "The total size of the audio files a user uploaded for their cards."
   },
   "roles": {
     "title": "Roles & Permissions",
@@ -500,6 +553,79 @@
       "deleteTitle": "Delete policy",
       "deleteHint": "Exchanges of this client for this audience stop working (deny by default).",
       "delete": "Delete policy"
+    }
+  },
+  "errors": {
+    "code": {
+      "invalid_argument": "The request is not valid.",
+      "not_found": "Not found.",
+      "conflict": "This already exists.",
+      "failed_precondition": "This cannot be done in the current state.",
+      "forbidden": "You are not allowed to do this.",
+      "unauthenticated": "Please sign in again.",
+      "rate_limited": "Too many requests. Please wait a moment.",
+      "unavailable": "The service is not available now. Try again later.",
+      "timeout": "The service took too long to answer. Try again.",
+      "internal": "Something went wrong. Please try again.",
+      "unimplemented": "This is not supported.",
+      "invalid_request": "The request is not valid."
+    },
+    "reason": {
+      "user_token_required": "A user sign-in is required.",
+      "name_too_long": "The name is too long.",
+      "unsupported_locale": "This language is not supported.",
+      "unsupported_theme": "This theme is not supported.",
+      "unknown_permission": "A permission is not in the catalog. Add it to the permissions first.",
+      "client_not_disabled": "Disable the client before deleting it.",
+      "last_admin": "This is the last admin. Assign the admin role to another user first.",
+      "role_in_use": "A user or a client still holds this role.",
+      "permission_in_use": "A role still holds this permission.",
+      "permission_held_by_roles": "The permission is held by the roles: {{roles}}.",
+      "password_already_set": "The user already has a password.",
+      "mfa_required_for_user": "Multi-factor authentication is required for this user.",
+      "mfa_disabled_on_server": "Multi-factor authentication is turned off on this server.",
+      "mfa_not_enrolled": "The user has not enrolled a second factor.",
+      "mfa_enroll_first": "The user must enroll an authenticator first. Use “Require” to make it mandatory.",
+      "jti_ttl_required": "A token id and a lifetime are required.",
+      "id_or_email_required": "An id or an e-mail is required.",
+      "valid_email_required": "A valid e-mail is required.",
+      "user_id_required": "A user is required.",
+      "cannot_delete_self": "You cannot delete your own account.",
+      "role_name_required": "The role name is required.",
+      "invalid_permission": "“{{name}}” is not a valid permission.",
+      "role_subject_required": "Choose a role and exactly one user or client.",
+      "client_resource_required": "A client and a resource are required.",
+      "type_required": "The type is required.",
+      "unknown_grant": "“{{grant}}” is not a known grant type.",
+      "public_client_grant": "A public client cannot use “{{grant}}”.",
+      "invalid_uri": "“{{uri}}” is not a valid address.",
+      "invalid_backchannel_logout_uri": "The back-channel logout address is not valid.",
+      "client_id_required": "The client is required.",
+      "own_session_client": "This is the client of your own session.",
+      "client_audience_required": "A client and an audience are required.",
+      "max_chain_depth_range": "The maximum chain depth must be between 1 and 5.",
+      "app_name_invalid": "This is not a valid application name.",
+      "settings_too_large": "The settings are too large.",
+      "settings_not_object": "The settings must be a JSON object.",
+      "avatar_too_large": "The picture is larger than 64 KiB.",
+      "avatar_mime_type": "The picture must be PNG, JPEG or WebP.",
+      "avatar_invalid": "The file is not a valid {{mime_type}} picture.",
+      "avatar_dimensions": "The picture must be at most 512×512 pixels.",
+      "description_too_long": "The description is too long.",
+      "ui_style_invalid": "The style must be saas, glass or mono.",
+      "ui_palettes_keys_invalid": "The palette keys must be saas, glass or mono.",
+      "ui_palettes_values_invalid": "The palette must be aurora, ocean, sunset, mint, rose or graphite.",
+      "password_too_short": "The password must have at least 12 characters.",
+      "password_too_long": "The password is too long.",
+      "password_common": "The password is too common.",
+      "password_same": "The password must differ from the previous one.",
+      "password_email": "The password must not contain the e-mail address.",
+      "invalid_page_token": "The page link is not valid. Reload the list.",
+      "page_size_negative": "The page size must not be negative.",
+      "user_not_found": "The user was not found.",
+      "user_id_invalid": "The user id is not valid.",
+      "settings_required": "The settings are required.",
+      "quota_range": "The {{kind}} quota must be between {{min}} and {{max}} bytes, or 0 for the default."
     }
   }
 }

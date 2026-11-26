@@ -1,4 +1,4 @@
-# Four apps built from one repository: each has its own image and chart; dict, bill and admin also have a
+# Five apps built from one repository: each has its own image and chart; dict, bill, portal and admin also have a
 # deployment file in mm-deploy (auth-ui does not, see its entry).
 # language node: lint-test runs `pnpm lint`, `pnpm typecheck` and `pnpm test` once for the whole workspace.
 apps:
@@ -24,6 +24,20 @@ apps:
           image-name: bill
           dockerfile-path: build/bill/Dockerfile
           chart-path: charts/bill
+          image-tag-paths:
+            - .application.deployment.container.image.tag
+          trivy:
+            severity: "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"
+            ignore-unfixed: true
+            exit-code: 0   # report only: the CVEs are listed in the PR comment, the build does not fail
+  - name: portal
+    language: node
+    cicd:
+      jobs:
+        containerize-and-package:
+          image-name: portal
+          dockerfile-path: build/portal/Dockerfile
+          chart-path: charts/portal
           image-tag-paths:
             - .application.deployment.container.image.tag
           trivy:

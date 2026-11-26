@@ -13,6 +13,8 @@ export interface UiMessages {
   close: string;
   loadMore: string;
   none: string;
+  /** The text of an error of the gateway in the language of the app (see `translateApiError`); undefined: use its message. */
+  apiError?: (e: unknown) => string | undefined;
   /** The date and time pickers. */
   pickers: PickerMessages;
 }

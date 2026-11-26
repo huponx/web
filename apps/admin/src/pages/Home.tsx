@@ -1,5 +1,5 @@
 import { useAuth } from "@huponx/auth-client";
-import { Badge, Button, buttonVariants, Card, CardContent, cn, useLoad } from "@huponx/ui-kit";
+import { Badge, Button, buttonVariants, Card, CardContent, cn, Tip, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useLoad } from "@huponx/ui-kit";
 import { Plus, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -187,32 +187,36 @@ function SystemStatus() {
       ) : (
         <Card>
           <CardContent className="overflow-x-auto p-0">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-2 font-medium">{t("home.system.app")}</th>
-                  <th className="px-4 py-2 font-medium">{t("home.system.health")}</th>
-                  <th className="px-4 py-2 font-medium">{t("home.system.sync")}</th>
-                  <th className="px-4 py-2 font-medium">{t("home.system.revision")}</th>
-                  <th className="px-4 py-2 font-medium">{t("home.system.syncedAt")}</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("home.system.app")}</TableHead>
+                  <TableHead>{t("home.system.health")}</TableHead>
+                  <TableHead>{t("home.system.sync")}</TableHead>
+                  <TableHead>{t("home.system.revision")}</TableHead>
+                  <TableHead>{t("home.system.syncedAt")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {apps.map((a) => (
-                  <tr key={a.name} className="border-t" data-testid="system-app">
-                    <td className="px-4 py-2 font-medium">{a.name}</td>
-                    <td className="px-4 py-2">
+                  <TableRow key={a.name} data-testid="system-app">
+                    <TableCell className="font-medium">{a.name}</TableCell>
+                    <TableCell>
                       <HealthBadge health={a.health} />
-                    </td>
-                    <td className="px-4 py-2">
+                    </TableCell>
+                    <TableCell>
                       <SyncBadge sync={a.sync} />
-                    </td>
-                    <td className="px-4 py-2 font-mono text-xs" title={a.revision}>{shortRevision(a.revision)}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{a.syncedAt ? formatDateTime(Date.parse(a.syncedAt) / 1000, i18n.resolvedLanguage ?? "en") : ""}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      <Tip label={a.revision}>
+                        <span>{shortRevision(a.revision)}</span>
+                      </Tip>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{a.syncedAt ? formatDateTime(Date.parse(a.syncedAt) / 1000, i18n.resolvedLanguage ?? "en") : ""}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}

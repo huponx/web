@@ -88,10 +88,8 @@ export function PickerSurface({
             )}
           >
             <span aria-hidden="true" className="mx-auto -mt-1 h-1 w-10 rounded-full bg-border" />
-            <div className="flex items-center justify-between gap-2">
-              <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
-              {sheetHeader}
-            </div>
+            <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
+            {sheetHeader ? <div className="flex items-center justify-between gap-2">{sheetHeader}</div> : null}
             {children}
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>

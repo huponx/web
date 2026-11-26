@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError, authApi } from "../api";
-import { AuthLayout, ErrorAlert, Field, Form, SubmitButton, go, useSubmit } from "../components/common";
+import { AuthLayout, ErrorAlert, TextField, Form, SubmitButton, go, useSubmit } from "../components/common";
 
 /** A password somebody else set (the setup Job) must be replaced before the session starts. */
 export function LoginPassword() {
@@ -35,9 +35,9 @@ export function LoginPassword() {
   return (
     <AuthLayout title={t("passwordChange.title")}>
       <Alert variant="success">{t("passwordChange.notice")}</Alert>
-      <ErrorAlert message={s.error} />
+      <ErrorAlert error={s.error} />
       <Form onSubmit={() => void submit()}>
-        <Field
+        <TextField
           label={t("passwordChange.new")}
           type="password"
           name="password"
@@ -48,7 +48,7 @@ export function LoginPassword() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <Field
+        <TextField
           label={t("passwordChange.repeat")}
           type="password"
           name="password2"

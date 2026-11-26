@@ -29,7 +29,11 @@ void i18n
     load: "languageOnly",
     fallbackLng: "en",
     // the choice of the user first, then the language of the browser
-    detection: { order: ["localStorage", "navigator"], lookupLocalStorage: LANGUAGE_STORAGE_KEY, caches: ["localStorage"] },
+    detection: {
+      order: ["localStorage", "navigator"],
+      lookupLocalStorage: LANGUAGE_STORAGE_KEY,
+      caches: ["localStorage"],
+    },
     interpolation: { escapeValue: false }, // React escapes
     returnNull: false,
   });

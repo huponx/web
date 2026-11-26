@@ -6,7 +6,11 @@ import { PLACEHOLDER_UK, PLACEHOLDER_US } from "./lib/cardHtml";
 export { PLACEHOLDER_UK, PLACEHOLDER_US } from "./lib/cardHtml";
 
 export function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 export interface CardOptions {
@@ -23,20 +27,33 @@ function phoneticLine(w: Word, o: CardOptions): string {
   const parts: string[] = [];
   const uk = w.phoneticUk || (!w.phoneticUs ? w.phonetic : "");
   const us = w.phoneticUs;
-  if (uk || w.audioUk) parts.push(`UK ${escapeHtml(uk)}${o.placeholders && w.audioUk ? ` ${PLACEHOLDER_UK}` : ""}`.trim());
-  if (us || w.audioUs) parts.push(`US ${escapeHtml(us)}${o.placeholders && w.audioUs ? ` ${PLACEHOLDER_US}` : ""}`.trim());
+  if (uk || w.audioUk)
+    parts.push(
+      `UK ${escapeHtml(uk)}${o.placeholders && w.audioUk ? ` ${PLACEHOLDER_UK}` : ""}`.trim(),
+    );
+  if (us || w.audioUs)
+    parts.push(
+      `US ${escapeHtml(us)}${o.placeholders && w.audioUs ? ` ${PLACEHOLDER_US}` : ""}`.trim(),
+    );
   return parts.join(" &nbsp; ");
 }
 
 /** The back of the card (HTML, one line: it is also pasted into a tab separated import). */
-export function cardBack(w: Word, o: CardOptions = { placeholders: true }): string {
+export function cardBack(
+  w: Word,
+  o: CardOptions = { placeholders: true },
+): string {
   const html: string[] = [];
   const phon = o.phonetics === false ? "" : phoneticLine(w, o);
   if (phon) html.push(`<div>${phon}</div>`);
-  if (w.partOfSpeech.length > 0) html.push(`<div><i>${w.partOfSpeech.map(escapeHtml).join(", ")}</i></div>`);
+  if (w.partOfSpeech.length > 0)
+    html.push(`<div><i>${w.partOfSpeech.map(escapeHtml).join(", ")}</i></div>`);
   if (w.meanings.length > 0) {
     const items = w.meanings.map((m) => {
-      const ex = m.examples.length > 0 ? `<ul>${m.examples.map((e) => `<li><i>${escapeHtml(e)}</i></li>`).join("")}</ul>` : "";
+      const ex =
+        m.examples.length > 0
+          ? `<ul>${m.examples.map((e) => `<li><i>${escapeHtml(e)}</i></li>`).join("")}</ul>`
+          : "";
       return `<li>${escapeHtml(m.definition)}${ex}</li>`;
     });
     html.push(`<ol>${items.join("")}</ol>`);
@@ -52,7 +69,10 @@ export const DICTIONARY_SEPARATOR = "<hr>";
  * entry is missing is left out. The phonetics and the audio placeholders come once, from the English entry
  * (or from the Vietnamese one when there is no English one).
  */
-export function combinedCardBack(en: Word | undefined, vi: Word | undefined): string {
+export function combinedCardBack(
+  en: Word | undefined,
+  vi: Word | undefined,
+): string {
   return joinParts(en ? enPart(en) : "", vi ? viPart(vi, !!en) : "");
 }
 
@@ -63,12 +83,17 @@ export function enPart(en: Word): string {
 
 /** The part from the English-Vietnamese dictionary; with an English part before it, it leaves the phonetics out. */
 export function viPart(vi: Word, hasEn: boolean): string {
-  return cardBack(vi, hasEn ? { placeholders: false, phonetics: false } : { placeholders: true });
+  return cardBack(
+    vi,
+    hasEn ? { placeholders: false, phonetics: false } : { placeholders: true },
+  );
 }
 
 /** Both parts with a rule between them; an empty part is left out. */
 export function joinParts(enHtml: string, viHtml: string): string {
-  return enHtml && viHtml ? enHtml + DICTIONARY_SEPARATOR + viHtml : enHtml || viHtml;
+  return enHtml && viHtml
+    ? enHtml + DICTIONARY_SEPARATOR + viHtml
+    : enHtml || viHtml;
 }
 
 /** What a manual add or a tab separated import of Anki takes: front, a tab, the back. */
@@ -82,7 +107,12 @@ export function cardsText(words: Word[]): string {
 }
 
 export function cardsHtml(words: Word[]): string {
-  return words.map((w) => `<div><b>${escapeHtml(w.text)}</b></div>${cardBack(w, { placeholders: false })}`).join("<hr>");
+  return words
+    .map(
+      (w) =>
+        `<div><b>${escapeHtml(w.text)}</b></div>${cardBack(w, { placeholders: false })}`,
+    )
+    .join("<hr>");
 }
 
 /** Puts HTML and text on the clipboard together (the text alone where rich content is not allowed). */

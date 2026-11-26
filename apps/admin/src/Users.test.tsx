@@ -208,6 +208,25 @@ describe("edit user page", () => {
     expect(calls.find((c) => c.method === "POST" && c.url === "/api/users/u1/welcome")).toBeTruthy();
   });
 
+  it("deletes the account after a confirmation and goes back to the list", async () => {
+    const calls = renderApp("/users/u1", (c) => {
+      if (c.method === "DELETE") return {};
+      if (c.url === "/api/users/u1") return { user: user() };
+      if (c.url === "/api/roles") return { roles: ROLES };
+      if (c.url.endsWith("/mfa")) return { mode: "optional" };
+      if (c.url.startsWith("/api/users?")) return { users: [] };
+      return {};
+    });
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole("button", { name: "Delete account" }));
+    expect(calls.find((c) => c.method === "DELETE")).toBeUndefined(); // nothing before the confirmation
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByText(/Delete the account ann@example.com\?/)).toBeTruthy();
+    await u.click(within(dialog).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(calls.find((c) => c.method === "DELETE" && c.url === "/api/users/u1")).toBeTruthy());
+    expect(await screen.findByText("The account ann@example.com was deleted.")).toBeTruthy();
+  });
+
   it("has no way to type a password for the user", async () => {
     renderApp("/users/u1", (c) => (c.url === "/api/users/u1" ? { user: user() } : c.url === "/api/roles" ? { roles: ROLES } : c.url.endsWith("/mfa") ? { mode: "optional" } : {}));
     await screen.findByRole("button", { name: "Send password reset" });

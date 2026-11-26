@@ -82,6 +82,10 @@ export type AppsInfo = { apps: { name: string; url: string; icon?: string }[]; n
 export const authApi = {
   /** The look of the web apps (set by an administrator); readable before the sign in. */
   uiStyle: () => call<SystemStyleReply>("GET", "/auth-api/ui-style").then(systemStyleOf),
+  /** Self-registration is open (IDENTITY_REGISTRATION_ENABLED); readable before the sign in. */
+  registrationOpen: () => call<{ registration?: boolean }>("GET", "/auth-api/ui-style").then((r) => r.registration === true),
+  /** Asks for an account: the answer is the same for a known address, the link to set the password comes by e-mail. */
+  register: (email: string, name: string, locale: string) => post<unknown>("/auth-api/register", { email, name, locale }),
   /** `theme` and `locale` are what the user picked on the sign in page (empty: not touched); the account keeps them. */
   login: (email: string, password: string, returnTo: string, prefs: { theme?: string; locale?: string } = {}) =>
     post<Next & { theme?: string; locale?: string }>("/auth-api/login", { email, password, return_to: returnTo, ...prefs }),
