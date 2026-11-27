@@ -1,13 +1,14 @@
 import { useAuth } from "@huponx/auth-client";
 import type { Me } from "@huponx/auth-client";
-import { AvatarUpload, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label, ThemeSwitch, useAction, useLoad } from "@huponx/ui-kit";
-import type { AvatarChange } from "@huponx/ui-kit";
+import { AvatarUpload, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Label, SessionsPanel, ThemeSwitch, useAction, useLoad } from "@huponx/ui-kit";
+import type { AvatarChange, SessionItem } from "@huponx/ui-kit";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "../AccountMenu";
 import { useIdentity } from "../api";
 import { avatarLabels } from "../lib/avatarLabels";
+import { sessionsLabels } from "../lib/sessionsLabels";
 import { DoneAlert, ErrorAlert, Loading, PageTitle, SelectField, TextField } from "../components/common";
 import { announceAvatarChanged } from "../lib/avatarEvents";
 import { languages } from "../i18n";
@@ -157,6 +158,52 @@ function SessionDetails() {
   );
 }
 
+/**
+ * The sessions of the signed in user (one per sign in on a browser or device), "this device" marked. Another session can
+ * be signed out, or all the others; ending the current one signs the user out, so the page reloads to the sign in.
+ */
+function Sessions() {
+  const { t, i18n } = useTranslation();
+  const api = useIdentity();
+  const { reload: signIn } = useAuth();
+  const a = useAction();
+  const list = useLoad(() => api.listMySessions().then((r) => r.sessions ?? []), [api]);
+
+  async function revoke(s: SessionItem) {
+    if (!(await a.run(() => api.revokeMySession(s.id).then(() => true), t("sessions.revoked")))) return;
+    if (s.current) return signIn();
+    list.reload();
+  }
+
+  async function revokeOthers() {
+    if (await a.run(() => api.revokeMyOtherSessions().then(() => true), t("sessions.revokedOthers"))) list.reload();
+  }
+
+  return (
+    <Card data-testid="sessions-card">
+      <CardHeader>
+        <CardTitle>{t("settings.sessions.title")}</CardTitle>
+        <CardDescription>{t("settings.sessions.description")}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <ErrorAlert error={list.error ?? a.error} />
+        <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
+        {list.data ? (
+          <SessionsPanel
+            sessions={list.data}
+            language={i18n.resolvedLanguage ?? "en"}
+            labels={sessionsLabels(t)}
+            onRevoke={revoke}
+            onRevokeOthers={revokeOthers}
+          />
+        ) : list.error ? null : (
+          <Loading />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function Settings() {
   const { t } = useTranslation();
   return (
@@ -164,6 +211,7 @@ export function Settings() {
       <PageTitle>{t("settings.title")}</PageTitle>
       <Profile />
       <Appearance />
+      <Sessions />
       <SessionDetails />
     </>
   );

@@ -68,12 +68,22 @@ describe("login", () => {
     const { client, advance } = setup(() => json(200, me));
     expect(client.loginLooped()).toBe(false);
     client.login();
-    expect(client.loginLooped()).toBe(true);
+    expect(client.loginLooped()).toBe(false); // one attempt is a normal sign in
+    advance(4_000);
+    client.login();
+    expect(client.loginLooped()).toBe(true); // back without a session and again to the login
     advance(20_000);
     expect(client.loginLooped()).toBe(false);
     client.login();
     await client.me();
     expect(client.loginLooped()).toBe(false);
+  });
+
+  it("is not a loop when the user takes a while at the login form after a sign out", () => {
+    const { client, advance } = setup(() => json(200, me));
+    client.login(); // the sign out sent the tab to the login page
+    advance(12_000); // typing the password
+    expect(client.loginLooped()).toBe(false); // back at the app without a session: log in again, not an error
   });
 });
 

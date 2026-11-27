@@ -21,9 +21,11 @@ DialogOverlay.displayName = "DialogOverlay";
 export interface DialogContentProps extends ComponentProps<typeof DialogPrimitive.Content> {
   /** Label of the close button (translated by the app). */
   closeLabel?: string;
+  /** No X: for a step that must not be left by accident (the recovery codes are shown once). */
+  hideClose?: boolean;
 }
 
-export function DialogContent({ className, children, closeLabel = "Close", ...props }: DialogContentProps) {
+export function DialogContent({ className, children, closeLabel = "Close", hideClose, ...props }: DialogContentProps) {
   return (
     <DialogPrimitive.Portal>
       <DialogOverlay />
@@ -35,10 +37,12 @@ export function DialogContent({ className, children, closeLabel = "Close", ...pr
         {...props}
       >
         {children}
+        {hideClose ? null : (
         <DialogPrimitive.Close className="absolute top-2 right-2 rounded-md p-2.5 opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none [&_svg]:size-4">
           <X aria-hidden="true" />
           <span className="sr-only">{closeLabel}</span>
         </DialogPrimitive.Close>
+        )}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
   );

@@ -28,6 +28,7 @@
   },
   "common": {
     "signingIn": "Đang đăng nhập...",
+    "signingOut": "Đang đăng xuất...",
     "tryAgain": "Thử lại",
     "close": "Đóng",
     "cancel": "Hủy",
@@ -46,8 +47,15 @@
     "placeholder": "hello, serendipity",
     "input": "Từ cần tra",
     "dictionary": "Từ điển",
-    "english": "Anh - Anh",
-    "englishVietnamese": "Anh - Việt",
+    "dictionaries": {
+      "english": "Anh - Anh",
+      "english-vietnamese": "Anh - Việt"
+    },
+    "groups": {
+      "en": "Tiếng Anh"
+    },
+    "group": "Nhóm từ điển",
+    "noDictionaries": "Không có từ điển nào khả dụng. Hãy bật một từ điển trong phần cài đặt.",
     "submit": "Tra từ",
     "copyInput": "Sao chép đầu vào",
     "copyResult": "Sao chép",
@@ -263,6 +271,7 @@
       "service_token_not_allowed": "Cần đăng nhập bằng tài khoản người dùng.",
       "user_token_required": "Cần đăng nhập bằng tài khoản người dùng.",
       "unknown_dictionary": "Không có từ điển này.",
+      "unknown_group": "Không có nhóm từ điển này.",
       "invalid_word": "Từ không hợp lệ: chỉ dùng chữ, số, dấu cách, dấu nháy, gạch nối và dấu chấm, tối đa 64 ký tự.",
       "word_not_found": "Không có mục từ cho từ này.",
       "dictionary_unavailable": "Từ điển hiện không khả dụng. Hãy thử lại sau.",

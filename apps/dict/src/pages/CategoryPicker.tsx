@@ -1,10 +1,4 @@
-import {
-  Alert,
-  Button,
-  Checkbox,
-  PickerSurface,
-  usePickerMode,
-} from "@huponx/ui-kit";
+import { Alert, Button, Checkbox, iconTone, PickerSurface, usePickerMode } from "@huponx/ui-kit";
 import type { ButtonProps } from "@huponx/ui-kit";
 import { Tags } from "lucide-react";
 import { useState } from "react";
@@ -80,7 +74,7 @@ export function CategoryPicker({
           title={label}
           className={className}
         >
-          <Tags aria-hidden="true" />
+          <Tags aria-hidden="true" className={iconTone.tags} />
           <span className="max-sm:sr-only">{label}</span>
           {count ? <span aria-hidden="true">({count})</span> : null}
         </Button>

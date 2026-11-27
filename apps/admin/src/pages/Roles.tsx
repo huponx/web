@@ -1,80 +1,22 @@
-import { Can, useAuth } from "@huponx/auth-client";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent, TabsList, TabsTrigger, useAction, useFlash, usePaged } from "@huponx/ui-kit";
+import { Can, P, useAuth } from "@huponx/auth-client";
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, iconTone, Tabs, TabsContent, TabsList, TabsTrigger, useAction, useFlash, usePaged } from "@huponx/ui-kit";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useIdentity } from "../api";
-import type { Permission, Role } from "../api";
-import { ActionLabel, Actions, BadgeList, ROW_ACTION, DataTable, DoneAlert, ErrorAlert, LoadMore, Loading, Modal, PageTitle, TextField } from "../components/common";
+import type { Role } from "../api";
+import { ActionLabel, Actions, BadgeList, ROW_ACTION, DataTable, DoneAlert, ErrorAlert, LoadMore, Loading, PageTitle } from "../components/common";
 import { useConfirm } from "../components/ConfirmDialog";
 import { SearchBar } from "../components/SearchBar";
 
-function EditDescription({ permission, onClose, onDone }: { permission: Permission; onClose: () => void; onDone: (name: string) => void }) {
-  const { t } = useTranslation();
-  const api = useIdentity();
-  const [description, setDescription] = useState(permission.description ?? "");
-  const a = useAction();
-
-  async function save(ev: FormEvent) {
-    ev.preventDefault();
-    const r = await a.run(() => api.updatePermission(permission.name, description));
-    if (r) {
-      onDone(permission.name);
-      onClose();
-    }
-  }
-
-  return (
-    <Modal title={t("roles.perm.editTitle", { name: permission.name })} onClose={onClose}>
-      <form className="flex flex-col gap-4" onSubmit={(ev) => void save(ev)}>
-        <TextField label={t("roles.perm.description")} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} />
-        <ErrorAlert error={a.error} />
-        <Actions>
-          <Button type="button" variant="outline" onClick={onClose}>
-            {t("common.cancel")}
-          </Button>
-          <Button type="submit" busy={a.busy}>
-            {t("common.save")}
-          </Button>
-        </Actions>
-      </form>
-    </Modal>
-  );
-}
-
-/** The catalog: what roles can be given. Anybody who can read it sees it; writers add, describe and delete. */
+/** The catalog: what roles can be given. Read only, the services declare it; the wildcards are generated. */
 function PermissionCatalog() {
   const { t } = useTranslation();
   const api = useIdentity();
   const [query, setQuery] = useState("");
   const paged = usePaged((token) => api.listPermissionsPage(query, token), [api, query]);
-  const { items: catalog, loading, error, reload } = paged;
-  const { confirm, dialog } = useConfirm();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [editing, setEditing] = useState<Permission>();
-  const [updated, setUpdated] = useState<string>();
-  const add = useAction();
-  const del = useAction();
-
-  async function create(ev: FormEvent) {
-    ev.preventDefault();
-    const r = await add.run(() => api.createPermission({ name: name.trim(), description: description.trim() }), t("roles.perm.created", { name: name.trim() }));
-    if (r) {
-      setName("");
-      setDescription("");
-      reload();
-    }
-  }
-
-  async function remove(p: Permission) {
-    if (!(await confirm({ title: t("common.delete"), message: t("roles.perm.confirmDelete", { name: p.name }), confirmLabel: t("common.delete") }))) return;
-    setUpdated(undefined);
-    const r = await del.run(() => api.deletePermission(p.name), t("roles.perm.deleted", { name: p.name }));
-    if (r !== undefined) reload();
-  }
+  const { items: catalog, loading, error } = paged;
 
   return (
     <Card>
@@ -83,29 +25,6 @@ function PermissionCatalog() {
         <CardDescription>{t("roles.perm.intro")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <Can perm="identity:permission:write">
-          <form className="flex flex-col gap-4 border-b pb-4" onSubmit={(ev) => void create(ev)}>
-            <h3 className="font-medium">{t("roles.perm.new")}</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                label={t("roles.perm.name")}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                pattern="[a-z0-9_.*\-]+(:[a-z0-9_.*\-]+)*"
-                hint={t("roles.perm.nameHint")}
-              />
-              <TextField label={t("roles.perm.description")} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} />
-            </div>
-            <Actions>
-              <Button type="submit" busy={add.busy}>
-                {t("roles.perm.add")}
-              </Button>
-            </Actions>
-            <ErrorAlert error={add.error} />
-            <DoneAlert watch={add.doneId}>{add.done}</DoneAlert>
-          </form>
-        </Can>
         <SearchBar label={t("roles.perm.search")} hint={t("roles.perm.searchHint")} onSearch={setQuery} />
         <ErrorAlert error={error} />
         {loading ? <Loading /> : null}
@@ -114,42 +33,23 @@ function PermissionCatalog() {
             rows={catalog}
             rowKey={(p) => p.name}
             columns={[
-              { header: t("roles.perm.name"), cell: (p) => <code className="break-all text-xs">{p.name}</code> },
-              { header: t("roles.perm.description"), cell: (p) => p.description || "-" },
-              { header: t("roles.perm.roles"), cell: (p) => Number(p.roleCount ?? 0) },
               {
-                header: <span className="sr-only">{t("roles.perm.actions")}</span>,
-                className: "text-right",
+                header: t("roles.perm.name"),
                 cell: (p) => (
-                  <Can perm="identity:permission:write">
-                    <Actions>
-                      <Button variant="outline" size="sm" className={ROW_ACTION} onClick={() => setEditing(p)} aria-label={t("roles.perm.editAria", { name: p.name })}>
-                        <ActionLabel icon={Pencil}>{t("roles.perm.edit")}</ActionLabel>
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className={ROW_ACTION}
-                        disabled={Number(p.roleCount ?? 0) > 0}
-                        title={Number(p.roleCount ?? 0) > 0 ? t("roles.perm.inUse") : undefined}
-                        onClick={() => void remove(p)}
-                        aria-label={t("roles.perm.deleteAria", { name: p.name })}
-                      >
-                        <ActionLabel icon={Trash2}>{t("common.delete")}</ActionLabel>
-                      </Button>
-                    </Actions>
-                  </Can>
+                  <>
+                    <code className="break-all text-xs">{p.name}</code>
+                    {p.retired ? <Badge variant="outline" className="ml-2">{t("roles.perm.retiredBadge")}</Badge> : null}
+                  </>
                 ),
               },
+              { header: t("roles.perm.service"), cell: (p) => (p.wildcard ? t("roles.perm.wildcardBadge") : p.service || "-") },
+              { header: t("roles.perm.description"), cell: (p) => p.description || "-" },
+              { header: t("roles.perm.roles"), cell: (p) => Number(p.roleCount ?? 0) },
             ]}
           />
         ) : null}
         <LoadMore paged={paged} />
-        <ErrorAlert error={del.error} />
-        <DoneAlert watch={updated ?? del.doneId}>{updated ?? del.done}</DoneAlert>
       </CardContent>
-      {editing ? <EditDescription permission={editing} onClose={() => setEditing(undefined)} onDone={(n) => (del.clear(), setUpdated(t("roles.perm.updated", { name: n })), reload())} /> : null}
-      {dialog}
     </Card>
   );
 }
@@ -161,7 +61,7 @@ export function Roles() {
   const [query, setQuery] = useState("");
   const paged = usePaged((token) => api.listRolesPage(query, token), [api, query]);
   const { items: data, error, loading, reload } = paged;
-  const canCatalog = can("identity:permission:read");
+  const canCatalog = can(P.identity.permissionRead);
   const { confirm, dialog } = useConfirm();
   const del = useAction();
   // set by the edit page after it deleted the role
@@ -182,7 +82,7 @@ export function Roles() {
           {canCatalog ? <TabsTrigger value="permissions">{t("roles.tab.permissions")}</TabsTrigger> : null}
         </TabsList>
         <TabsContent value="roles">
-          <Can perm="identity:role:write">
+          <Can perm={P.identity.roleWrite}>
             <Actions>
               <Button asChild>
                 <Link to="/roles/new">
@@ -206,7 +106,10 @@ export function Roles() {
                   columns={[
                     { header: t("roles.col.role"), cell: (r) => <strong>{r.name}</strong> },
                     { header: t("roles.col.description"), cell: (r) => r.description },
-                    { header: t("roles.col.permissions"), cell: (r) => <BadgeList items={r.permissions} /> },
+                    {
+                      header: t("roles.col.permissions"),
+                      cell: (r) => <BadgeList items={r.permissions.map((p) => ((r.retiredPermissions ?? []).includes(p) ? `${p} (${t("roles.perm.retiredBadge")})` : p))} />,
+                    },
                     { header: t("roles.col.assigned"), cell: (r) => Number(r.assignedCount ?? 0) },
                     {
                       header: <span className="sr-only">{t("roles.col.actions")}</span>,
@@ -217,10 +120,10 @@ export function Roles() {
                           <Actions>
                             <Button asChild variant="outline" size="sm" className={ROW_ACTION}>
                               <Link to={`/roles/${encodeURIComponent(r.name)}`} aria-label={t("roles.editAria", { name: r.name })}>
-                                <ActionLabel icon={Pencil}>{t("roles.manage")}</ActionLabel>
+                                <ActionLabel icon={Pencil} iconClassName={iconTone.edit}>{t("roles.manage")}</ActionLabel>
                               </Link>
                             </Button>
-                            <Can perm="identity:role:write">
+                            <Can perm={P.identity.roleWrite}>
                               <Button
                                 variant="destructive"
                                 size="sm"

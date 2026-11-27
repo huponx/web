@@ -1,4 +1,4 @@
-import { Can, RequireAuth, useAuth } from "@huponx/auth-client";
+import { Can, P, RequireAuth, useAuth } from "@huponx/auth-client";
 import { AppShell, Button, Loading, UiMessagesProvider, systemStyleOf, translateApiError, useSystemStyle } from "@huponx/ui-kit";
 import type { Crumb, NavItem, ShellLabels, ShellLink, SystemStyleReply } from "@huponx/ui-kit";
 import { Home as HomeIcon, KeyRound, Receipt } from "lucide-react";
@@ -32,7 +32,7 @@ function Shell() {
   const session: NavItem = { to: "/session", label: t("nav.session"), icon: KeyRound };
   const invoices: NavItem = { to: "/invoices", label: t("nav.invoices"), icon: Receipt };
   // the menu only shows what the user may use; the gateway checks the permission again
-  const items = [home, session, ...(can("bill:invoice:read") ? [invoices] : [])];
+  const items = [home, session, ...(can(P.bill.invoiceRead) ? [invoices] : [])];
   const current = items.find((i) => i.to !== "/" && i.to === pathname);
   const breadcrumbs: Crumb[] = [{ label: home.label, to: current ? "/" : undefined }, ...(current ? [{ label: current.label }] : [])];
   const labels: ShellLabels = {
@@ -53,7 +53,7 @@ function Shell() {
         <Route
           path="/invoices"
           element={
-            <Can perm="bill:invoice:read" fallback={<Message>{t("common.notAllowed")}</Message>}>
+            <Can perm={P.bill.invoiceRead} fallback={<Message>{t("common.notAllowed")}</Message>}>
               <Invoices />
             </Can>
           }
@@ -79,6 +79,7 @@ export function App() {
   return (
     <RequireAuth
       loading={<Loading label={t("common.signingIn")} />}
+      signingOut={<Loading label={t("common.signingOut")} />}
       error={({ message, retry }) => (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
           <p>{message}</p>

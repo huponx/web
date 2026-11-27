@@ -24,6 +24,7 @@ describe("formatCount", () => {
 describe("exportProgress", () => {
   const job = (o: Partial<ExportJob>): ExportJob => ({
     id: "j",
+    group: "en",
     status: "running",
     createdAt: "2026-01-01T00:00:00Z",
     expiresAt: "2026-01-02T00:00:00Z",

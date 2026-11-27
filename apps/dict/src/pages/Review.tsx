@@ -23,6 +23,8 @@ import {
 import { useCategories, usePersistedCategory } from "../lib/categories";
 import { errorMessage, Localized } from "../lib/errors";
 import { formatInterval } from "../lib/interval";
+import { GroupSwitcher } from "../GroupSwitcher";
+import { useRegistry } from "../lib/registry";
 import { CategoryFilter } from "./Categories";
 import { Play } from "./PlayButton";
 import { CardBody } from "./Saved";
@@ -267,6 +269,7 @@ function CardView({
 export function Review() {
   const { t } = useTranslation();
   const api = useDictionary();
+  const { group } = useRegistry();
   const [queue, setQueue] = useState<ReviewQueue>();
   const [loadError, setLoadError] = useState<unknown>();
   const [session, setSession] = useState<Session>();
@@ -274,7 +277,7 @@ export function Review() {
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
-  const { categories, list: catList, loaded: catsLoaded } = useCategories();
+  const { categories, list: catList, loaded: catsLoaded } = useCategories(group);
   const [category, setCategory] = usePersistedCategory(
     "review",
     categories,
@@ -283,11 +286,18 @@ export function Review() {
 
   const load = useCallback(() => {
     setLoadError(undefined);
+    if (!group) return Promise.resolve();
     return api
-      .getReviewQueue(undefined, filterParams(category))
+      .getReviewQueue(group, undefined, filterParams(category))
       .then(setQueue)
       .catch((e: unknown) => setLoadError(e));
-  }, [api, category]);
+  }, [api, group, category]);
+
+  // another group has its own queue
+  useEffect(() => {
+    setQueue(undefined);
+    setDone(undefined);
+  }, [group]);
 
   useEffect(() => {
     void load();
@@ -312,7 +322,7 @@ export function Review() {
     if (!session || !card || !g || busy) return;
     setBusy(true);
     try {
-      const r = await api.submitReview(card.word, g);
+      const r = await api.submitReview(card.group, card.word, g);
       setError(undefined);
       const again = session.again + (g === "REVIEW_GRADE_AGAIN" ? 1 : 0);
       const rest = session.cards.slice(1);
@@ -378,6 +388,7 @@ export function Review() {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-4">
       <h1 className="text-2xl font-semibold">{t("review.title")}</h1>
+      <GroupSwitcher />
       {loadError ? (
         <Alert variant="destructive">
           {errorMessage(loadError, t)}{" "}

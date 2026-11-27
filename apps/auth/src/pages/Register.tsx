@@ -1,5 +1,5 @@
 import { Alert } from "@huponx/ui-kit";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { authApi } from "../api";
@@ -12,6 +12,18 @@ export function Register() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [sent, setSent] = useState(false);
+  // a new account waits for an administrator: the confirmation says so instead of promising a link
+  const [approval, setApproval] = useState(true);
+  useEffect(() => {
+    let live = true;
+    authApi.registrationOpen().then(
+      (r) => live && setApproval(r.approval),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
   const s = useSubmit();
 
   async function submit() {
@@ -22,7 +34,7 @@ export function Register() {
   return (
     <AuthLayout title={sent ? t("register.sentTitle") : t("register.title")}>
       {sent ? (
-        <Alert variant="success">{t("register.sent")}</Alert>
+        <Alert variant="success">{t(approval ? "register.sentPending" : "register.sent")}</Alert>
       ) : (
         <>
           <ErrorAlert error={s.error} />

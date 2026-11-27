@@ -1,4 +1,4 @@
-import { useAuth } from "@huponx/auth-client";
+import { P, useAuth } from "@huponx/auth-client";
 import {
   Button,
   Dialog,
@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { removesAfterExport, SAVED_CHANGED, useDictionary } from "./api";
 import { errorMessage } from "./lib/errors";
+import { useRegistry } from "./lib/registry";
 import { useSettings } from "./lib/settings";
 
 /**
@@ -25,19 +26,20 @@ export function RemovePrompt() {
   const { can } = useAuth();
   const api = useDictionary();
   const { settings, known, save } = useSettings();
+  const { all: groups, loaded: registryLoaded } = useRegistry();
   const [exported, setExported] = useState(0);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
   const handled = useRef<string>();
 
-  const allowed = can("dictionary:word:read") && can("dictionary:word:write");
+  const allowed = can(P.dictionary.wordRead) && can(P.dictionary.wordWrite);
   const effective = removesAfterExport(settings);
   const acknowledged = settings.user.removeAcknowledged;
 
   useEffect(() => {
     // only act on settings the service really answered: writing the defaults back would overwrite the choices
-    if (!allowed || !known) return;
+    if (!allowed || !known || !registryLoaded) return;
     const key = `${effective}:${acknowledged}`;
     if (handled.current === key) return;
     handled.current = key;
@@ -51,11 +53,14 @@ export function RemovePrompt() {
     }
     if (acknowledged) return;
     let live = true;
-    api
-      .list()
-      .then((p) => {
+    // the exported words of every group count
+    Promise.all(groups.map((g) => api.list(g.id)))
+      .then((pages) => {
         if (!live) return;
-        const n = p.total - (p.newTotal ?? p.total);
+        const n = pages.reduce(
+          (sum, p) => sum + p.total - (p.newTotal ?? p.total),
+          0,
+        );
         if (n > 0) {
           setExported(n);
           setOpen(true);
@@ -70,13 +75,23 @@ export function RemovePrompt() {
       live = false;
       handled.current = undefined;
     };
-  }, [allowed, known, effective, acknowledged, api, save, settings.user]);
+  }, [
+    allowed,
+    known,
+    registryLoaded,
+    groups,
+    effective,
+    acknowledged,
+    api,
+    save,
+    settings.user,
+  ]);
 
   async function answer(remove: boolean) {
     setBusy(true);
     try {
       if (remove) {
-        await api.removeExportedWords();
+        await Promise.all(groups.map((g) => api.removeExportedWords(g.id)));
         window.dispatchEvent(new Event(SAVED_CHANGED));
       }
       await save({ ...settings.user, removeAcknowledged: true });

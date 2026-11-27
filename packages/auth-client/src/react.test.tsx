@@ -7,7 +7,7 @@ const base: Me = { sub: "u1", roles: [], scopes: [], perms: ["identity:role:read
 
 function make(status: number, me?: Me, storedAttempt = false) {
   const navigated: string[] = [];
-  const store = new Map<string, string>(storedAttempt ? [["auth:login-attempt", String(Date.now())]] : []);
+  const store = new Map<string, string>(storedAttempt ? [["auth:login-attempt", `2:${Date.now()}`]] : []);
   const client = createClient({
     apiBase: "https://api.example.com",
     fetch: async () => new Response(me ? JSON.stringify(me) : null, { status }),
@@ -40,7 +40,7 @@ describe("RequireAuth", () => {
     expect(screen.queryByText("secret")).toBeNull();
   });
 
-  it("does not loop: a recent attempt with no session shows the error", async () => {
+  it("does not loop: a second attempt in a row with no session shows the error", async () => {
     const { client, navigated } = make(401, undefined, true);
     render(
       <AuthProvider client={client}>
@@ -49,6 +49,28 @@ describe("RequireAuth", () => {
     );
     expect(await screen.findByText(/cookie was not kept/)).toBeTruthy();
     expect(navigated).toHaveLength(0);
+  });
+
+  it("shows the signing out text on the page the sign out returns to", async () => {
+    const { client } = make(401);
+    await client.logout();
+    render(
+      <AuthProvider client={client}>
+        <RequireAuth loading="signing in" signingOut="signing out">secret</RequireAuth>
+      </AuthProvider>,
+    );
+    expect(await screen.findByText("signing out")).toBeTruthy();
+    expect(screen.queryByText("signing in")).toBeNull();
+  });
+
+  it("shows the signing in text when nobody signed out", async () => {
+    const { client } = make(401);
+    render(
+      <AuthProvider client={client}>
+        <RequireAuth loading="signing in" signingOut="signing out">secret</RequireAuth>
+      </AuthProvider>,
+    );
+    expect(await screen.findByText("signing in")).toBeTruthy();
   });
 
   it("shows the error when the gateway is down", async () => {

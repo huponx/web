@@ -61,20 +61,11 @@ export function cardBack(
   return html.join("");
 }
 
-/** Rule between the two dictionaries on the back of a saved card. */
+/** Rule between the dictionaries on the back of a saved card. */
 export const DICTIONARY_SEPARATOR = "<hr>";
 
-/**
- * The back of a saved card: the English entry first, a rule, then the English-Vietnamese entry. Whichever
- * entry is missing is left out. The phonetics and the audio placeholders come once, from the English entry
- * (or from the Vietnamese one when there is no English one).
- */
-export function combinedCardBack(
-  en: Word | undefined,
-  vi: Word | undefined,
-): string {
-  return joinParts(en ? enPart(en) : "", vi ? viPart(vi, !!en) : "");
-}
+/** The part of a saved card that one dictionary gives. `first`: no part comes before it. */
+export type PartRenderer = (w: Word, first: boolean) => string;
 
 /** The part of a saved card that comes from the English dictionary. */
 export function enPart(en: Word): string {
@@ -89,11 +80,52 @@ export function viPart(vi: Word, hasEn: boolean): string {
   );
 }
 
-/** Both parts with a rule between them; an empty part is left out. */
-export function joinParts(enHtml: string, viHtml: string): string {
-  return enHtml && viHtml
-    ? enHtml + DICTIONARY_SEPARATOR + viHtml
-    : enHtml || viHtml;
+/**
+ * The part of a dictionary that has no renderer of its own: the phonetics and the audio placeholders come once,
+ * from the first part of the card, the parts after it leave them out.
+ */
+export const genericPart: PartRenderer = (w, first) =>
+  viPart(w, !first);
+
+/**
+ * Renderers by dictionary id. A dictionary of the registry needs no entry here: its part is made by `genericPart`.
+ * Add one when a dictionary needs its own layout.
+ */
+export const partRenderers: Record<string, PartRenderer> = {
+  english: (w) => enPart(w),
+  "english-vietnamese": (w, first) => viPart(w, !first),
+};
+
+/** The part of a saved card of the dictionary `id`. */
+export function renderPart(id: string, w: Word, first: boolean): string {
+  return (partRenderers[id] ?? genericPart)(w, first);
+}
+
+/** What one dictionary gives to a card: its entry, or the HTML of an edit that replaces the entry. */
+export interface CardPart {
+  id: string;
+  word?: Word;
+  html?: string;
+}
+
+/**
+ * The back of a saved card: the parts in the order given (the registry's), a rule between them. A dictionary
+ * with no entry and no edit is left out.
+ */
+export function combinedCardBack(parts: CardPart[]): string {
+  const out: string[] = [];
+  for (const p of parts) {
+    const first = out.every((h) => h === "");
+    out.push(
+      p.html ?? (p.word ? renderPart(p.id, p.word, first) : ""),
+    );
+  }
+  return joinParts(out);
+}
+
+/** The parts with a rule between them; an empty part is left out. */
+export function joinParts(parts: string[]): string {
+  return parts.filter((p) => p !== "").join(DICTIONARY_SEPARATOR);
 }
 
 /** What a manual add or a tab separated import of Anki takes: front, a tab, the back. */

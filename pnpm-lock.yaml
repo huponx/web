@@ -399,6 +399,10 @@ importers:
         version: 3.2.7(@types/node@20.19.43)(jiti@2.7.0)(jsdom@25.0.1)(lightningcss@1.33.0)
 
   packages/auth-client:
+    dependencies:
+      '@huponx/protogen':
+        specifier: ^0.2.0
+        version: 0.2.0
     devDependencies:
       '@testing-library/react':
         specifier: ^16.1.0
@@ -882,6 +886,9 @@ packages:
   '@humanwhocodes/retry@0.4.3':
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
+
+  '@huponx/protogen@0.2.0':
+    resolution: {integrity: sha512-LWmL0NYP/dpIeLTmsc8rOzFIDPx2MibAZfj76uuqDm+XArm500dfcAVwe4Bx7PLPwQsfegGI5JrU7oGVojsxBg==, tarball: https://npm.pkg.github.com/download/@huponx/protogen/0.2.0/9dd9492b884a8f6e3246743587a6e88bb5cac586}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3309,6 +3316,8 @@ snapshots:
   '@humanwhocodes/module-importer@1.0.1': {}
 
   '@humanwhocodes/retry@0.4.3': {}
+
+  '@huponx/protogen@0.2.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

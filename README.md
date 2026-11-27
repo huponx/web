@@ -7,14 +7,14 @@ packages/auth-client   @huponx/auth-client  session client of the gateway: creat
                                             RequireAuth, Can, permission matcher
 packages/ui-kit        @huponx/ui-kit       shadcn/ui + Tailwind + Radix: components, light/dark/system theme, app shell
                                             (collapsible sidebar, header with breadcrumb and avatar menu); admin, auth, bill and dict
-apps/dict              dictionary: look words up (English, English-Vietnamese), save words, export an Anki deck,
-                                            copy input or result as an Anki card (routes `/api/dictionary/...`, permissions
-                                            `dictionary:word:read` and `:write`)
+apps/dict              dictionary: look words up, save words, export an Anki deck, copy input or result as an Anki card
+                                            (routes `/api/dictionary/...`, permissions `dictionary:word:read` and `:write`);
+                                            the dictionaries come from the registry of the service, see "Dictionaries" below
 apps/bill              same frame for the bill service (i18n en/vi, account menu with the way back to the portal; no business pages yet)
 apps/portal            the root domain (example.com): the apps the user may use (cards from `APPS`, filtered by permission),
                        profile (name, language, theme, picture), security (change password, link to MFA); see "Portal" below
 apps/admin             administration of identity: users, roles, clients, exchange policies, MFA per user
-apps/auth              the pages of sign in (login, MFA, forced password change, forgot/reset password, account MFA,
+apps/auth              the pages of sign in (login with a password or a passkey, MFA, forced password change, forgot/reset password, account MFA and passkeys,
                        sign out confirmation) with the same ui-kit; served by identity, see "Auth pages" below
 build/<app>/Dockerfile one image per app (nginx-unprivileged, port 8080); build/nginx has the shared config
 charts/<app>           Helm chart: the `web-application` chart as dependency (alias `application`)
@@ -28,6 +28,17 @@ The pages people see while signing in are not a service of their own: the identi
 same origin (so the `sid` and `csrf` cookies, the CSRF check and the redirects of the OAuth flow keep working with
 no CORS) and answers their JSON calls under `/auth-api/*`.
 
+- **Passkeys.** `Login` shows "Sign in with a passkey" first when the browser has `PublicKeyCredential` and the server has
+  passkeys on (`passkeys` in `GET /auth-api/ui-style`), the passkeys in the autofill list of the e-mail field
+  (`autocomplete="username webauthn"`, conditional mediation) and the password form below ("or use your password"). A
+  `huponx.passkey` flag in `localStorage` (set after a passkey login or registration) makes the button the focused
+  element. `LoginMfa` offers a code field, a passkey button, or both, as `GET /auth-api/login/mfa` answers
+  (`{totp, passkey}`). `/account/mfa` has the **Passkeys** section (list, add, rename, delete; the password is asked to add
+  and delete). The helper that talks to `navigator.credentials` (base64url, `parse*OptionsFromJSON` and `toJSON` with a
+  manual fallback) is `packages/ui-kit/src/lib/webauthn.ts`, shared with the portal. jsdom has no
+  `navigator.credentials`: the tests stub it (`Passkey.test.tsx`). `e2e/admin.spec.ts` drives Chrome's virtual
+  authenticator (`WebAuthn.addVirtualAuthenticator`), which answers the autofill request at once: a flag in the
+  `localStorage` of the identity origin turns that request off for the tests that click the button.
 - The paths are the ones identity always had (`/login`, `/login/mfa`, `/login/password`, `/password/forgot`,
   `/password/reset`, `/account/mfa`, `/register` when `IDENTITY_REGISTRATION_ENABLED`) plus `/logout` (confirmation) and `/error?e=<code>`.
 - The CI builds the image `ghcr.io/huponx/auth-ui:<tag>`; the identity Dockerfile copies its
@@ -61,7 +72,7 @@ so the apps are cross-origin with the gateway and use CORS with credentials. `cr
   ```
 
 The menu hides what the user cannot use (`<Can perm="identity:role:read">`), but that is only a courtesy: the
-gateway and the service check the permission again on every call (403). Permission syntax: colon segments,
+gateway and the service check the permission again on every call (403). Permission names are never typed in the apps: they are the generated constants `P.identity.userRead` (and the `Permission` union) of the package `@huponx/protogen`, re-exported by `@huponx/auth-client`, so `tsc` fails on a name that does not exist. The package is published to GitHub Packages (`.npmrc` sets the registry of the `@huponx` scope; `NODE_AUTH_TOKEN` with `read:packages` must be set, the shared `lang-setup` action does it in CI). A permission change reaches the apps by bumping that dependency (`packages/auth-client/package.json`; until the first `ts` tag of protogen exists the root `package.json` links the sibling checkout with `pnpm.overrides`, delete that override then). Permission syntax: colon segments,
 `*` alone is everything, a middle `*` is one segment, a trailing `*` is one or more.
 
 ## Runtime configuration
@@ -120,7 +131,18 @@ their own account. Local: `make dev-portal` (http://localhost:3004).
 - **Security** (`/security`): change the password (`POST /api/me/password`: current password, new password with the
   policy of identity; the answer ends every session, so the page offers "Sign in again") and multi-factor
   authentication on the page itself (`GET`/`POST /api/me/mfa`, `POST /api/me/mfa/disable`: QR code, first code,
-  recovery codes, turn off with password and code; hidden when MFA is off on the server).
+  recovery codes, turn off with password and code; hidden when MFA is off on the server) and a **Passkeys** card
+  (`GET`/`POST /api/me/passkeys`, `POST /api/me/passkeys/begin`, `PUT`/`DELETE /api/me/passkeys/{id}`: list, add with a name
+  and the current password, rename, delete with the password; hidden when the server has passkeys off). The browser runs
+  the WebAuthn ceremony on the portal's origin, so identity must list it in `IDENTITY_WEBAUTHN_ORIGINS` and the RP ID must
+  be a parent domain of it (`momofamily.top` for `momofamily.top` and `auth.momofamily.top`). The last card is **Active
+  sessions** (`GET /api/me/sessions`, `DELETE /api/me/sessions/{id}`, `POST /api/me/sessions/revoke-others`): one row per
+  sign in with the browser and OS, the IP, "last active", the date and how the user signed in, a "This device" badge, a menu
+  to sign out one session and a button for all the others. Both ask first; ending the current session says it signs the user
+  out now and reloads to the sign in. `SessionsPanel` (ui-kit) is shared with admin; the kit has no i18n, so the apps pass
+  `labels`. Admin shows the same card in **Settings**, and the **user page** has a read-only **Sessions** section
+  (`GET /api/users/{id}/sessions`, `identity:user:read`) with "Sign out of all sessions" (`DELETE /api/users/{id}/sessions`,
+  `identity:user:write`, with a confirmation).
 - All of them are public routes of the gateway (a signed in user, no permission). Registration is not here: a visitor has
   no session, so it lives in the sign in pages (`/register`, `POST /auth-api/register`, off unless
   `IDENTITY_REGISTRATION_ENABLED`).
@@ -134,7 +156,7 @@ their own account. Local: `make dev-portal` (http://localhost:3004).
 | --- | --- | --- |
 | Users | `identity:user:read` (+ write, role, mfa) | list with search by email prefix; **Add** (`/users/new`) and **Edit** (`/users/:id`) are pages of their own (breadcrumb Home > Users > Add/Edit): profile with a picture, language, roles as cards with a checkbox, disable/enable, resend welcome email, send password reset, MFA of the user |
 | Settings | none (any signed-in user) | **Profile**: own name and picture (`GET/PUT /api/me`, `PUT /api/me/avatar`; identity takes the user from the token), theme, language, session. The header reads the picture and name from `/api/me`. Changing the language also writes `identity_users.locale`; at the first load the language of the account is used unless this browser already has a choice (`lang-chosen` in localStorage) |
-| Roles & Permissions | `identity:role:read` (+ write); `identity:permission:read` (+ write) | two tabs. **Roles**: list with how many users/clients hold each role, **Add role** (`/roles/new`) and **Manage** (`/roles/:name`, breadcrumb Home > Roles & Permissions > Add/Edit) are pages of their own: description and permissions as checkboxes of the **permission catalog** (`identity_permissions`, grouped by prefix, wildcards such as `*` or `identity:*:read` included; without `identity:permission:read` the permissions are typed as text); a role can be deleted (list or its page) only while no user and no client holds it. **Permissions** (needs `identity:permission:read`): the add form on top, then the catalog; with `identity:permission:write` add, describe and delete entries (a permission held by a role cannot be deleted, a role cannot get a permission that is not in the catalog) |
+| Roles & Permissions | `identity:role:read` (+ write); `identity:permission:read` (+ write) | two tabs. **Roles**: list with how many users/clients hold each role, **Add role** (`/roles/new`) and **Manage** (`/roles/:name`, breadcrumb Home > Roles & Permissions > Add/Edit) are pages of their own: description and permissions as checkboxes of the **permission catalog** (`identity_permissions`, grouped by prefix, wildcards such as `*` or `identity:*:read` included; without `identity:permission:read` the permissions are typed as text); a role can be deleted (list or its page) only while no user and no client holds it. **Permissions** (needs `identity:permission:read`): the catalog, read only (the services declare their permissions in code and identity saves them at start): service, description, how many roles hold it, a "wildcard" mark for the generated wildcards and a "retired" badge for a permission no service declares any more. In the role editor the retired grants of a role appear in their own "Retired" group and are removed by clearing them |
 | Clients | `identity:client:read` (+ write) | list; **Add client** (`/clients/new`, secret shown once) and **Manage** (`/clients/:id`) are pages of their own: name, redirect and logout URIs, grants, scopes, resource and roles (cards, like the user page) can be changed, the id and the type cannot; rotate the secret; **Disable/Enable** and **Delete** (only a disabled client, typing its id; roles and exchange policies of the client go with it; never the client of your own session) |
 | Exchange policies | `identity:exchange:read` (+ write) | list with a search (client, audience or scope) and an Audience filter, both answered by the backend; **Add policy** (`/exchange/new`) and **Manage** (`/exchange/edit?client=&audience=`) are pages of their own: max scope and chain depth can be changed, the client and the audience (the key) cannot; delete from the list or from the page |
 
@@ -175,6 +197,30 @@ in `packages/ui-kit/src/styles.css` (`:root` and `.dark`).
 - **Add a shadcn component**: `components.json` of `packages/ui-kit` is set up for the shadcn CLI (Vite, no RSC),
   but the kit imports with relative paths, not the `@/` alias (the alias belongs to the admin app). After adding a
   component with the CLI, change its `@/` imports to relative ones and export it from `src/index.ts`.
+
+## Dictionaries (`apps/dict`, `apps/admin`)
+
+Nothing about a dictionary is hard-coded in the web: the apps render what `GET /api/dictionary/dictionaries` answers
+(`{groups: [{id, dictionaries: [{id, group, source, target, enabled}]}]}`, in registry order, permission
+`dictionary:word:read`).
+
+- **Groups**: a saved word belongs to a group (`en` = `english` + `english-vietnamese`); the dictionaries of a group merge into
+  one card, and every call that names a saved word or lists them carries `group` (query string for GET and DELETE, body for
+  POST and PUT). Lookup, Saved words and Review share one active group (`RegistryProvider`, `src/lib/registry.tsx`), which
+  starts as the group of the default dictionary of the user. `GroupSwitcher` picks it and renders nothing with one group;
+  the groups it offers are those with a dictionary that is on for the user.
+- **Lookup**: the tabs are the enabled dictionaries of the active group; Save fetches every dictionary of the group in
+  registry order (a `not_found` or `dictionary_disabled` answer leaves that part out) and sends the card with the group.
+- **Settings**: both the user Settings page (dict) and the admin page (Dictionary) show one switch per registry entry,
+  grouped by group. The settings carry `dictionaries: {<id>: bool}` (a missing id is on); the user settings also carry
+  `defaultDictionary` (an id). The admin switches start from the system map of `GET /api/dictionary/settings`; the
+  registry only gives the list, order and groups (its `enabled` is the value for the caller).
+- **Names**: a dictionary is named by the i18n key `lookup.dictionaries.<id>` and a group by `lookup.groups.<id>` (both
+  apps, en and vi); an id without a translation is shown as the id, so a new dictionary needs no web change to appear.
+- **Cards** (`apps/dict/src/anki.ts`): `partRenderers` maps a dictionary id to the function that turns its entry into the
+  part of the card (`english`, `english-vietnamese`); an id without an entry uses `genericPart` (the first part of the
+  card has the phonetics and the audio placeholders, the later ones leave them out). `joinParts(parts)` joins the non-empty
+  parts with `<hr>`. Add a renderer only when a dictionary needs its own layout.
 
 ## Tests
 

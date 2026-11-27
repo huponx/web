@@ -21,6 +21,7 @@ import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
   DEFAULT_DECK,
+  dictionaryOn,
   MAX_DESIRED_RETENTION,
   MAX_LOOKUP_WORDS,
   MAX_REVIEW_MAX_PER_DAY,
@@ -29,13 +30,13 @@ import {
   useDictionary,
 } from "../api";
 import type {
-  Dictionary,
   OptimizeResult,
   ReviewAlgorithm,
   UserSettings,
 } from "../api";
 import { formatBytes } from "../lib/bytes";
 import { errorMessage } from "../lib/errors";
+import { dictionaryLabel, groupLabel, useRegistry } from "../lib/registry";
 import { useSettings } from "../lib/settings";
 import { nearlyFull, useStorage } from "../lib/useStorage";
 
@@ -214,6 +215,7 @@ export function SettingsForm() {
   const { t } = useTranslation();
   const { settings, save } = useSettings();
   const { user, system } = settings;
+  const { all: registry } = useRegistry();
   const [draft, setDraft] = useState<UserSettings>(user);
   // text of the number field, so it can be empty or half typed
   const [words, setWords] = useState(String(user.maxLookupWords));
@@ -224,13 +226,15 @@ export function SettingsForm() {
   const [error, setError] = useState<unknown>();
   const [done, setDone] = useState<{ at: number }>();
 
-  const on = (d: Dictionary) =>
-    d === "DICTIONARY_ENGLISH"
-      ? draft.englishEnabled && system.englishEnabled
-      : draft.englishViEnabled && system.englishViEnabled;
-  const enabled = (
-    ["DICTIONARY_ENGLISH", "DICTIONARY_ENGLISH_VIETNAMESE"] as const
-  ).filter(on);
+  const dictionaries = registry.flatMap((g) => g.dictionaries);
+  const offByAdmin = (id: string) => !dictionaryOn(system.dictionaries, id);
+  const on = (id: string) =>
+    dictionaryOn(draft.dictionaries, id) && !offByAdmin(id);
+  const enabled = dictionaries.filter((d) => on(d.id));
+  // the default is shown as the one that is on: an empty one stands for the first
+  const defaultId = (
+    enabled.find((d) => d.id === draft.defaultDictionary) ?? enabled[0]
+  )?.id;
   const n = Number(words);
   const wordsOk = Number.isInteger(n) && n >= 1 && n <= MAX_LOOKUP_WORDS;
   const perDay = Number(newPerDay);
@@ -260,24 +264,15 @@ export function SettingsForm() {
     maxPerDayOk &&
     (!fsrs || retentionOk);
 
-  function toggle(d: Dictionary, v: boolean) {
+  function toggle(id: string, v: boolean) {
     setDraft((cur) => {
-      const next =
-        d === "DICTIONARY_ENGLISH"
-          ? { ...cur, englishEnabled: v }
-          : { ...cur, englishViEnabled: v };
+      const next = { ...cur, dictionaries: { ...cur.dictionaries, [id]: v } };
       // the default has to be one that is on
-      const stillOn = (x: Dictionary) =>
-        x === "DICTIONARY_ENGLISH"
-          ? next.englishEnabled && system.englishEnabled
-          : next.englishViEnabled && system.englishViEnabled;
-      if (!stillOn(next.defaultDictionary)) {
-        const other: Dictionary =
-          next.defaultDictionary === "DICTIONARY_ENGLISH"
-            ? "DICTIONARY_ENGLISH_VIETNAMESE"
-            : "DICTIONARY_ENGLISH";
-        if (stillOn(other)) next.defaultDictionary = other;
-      }
+      const stillOn = (x: string) =>
+        dictionaryOn(next.dictionaries, x) && !offByAdmin(x);
+      if (next.defaultDictionary && !stillOn(next.defaultDictionary))
+        next.defaultDictionary =
+          dictionaries.find((d) => stillOn(d.id))?.id ?? "";
       return next;
     });
   }
@@ -288,6 +283,13 @@ export function SettingsForm() {
     try {
       await save({
         ...draft,
+        // only the dictionaries the administrator left on are the user's to switch
+        dictionaries: Object.fromEntries(
+          dictionaries
+            .filter((d) => !offByAdmin(d.id))
+            .map((d) => [d.id, dictionaryOn(draft.dictionaries, d.id)]),
+        ),
+        defaultDictionary: draft.defaultDictionary && defaultId ? defaultId : "",
         deckName: draft.deckName.trim(),
         maxLookupWords: n,
         reviewNewPerDay: perDay,
@@ -311,18 +313,22 @@ export function SettingsForm() {
           <CardDescription>{t("settings.dictionariesHint")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <DictionaryRow
-            label={t("lookup.english")}
-            checked={draft.englishEnabled}
-            onChange={(v) => toggle("DICTIONARY_ENGLISH", v)}
-            offByAdmin={!system.englishEnabled}
-          />
-          <DictionaryRow
-            label={t("lookup.englishVietnamese")}
-            checked={draft.englishViEnabled}
-            onChange={(v) => toggle("DICTIONARY_ENGLISH_VIETNAMESE", v)}
-            offByAdmin={!system.englishViEnabled}
-          />
+          {registry.map((g) => (
+            <div key={g.id} className="space-y-3" data-testid={`group-${g.id}`}>
+              <h3 className="text-sm font-medium text-muted-foreground">
+                {groupLabel(t, g.id)}
+              </h3>
+              {g.dictionaries.map((d) => (
+                <DictionaryRow
+                  key={d.id}
+                  label={dictionaryLabel(t, d.id)}
+                  checked={dictionaryOn(draft.dictionaries, d.id)}
+                  onChange={(v) => toggle(d.id, v)}
+                  offByAdmin={offByAdmin(d.id)}
+                />
+              ))}
+            </div>
+          ))}
           {enabled.length === 0 ? (
             <p className="text-sm text-destructive">{t("settings.oneOn")}</p>
           ) : null}
@@ -332,28 +338,19 @@ export function SettingsForm() {
               <ToggleGroup
                 type="single"
                 aria-labelledby="default-dictionary"
-                value={
-                  enabled.includes(draft.defaultDictionary)
-                    ? draft.defaultDictionary
-                    : ""
-                }
+                value={defaultId ?? ""}
                 onValueChange={(v) =>
                   v &&
-                  setDraft((cur) => ({
-                    ...cur,
-                    defaultDictionary: v as Dictionary,
-                  }))
+                  setDraft((cur) => ({ ...cur, defaultDictionary: v }))
                 }
               >
                 {enabled.map((d) => (
                   <ToggleGroupItem
-                    key={d}
-                    value={d}
+                    key={d.id}
+                    value={d.id}
                     className="w-auto px-3 text-sm"
                   >
-                    {d === "DICTIONARY_ENGLISH"
-                      ? t("lookup.english")
-                      : t("lookup.englishVietnamese")}
+                    {dictionaryLabel(t, d.id)}
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>

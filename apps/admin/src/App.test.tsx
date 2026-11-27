@@ -1,7 +1,7 @@
 import { AuthProvider, createClient } from "@huponx/auth-client";
 import { StyleProvider, ThemeProvider } from "@huponx/ui-kit";
 import type { Me } from "@huponx/auth-client";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
@@ -13,11 +13,29 @@ interface Call {
   body?: string;
 }
 
+/** The registry the service answers by default: one group with the two dictionaries. */
+const EN_GROUPS = [
+  {
+    id: "en",
+    dictionaries: [
+      { id: "english", group: "en", source: "en", target: "en", enabled: true },
+      {
+        id: "english-vietnamese",
+        group: "en",
+        source: "en",
+        target: "vi",
+        enabled: true,
+      },
+    ],
+  },
+];
+
 function renderApp(
   perms: string[],
   route = "/",
   answer: (c: Call) => unknown = () => ({}),
   profile: Partial<Me> = {},
+  groups: unknown[] = EN_GROUPS,
 ) {
   const calls: Call[] = [];
   const me: Me = {
@@ -45,6 +63,9 @@ function renderApp(
           }),
           { status: 200 },
         );
+      // the registry of the dictionaries is read by the dictionary page; it is not a call the tests count
+      if (u.endsWith("/api/dictionary/dictionaries"))
+        return new Response(JSON.stringify({ groups }), { status: 200 });
       const call = {
         method: init?.method ?? "GET",
         url: u,
@@ -80,17 +101,28 @@ describe("user menu", () => {
   });
 
   it("links back to the portal when PORTAL_URL is configured", async () => {
-    window.__env__ = { API_BASE: "https://api.example.com", PORTAL_URL: "https://example.com" };
+    window.__env__ = {
+      API_BASE: "https://api.example.com",
+      PORTAL_URL: "https://example.com",
+    };
     renderApp([]);
-    await userEvent.setup().click(await screen.findByRole("button", { name: "User menu" }));
-    expect(await screen.findByRole("menuitem", { name: "Back to the portal" })).toHaveAttribute("href", "https://example.com/");
+    await userEvent
+      .setup()
+      .click(await screen.findByRole("button", { name: "User menu" }));
+    expect(
+      await screen.findByRole("menuitem", { name: "Back to the portal" }),
+    ).toHaveAttribute("href", "https://example.com/");
   });
 
   it("has no such item without PORTAL_URL", async () => {
     renderApp([]);
-    await userEvent.setup().click(await screen.findByRole("button", { name: "User menu" }));
+    await userEvent
+      .setup()
+      .click(await screen.findByRole("button", { name: "User menu" }));
     await screen.findByRole("menuitem", { name: "Sign out" });
-    expect(screen.queryByRole("menuitem", { name: "Back to the portal" })).toBeNull();
+    expect(
+      screen.queryByRole("menuitem", { name: "Back to the portal" }),
+    ).toBeNull();
   });
 });
 
@@ -340,21 +372,6 @@ describe("roles page", () => {
     expect(await screen.findByText("Role support deleted.")).toBeTruthy();
   });
 
-  it("shows a notice after the description of a permission is edited", async () => {
-    renderApp(["identity:role:*", "identity:permission:*"], "/roles", answer);
-    const user = userEvent.setup();
-    await user.click(await screen.findByRole("tab", { name: "Permissions" }));
-    await user.click(
-      await screen.findByRole("button", { name: "Edit identity:user:write" }),
-    );
-    const dialog = await screen.findByRole("dialog");
-    await user.type(within(dialog).getByLabelText("Description"), " x");
-    await user.click(within(dialog).getByRole("button", { name: "Save" }));
-    expect(
-      await screen.findByText("Permission identity:user:write updated."),
-    ).toBeTruthy();
-  });
-
   it("adds a role with the permissions typed (no catalog right)", async () => {
     const calls = renderApp(["identity:role:*"], "/roles/new", answer);
     const user = userEvent.setup();
@@ -544,50 +561,112 @@ describe("roles page", () => {
     expect(screen.queryByRole("tab", { name: "Permissions" })).toBeNull();
   });
 
-  it("manages the catalog: adds, and deletes only what no role holds", async () => {
+  it("shows the catalog read only, with the service, the wildcards and the retired ones", async () => {
     const calls = renderApp(
-      ["identity:role:read", "identity:permission:*"],
+      ["identity:role:read", "identity:permission:read"],
       "/roles",
-      answer,
+      (c) =>
+        /\/api\/permissions(\?|$)/.test(c.url) && c.method === "GET"
+          ? {
+              permissions: [
+                {
+                  name: "*",
+                  description: "Everything",
+                  roleCount: "1",
+                  wildcard: true,
+                },
+                {
+                  name: "identity:user:read",
+                  description: "Read users",
+                  roleCount: "1",
+                  service: "identity",
+                },
+                {
+                  name: "identity:user:purge",
+                  description: "Purge",
+                  roleCount: "1",
+                  service: "identity",
+                  retired: true,
+                },
+              ],
+            }
+          : answer(c),
     );
     const user = userEvent.setup();
     await user.click(await screen.findByRole("tab", { name: "Permissions" }));
-    // the add form comes before the list
-    const addForm = await screen.findByRole("button", {
-      name: "Add permission",
-    });
-    const firstRow = (await screen.findByRole("button", {
-      name: "Delete identity:user:read",
-    })) as HTMLButtonElement;
+    expect(await screen.findByText("identity:user:read")).toBeTruthy();
+    expect(screen.getByText("wildcard")).toBeTruthy();
+    expect(screen.getByText("retired")).toBeTruthy();
+    // nothing to add, edit or delete: the services declare the permissions
     expect(
-      addForm.compareDocumentPosition(firstRow) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      screen.queryByRole("button", { name: /add permission/i }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /^(edit|delete) /i }),
+    ).toBeNull();
+    expect(calls.some((c) => c.method !== "GET")).toBe(false);
+  });
+
+  it("offers no retired permission in the role editor and shows the retired grants of the role so they can be removed", async () => {
+    const calls = renderApp(
+      ["identity:role:*", "identity:permission:read"],
+      "/roles/support",
+      (c) => {
+        if (/\/api\/permissions(\?|$)/.test(c.url) && c.method === "GET")
+          return {
+            permissions: [
+              {
+                name: "identity:user:read",
+                description: "Read users",
+                service: "identity",
+              },
+              {
+                name: "identity:user:write",
+                description: "Change users",
+                service: "identity",
+              },
+              {
+                name: "identity:user:purge",
+                description: "Purge",
+                service: "identity",
+                retired: true,
+              },
+            ],
+          };
+        if (/\/api\/roles(\?|$)/.test(c.url) && c.method === "GET")
+          return {
+            roles: [
+              {
+                name: "support",
+                description: "Helpdesk",
+                permissions: ["identity:user:purge", "identity:user:read"],
+                retiredPermissions: ["identity:user:purge"],
+                assignedCount: "0",
+              },
+            ],
+          };
+        return {};
+      },
+    );
+    const user = userEvent.setup();
+    const retired = await screen.findByRole("checkbox", {
+      name: /identity:user:purge/,
+    });
+    expect(retired.getAttribute("data-state")).toBe("checked");
+    expect(
+      screen.getByRole("checkbox", { name: "identity:user:write" }),
     ).toBeTruthy();
-    expect(firstRow.disabled).toBe(true);
-    const del = screen.getByRole("button", {
-      name: "Delete identity:user:write",
+    // the retired permission appears once, in its own group
+    expect(
+      screen.getAllByRole("checkbox", { name: /identity:user:purge/ }),
+    ).toHaveLength(1);
+    await user.click(retired);
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    const put = calls.find((c) => c.method === "PUT");
+    expect(JSON.parse(put!.body!)).toEqual({
+      description: "Helpdesk",
+      permissions: ["identity:user:read"],
     });
-    expect((del as HTMLButtonElement).disabled).toBe(false);
-
-    await user.type(screen.getByLabelText("Permission"), "bill:invoice:read");
-    await user.type(
-      screen.getAllByLabelText("Description")[0]!,
-      "Read invoices",
-    );
-    await user.click(screen.getByRole("button", { name: "Add permission" }));
-    const post = calls.find((c) => c.method === "POST");
-    expect(post?.url).toBe("https://api.example.com/api/permissions");
-    expect(JSON.parse(post!.body!)).toEqual({
-      permission: { name: "bill:invoice:read", description: "Read invoices" },
-    });
-
-    await user.click(del);
-    const dialog = await screen.findByRole("alertdialog");
-    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
-    const sent = calls.find((c) => c.method === "DELETE");
-    expect(sent?.url).toBe(
-      "https://api.example.com/api/permissions/identity%3Auser%3Awrite",
-    );
   });
 });
 
@@ -1175,8 +1254,7 @@ describe("dictionary settings page", () => {
     maxSavedWords: 100,
     allowExportDeck: true,
     allowExportLink: true,
-    englishEnabled: true,
-    englishViEnabled: true,
+    dictionaries: { english: true, "english-vietnamese": true },
     removeAfterExport: true,
     exportedRetentionHours: 168,
     maxCategories: 50,
@@ -1222,7 +1300,7 @@ describe("dictionary settings page", () => {
     await user.type(max, "250");
     await user.click(screen.getByRole("switch", { name: "Export as link" }));
     await user.click(
-      screen.getByRole("switch", { name: "English-Vietnamese" }),
+      screen.getByRole("switch", { name: "English - Vietnamese" }),
     );
     await user.click(
       screen.getByRole("switch", { name: "Remove saved words after export" }),
@@ -1246,8 +1324,7 @@ describe("dictionary settings page", () => {
         max_saved_words: 250,
         allow_export_deck: true,
         allow_export_link: false,
-        english_enabled: true,
-        english_vi_enabled: false,
+        dictionaries: { english: true, "english-vietnamese": false },
         remove_after_export: false,
         exported_retention_hours: 48,
         max_categories: 20,
@@ -1362,7 +1439,7 @@ describe("dictionary settings page", () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole("switch", { name: "English" }));
     await user.click(
-      screen.getByRole("switch", { name: "English-Vietnamese" }),
+      screen.getByRole("switch", { name: "English - Vietnamese" }),
     );
     expect(
       (
@@ -1371,6 +1448,54 @@ describe("dictionary settings page", () => {
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
+  });
+
+  it("shows one switch per dictionary of the registry, by group, and an id without a name by the id", async () => {
+    const groups = [
+      ...EN_GROUPS,
+      {
+        id: "x",
+        dictionaries: [
+          {
+            id: "test-x",
+            group: "x",
+            source: "xx",
+            target: "xx",
+            enabled: true,
+          },
+        ],
+      },
+    ];
+    const calls = renderApp(
+      ["dictionary:settings:*"],
+      "/dictionary",
+      (c: Call) =>
+        c.method === "GET"
+          ? {
+              settings: {
+                ...settings,
+                dictionaries: { ...settings.dictionaries, "test-x": true },
+              },
+            }
+          : { settings },
+      {},
+      groups,
+    );
+    const user = userEvent.setup();
+    const en = await screen.findByTestId("group-en");
+    expect(within(en).getByRole("heading", { name: "English" })).toBeTruthy();
+    expect(within(en).getAllByRole("switch")).toHaveLength(2);
+    const x = screen.getByTestId("group-x");
+    // no translation for the group or the dictionary: the id stands in
+    expect(within(x).getByRole("heading", { name: "x" })).toBeTruthy();
+    await user.click(within(x).getByRole("switch", { name: "test-x" }));
+    await user.click(screen.getByRole("button", { name: "Save settings" }));
+    const put = JSON.parse(calls.find((c) => c.method === "PUT")!.body!);
+    expect(put.settings.dictionaries).toEqual({
+      english: true,
+      "english-vietnamese": true,
+      "test-x": false,
+    });
   });
 
   it("is read only with only the read permission", async () => {
@@ -1468,6 +1593,46 @@ describe("system style card", () => {
   });
 });
 
+describe("registration settings card", () => {
+  it("shows the stored switch, and saves the new value", async () => {
+    const calls = renderApp(
+      ["identity:settings:write", "identity:settings:read"],
+      "/system",
+      (c) =>
+        c.url.endsWith("/api/registration-settings") && c.method === "GET"
+          ? { requiresApproval: true, registrationEnabled: true }
+          : { requiresApproval: false, registrationEnabled: true },
+    );
+    const user = userEvent.setup();
+    const card = await screen.findByTestId("registration-card");
+    const sw = await within(card).findByRole("switch", {
+      name: "Registration requires approval",
+    });
+    await waitFor(() => expect(sw.getAttribute("aria-checked")).toBe("true"));
+    await user.click(sw);
+    await user.click(within(card).getByRole("button", { name: "Save" }));
+    const put = calls.find(
+      (c) => c.method === "PUT" && c.url.endsWith("/api/registration-settings"),
+    );
+    expect(JSON.parse(put!.body!)).toEqual({ requires_approval: false });
+    expect(
+      await screen.findByText("Registration settings saved."),
+    ).toBeTruthy();
+  });
+
+  it("says so when registration is turned off on the server", async () => {
+    renderApp(
+      ["identity:settings:write", "identity:settings:read"],
+      "/system",
+      (c) =>
+        c.url.endsWith("/api/registration-settings")
+          ? { requiresApproval: true }
+          : {},
+    );
+    expect(await screen.findByText(/turned off on the server/)).toBeTruthy();
+  });
+});
+
 describe("dictionary storage of a user", () => {
   const MIB = 1024 * 1024;
   const quota = (over: Record<string, string> = {}) => ({
@@ -1494,11 +1659,20 @@ describe("dictionary storage of a user", () => {
   const answer = (c: Call) =>
     c.url.endsWith("/api/users/u1")
       ? { user }
-      : c.url.endsWith("/quota")
-        ? c.method === "PUT"
-          ? quota({ image: String(50 * MIB) })
-          : quota()
-        : {};
+      : c.url.endsWith("/storage/recalculate")
+        ? {
+            ...quota(),
+            previous: {
+              content: String(12 * 1024),
+              image: String(9 * MIB),
+              audio: "0",
+            },
+          }
+        : c.url.endsWith("/quota")
+          ? c.method === "PUT"
+            ? quota({ image: String(50 * MIB) })
+            : quota()
+          : {};
 
   it("shows what the user stores against the limit and sets an own limit", async () => {
     const calls = renderApp(
@@ -1516,7 +1690,9 @@ describe("dictionary storage of a user", () => {
     );
     await u.type(within(image).getByLabelText("Own limit (MiB)"), "50");
     await u.click(screen.getByRole("button", { name: "Save limits" }));
-    const put = calls.find((c) => c.method === "PUT" && c.url.endsWith("/quota"));
+    const put = calls.find(
+      (c) => c.method === "PUT" && c.url.endsWith("/quota"),
+    );
     expect(put!.url).toBe(
       "https://api.example.com/api/dictionary/users/u1/quota",
     );
@@ -1527,6 +1703,38 @@ describe("dictionary storage of a user", () => {
     expect(screen.getByTestId("quota-image-usage").textContent).toContain(
       "(own limit)",
     );
+  });
+
+  it("recalculates the storage of the user and shows what changed", async () => {
+    const calls = renderApp(
+      ["identity:user:read", "dictionary:settings:*"],
+      "/users/u1",
+      answer,
+    );
+    const u = userEvent.setup();
+    await screen.findByTestId("quota-image");
+    await u.click(screen.getByRole("button", { name: "Recalculate" }));
+    const post = calls.find(
+      (c) => c.method === "POST" && c.url.endsWith("/storage/recalculate"),
+    );
+    expect(post!.url).toBe(
+      "https://api.example.com/api/dictionary/users/u1/storage/recalculate",
+    );
+    expect(
+      await screen.findByText(
+        /Storage recalculated\. Changed: Images: 9 MiB → 3 MiB\./,
+      ),
+    ).toBeTruthy();
+  });
+
+  it("has no recalculate button with only the read permission", async () => {
+    renderApp(
+      ["identity:user:read", "dictionary:settings:read"],
+      "/users/u1",
+      answer,
+    );
+    await screen.findByTestId("quota-image");
+    expect(screen.queryByRole("button", { name: "Recalculate" })).toBeNull();
   });
 
   it("is hidden without dictionary:settings:read and read only without write", async () => {

@@ -1,4 +1,4 @@
-import { Can, RequireAuth, useAuth } from "@huponx/auth-client";
+import { Can, P, RequireAuth, useAuth } from "@huponx/auth-client";
 import {
   AppShell,
   Button,
@@ -23,6 +23,7 @@ import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { AccountMenu } from "./AccountMenu";
 import { DictLogo } from "./Logo";
 import { Lookup, LookupMemoProvider } from "./pages/Lookup";
+import { RegistryProvider } from "./lib/registry";
 import { SettingsProvider } from "./lib/settings";
 import { RemovePrompt } from "./RemovePrompt";
 import { Review } from "./pages/Review";
@@ -52,7 +53,7 @@ function Shell() {
 
   // the menu only shows what the user may use; the gateway checks the permission again
   const items: NavItem[] = [];
-  if (can("dictionary:word:read")) {
+  if (can(P.dictionary.wordRead)) {
     items.push({
       to: "/",
       label: t("nav.lookup"),
@@ -75,7 +76,7 @@ function Shell() {
   }
 
   // pinned to the bottom of the sidebar, like the admin app
-  const bottomItems: NavItem[] = can("dictionary:word:read")
+  const bottomItems: NavItem[] = can(P.dictionary.wordRead)
     ? [
         {
           to: "/settings",
@@ -112,59 +113,61 @@ function Shell() {
   const denied = <Message>{t("common.notAllowed")}</Message>;
   return (
     <SettingsProvider>
-      <RemovePrompt />
-      <LookupMemoProvider>
-        <AppShell
-          pageKey={pathname}
-          brand={t("shell.brand")}
-          logo={<DictLogo />}
-          items={items}
-          bottomItems={bottomItems}
-          breadcrumbs={breadcrumbs}
-          link={link}
-          labels={labels}
-          userMenu={<AccountMenu />}
-        >
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <Can perm="dictionary:word:read" fallback={denied}>
-                  <Lookup />
-                </Can>
-              }
-            />
-            <Route
-              path="/saved"
-              element={
-                <Can perm="dictionary:word:read" fallback={denied}>
-                  <Saved />
-                </Can>
-              }
-            />
-            <Route
-              path="/review"
-              element={
-                <Can perm="dictionary:word:read" fallback={denied}>
-                  <Review />
-                </Can>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <Can perm="dictionary:word:read" fallback={denied}>
-                  <Settings />
-                </Can>
-              }
-            />
-            <Route
-              path="*"
-              element={<Message>{t("common.notFound")}</Message>}
-            />
-          </Routes>
-        </AppShell>
-      </LookupMemoProvider>
+      <RegistryProvider>
+        <RemovePrompt />
+        <LookupMemoProvider>
+          <AppShell
+            pageKey={pathname}
+            brand={t("shell.brand")}
+            logo={<DictLogo />}
+            items={items}
+            bottomItems={bottomItems}
+            breadcrumbs={breadcrumbs}
+            link={link}
+            labels={labels}
+            userMenu={<AccountMenu />}
+          >
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <Can perm={P.dictionary.wordRead} fallback={denied}>
+                    <Lookup />
+                  </Can>
+                }
+              />
+              <Route
+                path="/saved"
+                element={
+                  <Can perm={P.dictionary.wordRead} fallback={denied}>
+                    <Saved />
+                  </Can>
+                }
+              />
+              <Route
+                path="/review"
+                element={
+                  <Can perm={P.dictionary.wordRead} fallback={denied}>
+                    <Review />
+                  </Can>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <Can perm={P.dictionary.wordRead} fallback={denied}>
+                    <Settings />
+                  </Can>
+                }
+              />
+              <Route
+                path="*"
+                element={<Message>{t("common.notFound")}</Message>}
+              />
+            </Routes>
+          </AppShell>
+        </LookupMemoProvider>
+      </RegistryProvider>
     </SettingsProvider>
   );
 }
@@ -174,6 +177,7 @@ export function App() {
   return (
     <RequireAuth
       loading={<Message>{t("common.signingIn")}</Message>}
+      signingOut={<Message>{t("common.signingOut")}</Message>}
       error={({ message, retry }) => (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
           <p>{message}</p>

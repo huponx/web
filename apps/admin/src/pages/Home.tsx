@@ -1,5 +1,5 @@
-import { useAuth } from "@huponx/auth-client";
-import { Badge, Button, buttonVariants, Card, CardContent, cn, Tip, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useLoad } from "@huponx/ui-kit";
+import { P, useAuth } from "@huponx/auth-client";
+import { Badge, Button, buttonVariants, Card, CardContent, cn, iconTone, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tip, useLoad } from "@huponx/ui-kit";
 import { Plus, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -44,15 +44,15 @@ function Stats() {
   const { t } = useTranslation();
   const api = useIdentity();
   const { can } = useAuth();
-  const users = useLoad(() => (can("identity:user:read") ? api.getUserStats() : Promise.resolve(undefined)), [api, can]);
-  const roles = useLoad(() => (can("identity:role:read") ? api.countRoles() : Promise.resolve(undefined)), [api, can]);
-  const perms = useLoad(() => (can("identity:permission:read") ? api.countPermissions() : Promise.resolve(undefined)), [api, can]);
+  const users = useLoad(() => (can(P.identity.userRead) ? api.getUserStats() : Promise.resolve(undefined)), [api, can]);
+  const roles = useLoad(() => (can(P.identity.roleRead) ? api.countRoles() : Promise.resolve(undefined)), [api, can]);
+  const perms = useLoad(() => (can(P.identity.permissionRead) ? api.countPermissions() : Promise.resolve(undefined)), [api, can]);
   const s = users.data;
   const total = num(s?.total);
   const active = num(s?.active);
   const percent = total === 0 ? 0 : Math.round((active / total) * 100);
   return (
-    <section aria-label={t("home.stats.users")} className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+    <section aria-label={t("home.stats.users")} className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
       {users.error ? <ErrorAlert error={users.error} /> : null}
       {s ? (
         <>
@@ -69,16 +69,25 @@ function Stats() {
           to="/roles"
         />
       ) : null}
+      {s ? (
+        <StatCard
+          id="awaiting-approval"
+          label={t("home.stats.awaitingApproval")}
+          value={num(s.awaitingApproval)}
+          hint={t("home.stats.awaitingApprovalHint")}
+          to="/users?status=awaiting_approval"
+        />
+      ) : null}
       {s ? <StatCard id="pending" label={t("home.stats.pending")} value={num(s.pending)} hint={t("home.stats.pendingHint")} to="/users?status=pending" /> : null}
     </section>
   );
 }
 
 const quick = [
-  { id: "add-user", to: "/users/new", perm: "identity:user:write", key: "home.quick.addUser" },
-  { id: "create-role", to: "/roles/new", perm: "identity:role:write", key: "home.quick.createRole" },
-  { id: "add-client", to: "/clients/new", perm: "identity:client:write", key: "home.quick.addClient" },
-  { id: "add-exchange", to: "/exchange/new", perm: "identity:exchange:write", key: "home.quick.addExchange" },
+  { id: "add-user", to: "/users/new", perm: P.identity.userWrite, key: "home.quick.addUser" },
+  { id: "create-role", to: "/roles/new", perm: P.identity.roleWrite, key: "home.quick.createRole" },
+  { id: "add-client", to: "/clients/new", perm: P.identity.clientWrite, key: "home.quick.addClient" },
+  { id: "add-exchange", to: "/exchange/new", perm: P.identity.exchangeWrite, key: "home.quick.addExchange" },
 ] as const;
 
 function QuickActions() {
@@ -92,7 +101,7 @@ function QuickActions() {
       <div className="flex flex-wrap gap-2">
         {allowed.map((q) => (
           <Link key={q.id} to={q.to} data-testid={`quick-${q.id}`} className={buttonVariants({ variant: "outline" })}>
-            <Plus aria-hidden="true" />
+            <Plus aria-hidden="true" className={iconTone.add} />
             {t(q.key)}
           </Link>
         ))}
@@ -139,7 +148,7 @@ function SystemStatus() {
   const { t, i18n } = useTranslation();
   const api = useIdentity();
   const { can } = useAuth();
-  const allowed = can("system:status:read");
+  const allowed = can(P.system.statusRead);
   const status = useLoad(() => (allowed ? api.systemStatus() : Promise.resolve(undefined)), [api, allowed]);
   if (!allowed) return null;
   if (status.error) {
@@ -158,7 +167,7 @@ function SystemStatus() {
           {t("home.system.summary", { count: apps.length })}
         </h2>
         <Button variant="ghost" size="sm" onClick={status.reload} aria-label={t("home.system.refresh")}>
-          <RefreshCw aria-hidden="true" />
+          <RefreshCw aria-hidden="true" className={iconTone.refresh} />
           {t("home.system.refresh")}
         </Button>
       </div>

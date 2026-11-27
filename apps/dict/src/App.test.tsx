@@ -12,6 +12,7 @@ import { vi } from "vitest";
 import type * as AudioUrl from "./lib/audioUrl";
 import { probeAudio } from "./lib/audioUrl";
 import { fireEvent } from "@testing-library/react";
+import type { DictionaryGroup } from "./api";
 
 // a jsdom audio element never loads: the check of an audio address is answered by the tests
 vi.mock("./lib/audioUrl", async (orig) => ({
@@ -42,6 +43,29 @@ interface Call {
   body?: unknown;
 }
 
+const dictionary = (id: string, group: string, source: string, target: string) => ({
+  id,
+  group,
+  source,
+  target,
+  enabled: true,
+});
+
+/** The registry the service answers by default: one group with the two dictionaries. */
+const EN_GROUP: DictionaryGroup = {
+  id: "en",
+  dictionaries: [
+    dictionary("english", "en", "en", "en"),
+    dictionary("english-vietnamese", "en", "en", "vi"),
+  ],
+};
+
+/** A made up group with a dictionary no renderer knows, to prove that nothing is hard-coded. */
+const X_GROUP: DictionaryGroup = {
+  id: "x",
+  dictionaries: [dictionary("test-x", "x", "xx", "xx")],
+};
+
 function setup(
   perms: string[],
   route: (
@@ -50,6 +74,7 @@ function setup(
     | { status?: number; body: unknown; wait?: Promise<unknown> }
     | undefined = () => undefined,
   start = "/",
+  groups: DictionaryGroup[] = [EN_GROUP],
 ) {
   const calls: Call[] = [];
   const me: Me = {
@@ -73,17 +98,22 @@ function setup(
           JSON.stringify({ uiStyle: "saas", uiPalettes: {} }),
           { status: 200 },
         );
+      // the registry is read at start-up by every user, not a call the tests count
+      if (url.pathname === "/api/dictionary/dictionaries")
+        return new Response(JSON.stringify({ groups }), { status: 200 });
       // which of the words are saved: answered from the list the test serves for GET /saved (not a counted call)
       if (
         init?.method === "POST" &&
         url.pathname === "/api/dictionary/saved/check"
       ) {
-        const names = (
-          (JSON.parse(String(init.body)) as { words: string[] }).words ?? []
-        ).map((w) => w.trim().toLowerCase());
+        const asked = JSON.parse(String(init.body)) as {
+          words: string[];
+          group: string;
+        };
+        const names = (asked.words ?? []).map((w) => w.trim().toLowerCase());
         const list = route({
           method: "GET",
-          path: "/api/dictionary/saved?pageSize=50",
+          path: `/api/dictionary/saved?group=${asked.group}&pageSize=50`,
         });
         // a test that serves no list has no server memory of the saves: the check fails, and the page keeps what it knows
         if (!list) return new Response("{}", { status: 500 });
@@ -164,7 +194,7 @@ describe("dict app", () => {
       calls.some(
         (c) =>
           c.path ===
-          "/api/dictionary/words/hello?dictionary=DICTIONARY_ENGLISH",
+          "/api/dictionary/words/hello?dictionary=english",
       ),
     ).toBe(true);
     // reading only: no Save button
@@ -187,7 +217,7 @@ describe("dict app", () => {
       calls.find((c) => c.path === "/api/dictionary/lookup")?.body,
     ).toEqual({
       words: ["hello", "zzz"],
-      dictionary: "DICTIONARY_ENGLISH_VIETNAMESE",
+      dictionary: "english-vietnamese",
     });
 
     // after a lookup, switching the dictionary looks the same words up again
@@ -199,7 +229,7 @@ describe("dict app", () => {
     );
     expect(
       calls.filter((c) => c.path === "/api/dictionary/lookup")[1]?.body,
-    ).toEqual({ words: ["hello", "zzz"], dictionary: "DICTIONARY_ENGLISH" });
+    ).toEqual({ words: ["hello", "zzz"], dictionary: "english" });
   });
 
   it("saves the card with the audio placeholders and shows the limit error", async () => {
@@ -241,7 +271,7 @@ describe("dict app", () => {
       .filter((c) => c.path.startsWith("/api/dictionary/words/hello"))
       .map((c) => c.path);
     expect(lookups).toContain(
-      "/api/dictionary/words/hello?dictionary=DICTIONARY_ENGLISH_VIETNAMESE",
+      "/api/dictionary/words/hello?dictionary=english-vietnamese",
     );
     expect(body.audioUk).toBe("https://api.dictionaryapi.dev/uk.mp3");
 
@@ -470,7 +500,7 @@ describe("saved words", () => {
     ).toBeTruthy();
     expect(
       calls.find((c) => c.path === "/api/dictionary/export")?.body,
-    ).toEqual({ deckName: "My Words", scope: "EXPORT_SCOPE_NEW" });
+    ).toEqual({ group: "en", deckName: "My Words", scope: "EXPORT_SCOPE_NEW" });
     expect(create).toHaveBeenCalled();
     expect(click).toHaveBeenCalled();
     anchor.mockRestore();
@@ -551,7 +581,7 @@ describe("saved words", () => {
     );
     expect(
       calls.find((c) => c.path === "/api/dictionary/export-link")?.body,
-    ).toEqual({ deckName: "My Words", scope: "EXPORT_SCOPE_NEW" });
+    ).toEqual({ group: "en", deckName: "My Words", scope: "EXPORT_SCOPE_NEW" });
     expect(
       await screen.findByText(/Exported 1 words to My Words.apkg/),
     ).toBeTruthy();
@@ -725,7 +755,7 @@ describe("saved words", () => {
     expect(
       calls.some(
         (c) =>
-          c.method === "DELETE" && c.path === "/api/dictionary/saved/hello",
+          c.method === "DELETE" && c.path === "/api/dictionary/saved/hello?group=en",
       ),
     ).toBe(true);
   });
@@ -736,14 +766,12 @@ describe("dictionary settings", () => {
     maxSavedWords: 100,
     allowExportDeck: true,
     allowExportLink: true,
-    englishEnabled: true,
-    englishViEnabled: true,
+    dictionaries: { english: true, "english-vietnamese": true },
     removeAfterExport: true,
   };
   const user = {
-    englishEnabled: true,
-    englishViEnabled: true,
-    defaultDictionary: "DICTIONARY_ENGLISH",
+    dictionaries: { english: true, "english-vietnamese": true },
+    defaultDictionary: "english",
     deckName: "",
     maxLookupWords: 20,
     removeAfterExport: true,
@@ -784,7 +812,10 @@ describe("dictionary settings", () => {
   it("hides the dictionary the administrator turned off", async () => {
     setup(
       ["dictionary:word:read"],
-      withSettings({}, { englishViEnabled: false }),
+      withSettings(
+        {},
+        { dictionaries: { english: true, "english-vietnamese": false } },
+      ),
     );
     await screen.findByLabelText("Words");
     await waitFor(() => expect(screen.queryByRole("tab")).toBeNull());
@@ -794,7 +825,7 @@ describe("dictionary settings", () => {
     const calls = setup(
       ["dictionary:word:read"],
       withSettings(
-        { defaultDictionary: "DICTIONARY_ENGLISH_VIETNAMESE" },
+        { defaultDictionary: "english-vietnamese" },
         {},
         (c) =>
           c.path.startsWith("/api/dictionary/words/")
@@ -814,7 +845,7 @@ describe("dictionary settings", () => {
       calls.some(
         (c) =>
           c.path ===
-          "/api/dictionary/words/hello?dictionary=DICTIONARY_ENGLISH_VIETNAMESE",
+          "/api/dictionary/words/hello?dictionary=english-vietnamese",
       ),
     ).toBe(true);
   });
@@ -890,7 +921,7 @@ describe("dictionary settings", () => {
     await waitFor(() =>
       expect(
         calls.find((c) => c.path === "/api/dictionary/export")?.body,
-      ).toEqual({ deckName: "Mine", scope: "EXPORT_SCOPE_NEW" }),
+      ).toEqual({ group: "en", deckName: "Mine", scope: "EXPORT_SCOPE_NEW" }),
     );
   });
 
@@ -945,15 +976,21 @@ describe("dictionary settings", () => {
   it("shows the Settings page with the dictionary the administrator turned off disabled, and saves the preferences", async () => {
     const calls = setup(
       ["dictionary:word:read"],
-      withSettings({ maxLookupWords: 7 }, { englishViEnabled: false }, (c) =>
-        c.method === "PUT"
-          ? {
-              body: {
-                user: { ...user, deckName: "Mine", maxLookupWords: 5 },
-                system: { ...system, englishViEnabled: false },
-              },
-            }
-          : undefined,
+      withSettings(
+        { maxLookupWords: 7 },
+        { dictionaries: { english: true, "english-vietnamese": false } },
+        (c) =>
+          c.method === "PUT"
+            ? {
+                body: {
+                  user: { ...user, deckName: "Mine", maxLookupWords: 5 },
+                  system: {
+                    ...system,
+                    dictionaries: { english: true, "english-vietnamese": false },
+                  },
+                },
+              }
+            : undefined,
       ),
     );
     const u = userEvent.setup();
@@ -973,7 +1010,8 @@ describe("dictionary settings", () => {
       expect(calls.find((c) => c.method === "PUT")?.body).toEqual({
         user: {
           ...user,
-          englishViEnabled: true,
+          // the dictionary the administrator turned off is not the user's to switch
+          dictionaries: { english: true },
           deckName: "Mine",
           maxLookupWords: 5,
         },
@@ -1055,14 +1093,12 @@ describe("remove saved words after export", () => {
     maxSavedWords: 100,
     allowExportDeck: true,
     allowExportLink: true,
-    englishEnabled: true,
-    englishViEnabled: true,
+    dictionaries: { english: true, "english-vietnamese": true },
     removeAfterExport: true,
   };
   const user = {
-    englishEnabled: true,
-    englishViEnabled: true,
-    defaultDictionary: "DICTIONARY_ENGLISH",
+    dictionaries: { english: true, "english-vietnamese": true },
+    defaultDictionary: "english",
     deckName: "",
     maxLookupWords: 20,
     removeAfterExport: true,
@@ -1139,7 +1175,7 @@ describe("remove saved words after export", () => {
     await waitFor(() =>
       expect(
         calls.find((c) => c.path === "/api/dictionary/export")?.body,
-      ).toEqual({ deckName: "My Words", scope: "EXPORT_SCOPE_ALL" }),
+      ).toEqual({ group: "en", deckName: "My Words", scope: "EXPORT_SCOPE_ALL" }),
     );
     expect(await screen.findByText(/They stay in your list/)).toBeTruthy();
   });
@@ -1180,6 +1216,7 @@ describe("remove saved words after export", () => {
       expect(
         calls.find((c) => c.path === "/api/dictionary/export")?.body,
       ).toEqual({
+        group: "en",
         deckName: "My Words",
         scope: "EXPORT_SCOPE_ALL",
       }),
@@ -1219,7 +1256,7 @@ describe("remove saved words after export", () => {
     await waitFor(() =>
       expect(
         calls.find((c) => c.path === "/api/dictionary/export-link")?.body,
-      ).toEqual({ deckName: "My Words", scope: "EXPORT_SCOPE_NEW" }),
+      ).toEqual({ group: "en", deckName: "My Words", scope: "EXPORT_SCOPE_NEW" }),
     );
   });
 
@@ -1273,7 +1310,7 @@ describe("remove saved words after export", () => {
     await waitFor(() =>
       expect(
         calls.find((c) => c.path === "/api/dictionary/export")?.body,
-      ).toEqual({ deckName: "My Words", scope: "EXPORT_SCOPE_NEW" }),
+      ).toEqual({ group: "en", deckName: "My Words", scope: "EXPORT_SCOPE_NEW" }),
     );
   });
 
@@ -1893,7 +1930,7 @@ describe("card editing of both dictionaries and unsaved edits", () => {
     (other: { status?: number; body: unknown } = { body: { word: viWord } }) =>
     (c: Call) => {
       if (lookupPath(c))
-        return c.path.includes("DICTIONARY_ENGLISH_VIETNAMESE")
+        return c.path.includes("english-vietnamese")
           ? other
           : { body: { word } };
       if (c.path === "/api/dictionary/saved" && c.method === "POST")
@@ -1920,7 +1957,7 @@ describe("card editing of both dictionaries and unsaved edits", () => {
   const VI_TAB = { name: "English - Vietnamese" };
   const viLookups = (calls: Call[]) =>
     calls.filter(
-      (c) => lookupPath(c) && c.path.includes("DICTIONARY_ENGLISH_VIETNAMESE"),
+      (c) => lookupPath(c) && c.path.includes("english-vietnamese"),
     );
 
   async function applyEdit(
@@ -2035,10 +2072,7 @@ describe("card editing of both dictionaries and unsaved edits", () => {
     // no edit in this dictionary yet: both words are fetched
     await user.click(screen.getByRole("tab", VI_TAB));
     await waitFor(() =>
-      expect(many()).toEqual([
-        "DICTIONARY_ENGLISH",
-        "DICTIONARY_ENGLISH_VIETNAMESE",
-      ]),
+      expect(many()).toEqual(["english", "english-vietnamese"]),
     );
     await user.click(
       within(await screen.findByTestId("word-hi")).getByRole("button", {
@@ -2052,7 +2086,7 @@ describe("card editing of both dictionaries and unsaved edits", () => {
     await user.click(screen.getByRole("tab", { name: "English" }));
     await waitFor(() =>
       expect(single()).toEqual([
-        "/api/dictionary/words/new?dictionary=DICTIONARY_ENGLISH",
+        "/api/dictionary/words/new?dictionary=english",
       ]),
     );
     expect(
@@ -2060,9 +2094,7 @@ describe("card editing of both dictionaries and unsaved edits", () => {
     ).toBeTruthy();
     await user.click(screen.getByRole("tab", VI_TAB));
     await waitFor(() => expect(single()).toHaveLength(2));
-    expect(single()[1]).toContain(
-      "/new?dictionary=DICTIONARY_ENGLISH_VIETNAMESE",
-    );
+    expect(single()[1]).toContain("/new?dictionary=english-vietnamese");
     expect(
       within(await screen.findByTestId("word-hi")).getByText("minevi"),
     ).toBeTruthy();
@@ -2500,6 +2532,7 @@ describe("review", () => {
   const learning = ["60", "600", "86400", "345600"];
   const card = (w: string, extra: Record<string, unknown> = {}) => ({
     word: w,
+    group: "en",
     content: `<b>meaning of ${w}</b>`,
     audioUk: "",
     audioUs: "",
@@ -2585,6 +2618,7 @@ describe("review", () => {
     await u.keyboard("3");
     await waitFor(() => expect(posts(calls)).toHaveLength(1));
     expect(posts(calls)[0]?.body).toEqual({
+      group: "en",
       word: "alpha",
       grade: "REVIEW_GRADE_GOOD",
     });
@@ -2710,9 +2744,8 @@ describe("review", () => {
 
   it("saves the number of new words per day in the settings", async () => {
     const user = {
-      englishEnabled: true,
-      englishViEnabled: true,
-      defaultDictionary: "DICTIONARY_ENGLISH",
+      dictionaries: { english: true, "english-vietnamese": true },
+      defaultDictionary: "english",
       removeAfterExport: true,
       removeAcknowledged: true,
       maxLookupWords: 20,
@@ -2722,8 +2755,7 @@ describe("review", () => {
       maxSavedWords: 100,
       allowExportDeck: true,
       allowExportLink: true,
-      englishEnabled: true,
-      englishViEnabled: true,
+      dictionaries: { english: true, "english-vietnamese": true },
       removeAfterExport: true,
     };
     const calls = setup(
@@ -2764,9 +2796,8 @@ describe("review", () => {
 
   it("saves the number of review cards per day in the settings", async () => {
     const user = {
-      englishEnabled: true,
-      englishViEnabled: true,
-      defaultDictionary: "DICTIONARY_ENGLISH",
+      dictionaries: { english: true, "english-vietnamese": true },
+      defaultDictionary: "english",
       removeAfterExport: true,
       removeAcknowledged: true,
       maxLookupWords: 20,
@@ -2777,8 +2808,7 @@ describe("review", () => {
       maxSavedWords: 100,
       allowExportDeck: true,
       allowExportLink: true,
-      englishEnabled: true,
-      englishViEnabled: true,
+      dictionaries: { english: true, "english-vietnamese": true },
       removeAfterExport: true,
     };
     const calls = setup(
@@ -2875,7 +2905,7 @@ describe("categories", () => {
         undefined,
     ) =>
     (c: Call) => {
-      if (c.path === "/api/dictionary/categories" && c.method === "GET")
+      if (c.path === "/api/dictionary/categories?group=en" && c.method === "GET")
         return ok(cats);
       if (c.path.startsWith("/api/dictionary/saved?") && c.method === "GET")
         return ok(saved);
@@ -2897,17 +2927,15 @@ describe("categories", () => {
           ? {
               body: {
                 user: {
-                  englishEnabled: true,
-                  englishViEnabled: true,
-                  defaultDictionary: "DICTIONARY_ENGLISH",
+                  dictionaries: { english: true, "english-vietnamese": true },
+                  defaultDictionary: "english",
                   maxLookupWords: 20,
                 },
                 system: {
                   maxSavedWords: 100,
                   allowExportDeck: true,
                   allowExportLink: true,
-                  englishEnabled: true,
-                  englishViEnabled: true,
+                  dictionaries: { english: true, "english-vietnamese": true },
                   removeAfterExport: true,
                   maxCategories: 3,
                   maxCategoryNameLength: 10,
@@ -2955,7 +2983,7 @@ describe("categories", () => {
 
   it("keeps the selected words when the search shows other words", async () => {
     const calls = setup(["dictionary:word:*"], (c) => {
-      if (c.path === "/api/dictionary/categories") return ok(cats);
+      if (c.path === "/api/dictionary/categories?group=en") return ok(cats);
       if (c.path.startsWith("/api/dictionary/saved?") && c.method === "GET") {
         const q = new URLSearchParams(c.path.split("?")[1]).get("query") ?? "";
         return ok({
@@ -2981,7 +3009,7 @@ describe("categories", () => {
     await waitFor(() =>
       expect(
         calls.find((c) => c.path === "/api/dictionary/export")?.body,
-      ).toEqual({ deckName: "My Words", words: ["hello", "world"] }),
+      ).toEqual({ group: "en", deckName: "My Words", words: ["hello", "world"] }),
     );
   });
 
@@ -3006,6 +3034,7 @@ describe("categories", () => {
         calls.find((c) => c.path === "/api/dictionary/saved-words/categories")
           ?.body,
       ).toEqual({
+        group: "en",
         words: ["hello", "world"],
         addCategoryIds: ["c2"],
         removeCategoryIds: [],
@@ -3026,6 +3055,7 @@ describe("categories", () => {
           (c) => c.path === "/api/dictionary/saved-words/categories",
         )[1]?.body,
       ).toEqual({
+        group: "en",
         words: ["hello"],
         addCategoryIds: [],
         removeCategoryIds: ["c1"],
@@ -3055,6 +3085,7 @@ describe("categories", () => {
       expect(
         calls.find((c) => c.path === "/api/dictionary/export")?.body,
       ).toEqual({
+        group: "en",
         deckName: "Food",
         scope: "EXPORT_SCOPE_NEW",
         categoryId: "c2",
@@ -3097,7 +3128,7 @@ describe("categories", () => {
     await waitFor(() =>
       expect(
         calls.find((c) => c.path === "/api/dictionary/export-link")?.body,
-      ).toEqual({ deckName: "My Words", words: ["world"] }),
+      ).toEqual({ group: "en", deckName: "My Words", words: ["world"] }),
     );
   });
 
@@ -3117,7 +3148,7 @@ describe("categories", () => {
     await waitFor(() =>
       expect(
         calls.find((c) => c.path === "/api/dictionary/export")?.body,
-      ).toEqual({ deckName: "My Words", words: ["hello"] }),
+      ).toEqual({ group: "en", deckName: "My Words", words: ["hello"] }),
     );
   });
 
@@ -3199,6 +3230,7 @@ describe("categories", () => {
         calls.find((c) => c.path === "/api/dictionary/saved-words/categories")
           ?.body,
       ).toEqual({
+        group: "en",
         words: ["hello"],
         addCategoryIds: ["c2"],
         removeCategoryIds: ["c1"],
@@ -3223,7 +3255,7 @@ describe("categories", () => {
     const calls = setup(["dictionary:word:*"], (c) => {
       const own = rest(c);
       if (own) return own;
-      if (c.path === "/api/dictionary/categories" && c.method === "GET")
+      if (c.path === "/api/dictionary/categories?group=en" && c.method === "GET")
         return ok(cats);
       if (c.path.startsWith("/api/dictionary/saved?") && c.method === "GET")
         return ok({
@@ -3385,6 +3417,7 @@ describe("categories", () => {
         calls.find((c) => c.path === "/api/dictionary/saved-words/categories")
           ?.body,
       ).toEqual({
+        group: "en",
         words: ["hello"],
         addCategoryIds: ["c2"],
         removeCategoryIds: [],
@@ -3409,6 +3442,7 @@ describe("categories", () => {
         (c) => c.path === "/api/dictionary/saved-words/categories",
       )[1]?.body,
     ).toEqual({
+      group: "en",
       words: ["hello"],
       addCategoryIds: [],
       removeCategoryIds: ["c1"],
@@ -3423,7 +3457,7 @@ describe("categories", () => {
         return ok({ category: { id: "c3", name: "Work" } });
       }
       if (
-        c.path === "/api/dictionary/categories" &&
+        c.path === "/api/dictionary/categories?group=en" &&
         c.method === "GET" &&
         created
       )
@@ -3465,7 +3499,7 @@ describe("categories", () => {
     const calls = setup(
       ["dictionary:word:read"],
       (c) => {
-        if (c.path === "/api/dictionary/categories") return ok(cats);
+        if (c.path === "/api/dictionary/categories?group=en") return ok(cats);
         if (c.path.startsWith("/api/dictionary/review") && c.method === "GET")
           return ok(queue);
         return undefined;
@@ -3476,7 +3510,7 @@ describe("categories", () => {
     await pick(u, await screen.findByLabelText("Review category"), "c1");
     await waitFor(() =>
       expect(
-        calls.some((c) => c.path === "/api/dictionary/review?categoryId=c1"),
+        calls.some((c) => c.path === "/api/dictionary/review?group=en&categoryId=c1"),
       ).toBe(true),
     );
     // no words in a category is not "no saved words yet"
@@ -3487,7 +3521,7 @@ describe("categories", () => {
     await waitFor(() =>
       expect(
         calls.some(
-          (c) => c.path === "/api/dictionary/review?categoryId=uncategorized",
+          (c) => c.path === "/api/dictionary/review?group=en&categoryId=uncategorized",
         ),
       ).toBe(true),
     );
@@ -3498,6 +3532,7 @@ describe("review: FSRS intervals and counts", () => {
   const read = ["dictionary:word:read"];
   const card = (w: string, intervals: string[]) => ({
     word: w,
+    group: "en",
     content: `<b>meaning of ${w}</b>`,
     audioUk: "",
     audioUs: "",
@@ -3703,9 +3738,8 @@ describe("review: study more today", () => {
 describe("review algorithm in the settings", () => {
   const read = ["dictionary:word:read"];
   const user = {
-    englishEnabled: true,
-    englishViEnabled: true,
-    defaultDictionary: "DICTIONARY_ENGLISH",
+    dictionaries: { english: true, "english-vietnamese": true },
+    defaultDictionary: "english",
     removeAfterExport: true,
     removeAcknowledged: true,
     maxLookupWords: 20,
@@ -3716,8 +3750,7 @@ describe("review algorithm in the settings", () => {
     maxSavedWords: 100,
     allowExportDeck: true,
     allowExportLink: true,
-    englishEnabled: true,
-    englishViEnabled: true,
+    dictionaries: { english: true, "english-vietnamese": true },
     removeAfterExport: true,
   };
   const route =
@@ -3836,9 +3869,8 @@ describe("review algorithm in the settings", () => {
 describe("notices stay while the next action runs", () => {
   const read = ["dictionary:word:read"];
   const user = {
-    englishEnabled: true,
-    englishViEnabled: true,
-    defaultDictionary: "DICTIONARY_ENGLISH",
+    dictionaries: { english: true, "english-vietnamese": true },
+    defaultDictionary: "english",
     removeAfterExport: true,
     removeAcknowledged: true,
     maxLookupWords: 20,
@@ -3850,8 +3882,7 @@ describe("notices stay while the next action runs", () => {
     maxSavedWords: 100,
     allowExportDeck: true,
     allowExportLink: true,
-    englishEnabled: true,
-    englishViEnabled: true,
+    dictionaries: { english: true, "english-vietnamese": true },
     removeAfterExport: true,
   };
 
@@ -4028,5 +4059,147 @@ describe("storage of the user", () => {
         "Your saved words take up all your storage. Export or delete some words first.",
       ),
     ).toBeTruthy();
+  });
+});
+
+describe("dictionary registry and groups", () => {
+  const W = ["dictionary:word:read", "dictionary:word:write"];
+  const TWO = [EN_GROUP, X_GROUP];
+  const switcher = () => screen.queryByRole("group", { name: "Dictionary group" });
+  const lookups = (calls: Call[]) =>
+    calls.filter((c) => c.path.startsWith("/api/dictionary/words/"));
+
+  it("builds the tabs from the registry, and a dictionary of another group is not among them", async () => {
+    setup(W, () => undefined, "/", TWO);
+    expect(await screen.findByRole("tab", { name: "English" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "English - Vietnamese" })).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "test-x" })).toBeNull();
+    // the group x has one dictionary: the choice is made by the group, so there are no tabs
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole("radio", { name: "x" }));
+    await waitFor(() => expect(screen.queryByRole("tab")).toBeNull());
+  });
+
+  it("hides the group switcher with one group", async () => {
+    setup(W, () => undefined, "/", [EN_GROUP]);
+    await screen.findByRole("tab", { name: "English" });
+    expect(switcher()).toBeNull();
+  });
+
+  it("shows the group switcher with two groups, naming a group without a translation by its id", async () => {
+    setup(W, () => undefined, "/", TWO);
+    expect(
+      await screen.findByRole("group", { name: "Dictionary group" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("radio", { name: "English" }).getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(screen.getByRole("radio", { name: "x" })).toBeTruthy();
+  });
+
+  it("starts in the group of the default dictionary of the user", async () => {
+    const calls = setup(
+      W,
+      (c) =>
+        c.path === "/api/dictionary/me/settings" && c.method === "GET"
+          ? { body: { user: { defaultDictionary: "test-x" }, system: {} } }
+          : c.path.startsWith("/api/dictionary/words/")
+            ? { body: { word } }
+            : undefined,
+      "/",
+      TWO,
+    );
+    const u = userEvent.setup();
+    await waitFor(() =>
+      expect(screen.getByRole("radio", { name: "x" }).getAttribute("aria-checked")).toBe("true"),
+    );
+    await u.type(screen.getByLabelText("Words"), "hello");
+    await u.click(screen.getByRole("button", { name: "Look up" }));
+    await screen.findByText("used as a greeting");
+    expect(lookups(calls).map((c) => c.path)).toEqual(["/api/dictionary/words/hello?dictionary=test-x"]);
+  });
+
+  it("saves in the group of the active tab with the dictionaries of that group only, and marks the words saved there", async () => {
+    const calls = setup(
+      W,
+      (c) => {
+        if (c.path.startsWith("/api/dictionary/words/")) return { body: { word } };
+        if (c.method === "POST" && c.path === "/api/dictionary/saved") return { body: { savedCount: 1 } };
+        // the word is saved in the group x only
+        if (c.method === "GET" && c.path.startsWith("/api/dictionary/saved?"))
+          return {
+            body: {
+              words: c.path.includes("group=x")
+                ? [{ word: "hello", content: "", audioUk: "", audioUs: "", createdAt: "2026-11-23T05:00:00Z" }]
+                : [],
+              nextPageToken: "",
+              total: 0,
+            },
+          };
+        return undefined;
+      },
+      "/",
+      TWO,
+    );
+    const u = userEvent.setup();
+    await u.type(await screen.findByLabelText("Words"), "hello");
+    // the group en: both dictionaries are fetched, the word is not saved there
+    await u.click(screen.getByRole("button", { name: "Look up" }));
+    await u.click(await screen.findByRole("button", { name: "Save" }));
+    await screen.findByText(/Saved "hello"/);
+    let body = calls.find((c) => c.method === "POST" && c.path === "/api/dictionary/saved")?.body as Record<string, string>;
+    expect(body.group).toBe("en");
+    expect(body.content).toContain("<hr>");
+    expect(lookups(calls).map((c) => c.path)).toEqual([
+      "/api/dictionary/words/hello?dictionary=english",
+      "/api/dictionary/words/hello?dictionary=english-vietnamese",
+    ]);
+
+    // the group x: its own dictionary is looked up again, and the word is saved there already
+    calls.length = 0;
+    await u.click(screen.getByRole("radio", { name: "x" }));
+    await waitFor(() => expect(lookups(calls).map((c) => c.path)).toEqual(["/api/dictionary/words/hello?dictionary=test-x"]));
+    await u.click(await screen.findByRole("button", { name: "Save override" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/api/dictionary/saved")).toBe(true));
+    body = calls.find((c) => c.method === "POST" && c.path === "/api/dictionary/saved")?.body as Record<string, string>;
+    expect(body.group).toBe("x");
+    expect(body.content).not.toContain("<hr>");
+    // only the dictionary of the group is fetched (the one shown is reused)
+    expect(lookups(calls)).toHaveLength(1);
+  });
+
+  it("lists the saved words and the categories of the active group", async () => {
+    const calls = setup(W, () => undefined, "/saved", TWO);
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole("radio", { name: "x" }));
+    await waitFor(() =>
+      expect(calls.some((c) => c.path === "/api/dictionary/saved?group=x&pageSize=50")).toBe(true),
+    );
+    expect(calls.some((c) => c.path === "/api/dictionary/categories?group=x")).toBe(true);
+  });
+
+  it("shows one switch per dictionary of the registry in Settings, by group, and saves the map", async () => {
+    const settings = (c: Call) =>
+      c.path === "/api/dictionary/me/settings" && c.method === "GET"
+        ? {
+            body: {
+              user: { defaultDictionary: "english", dictionaries: { english: true, "english-vietnamese": true, "test-x": true } },
+              system: { dictionaries: { english: true, "english-vietnamese": true, "test-x": true } },
+            },
+          }
+        : undefined;
+    const calls = setup(["dictionary:word:read"], settings, "/settings", TWO);
+    const u = userEvent.setup();
+    const en = await screen.findByTestId("group-en");
+    expect(within(en).getAllByRole("switch").map((s) => s.getAttribute("aria-label") ?? s.textContent)).toBeTruthy();
+    expect(within(en).getByRole("switch", { name: "English - Vietnamese" })).toBeTruthy();
+    // no name for the group or the dictionary: the id stands in
+    const x = screen.getByTestId("group-x");
+    expect(within(x).getByRole("heading", { name: "x" })).toBeTruthy();
+    await u.click(within(x).getByRole("switch", { name: "test-x" }));
+    await u.click(screen.getByRole("button", { name: "Save settings" }));
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT")).toBeTruthy());
+    const put = calls.find((c) => c.method === "PUT")?.body as { user: { dictionaries: Record<string, boolean> } };
+    expect(put.user.dictionaries).toEqual({ english: true, "english-vietnamese": true, "test-x": false });
   });
 });

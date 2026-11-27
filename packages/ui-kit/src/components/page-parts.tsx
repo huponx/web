@@ -306,10 +306,10 @@ export function LoadMore({ paged }: { paged: { next: string; loadMore: () => Pro
 export const ROW_ACTION = "max-md:size-8 max-md:px-0";
 
 /** Content of a row action: the icon always, the text from `md` up (it stays for screen readers). */
-export function ActionLabel({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {
+export function ActionLabel({ icon: Icon, iconClassName, children }: { icon: LucideIcon; iconClassName?: string; children: ReactNode }) {
   return (
     <>
-      <Icon aria-hidden="true" />
+      <Icon aria-hidden="true" className={iconClassName} />
       <span className="max-md:sr-only">{children}</span>
     </>
   );

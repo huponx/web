@@ -1,7 +1,7 @@
 import { AuthProvider, createClient } from "@huponx/auth-client";
 import type { Me } from "@huponx/auth-client";
 import { StyleProvider, ThemeProvider } from "@huponx/ui-kit";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { App } from "./App";
@@ -30,6 +30,8 @@ function renderApp(perms: string[], route = "/", answer: (c: Call) => Answer = (
       const u = String(url);
       const method = init?.method ?? "GET";
       if (u.endsWith("/auth/me")) return new Response(JSON.stringify(me), { status: 200 });
+      // the registry is read before the review counts; it is not a call the tests count
+      if (u.endsWith("/api/dictionary/dictionaries")) return new Response(JSON.stringify({ groups: [{ id: "en", dictionaries: [] }] }), { status: 200 });
       if (u.endsWith("/api/ui-style")) return new Response(JSON.stringify({ uiStyle: "saas", uiPalettes: { saas: "aurora", glass: "ocean", mono: "aurora" } }), { status: 200 });
       const call: Call = { method, url: u.replace("https://api.example.com", ""), body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : undefined };
       calls.push(call);
@@ -99,7 +101,7 @@ describe("home", () => {
 });
 
 describe("home Dict panel", () => {
-  const REVIEW = "/api/dictionary/review?limit=1";
+  const REVIEW = "/api/dictionary/review?group=en&limit=1";
   const queue = (q: Record<string, unknown>) => (c: Call): Answer => (c.url === REVIEW ? { json: q } : undefined);
 
   it("shows the three counts, the saved words and a start link to /review", async () => {
@@ -256,75 +258,172 @@ describe("security", () => {
     expect(await screen.findByText("Mật khẩu hiện tại không đúng.")).toBeInTheDocument();
   });
 
-  it("shows the enrollment (QR code and key) when MFA is off, and turns it on with the first code", async () => {
-    const calls = renderApp([], "/security", (c) =>
-      c.url === "/api/me/mfa" && c.method === "GET"
-        ? { json: {} }
-        : c.url === "/api/me/mfa/setup"
-          ? { json: { qr: "data:image/png;base64,AAAA", secret: "JBSWY3DP" } }
-          : c.url === "/api/me/mfa" && c.method === "POST"
-          ? { json: { recoveryCodes: ["aaaa-bbbb-cccc", "dddd-eeee-ffff"] } }
-          : undefined,
-    );
+  const mfaSetup = (verify: Answer = { json: { recoveryCodes: ["aaaa-bbbb-cccc", "dddd-eeee-ffff"] } }) => (c: Call): Answer =>
+    c.url === "/api/me/mfa" && c.method === "GET"
+      ? { json: {} }
+      : c.url === "/api/me/mfa/setup"
+        ? { json: { qr: "data:image/png;base64,AAAA", secret: "JBSWY3DP" } }
+        : c.url === "/api/me/mfa" && c.method === "POST"
+          ? verify
+          : undefined;
+
+  it("sets MFA up in three steps: connect the authenticator, verify it, save the recovery codes", async () => {
+    const calls = renderApp([], "/security", mfaSetup());
     const user = userEvent.setup();
     // nothing starts until the user asks: no QR code and no setup call yet
     const setUp = await screen.findByRole("button", { name: "Set up" });
     expect(screen.queryByAltText("QR code")).toBeNull();
     expect(calls.filter((c) => c.url === "/api/me/mfa/setup")).toHaveLength(0);
     await user.click(setUp);
-    expect(await screen.findByAltText("QR code")).toHaveAttribute("src", "data:image/png;base64,AAAA");
-    expect(screen.getByText("JBSWY3DP")).toBeInTheDocument();
-    await user.type(screen.getByLabelText("Code"), "123456");
-    await user.click(screen.getByRole("button", { name: "Turn on" }));
-    expect(await screen.findByText("aaaa-bbbb-cccc")).toBeInTheDocument();
+
+    // 1. connect
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.getByRole("heading", { name: "Connect authenticator" })).toBeInTheDocument();
+    expect(dialog.getByText("Scan the QR code using your authenticator app.")).toBeInTheDocument();
+    expect(dialog.getByAltText("QR code")).toHaveAttribute("src", "data:image/png;base64,AAAA");
+    // the key to type stays hidden until the user cannot scan
+    expect(dialog.queryByText("JBSWY3DP")).toBeNull();
+    await user.click(dialog.getByRole("button", { name: "Can't scan the QR code? Show setup key" }));
+    expect(dialog.getByText("JBSWY3DP")).toBeInTheDocument();
+    expect(dialog.getByRole("listitem", { current: "step" })).toHaveTextContent("Connect");
+    expect(dialog.queryByLabelText("Code")).toBeNull();
+    await user.click(dialog.getByRole("button", { name: "Next" }));
+
+    // 2. verify
+    expect(dialog.getByRole("heading", { name: "Verify your authenticator" })).toBeInTheDocument();
+    expect(dialog.getByRole("listitem", { current: "step" })).toHaveTextContent("Verify");
+    await user.type(dialog.getByLabelText("Code"), "123456");
+    await user.click(dialog.getByRole("button", { name: "Turn on" }));
     expect(calls.find((c) => c.method === "POST" && c.url === "/api/me/mfa")?.body).toEqual({ code: "123456" });
+
+    // 3. save the codes: Done waits for the confirmation, and the step cannot be closed by accident
+    expect(await dialog.findByText("aaaa-bbbb-cccc")).toBeInTheDocument();
+    expect(dialog.getByRole("heading", { name: "Save recovery codes" })).toBeInTheDocument();
+    expect(dialog.getByRole("listitem", { current: "step" })).toHaveTextContent("Save codes");
+    expect(dialog.queryByRole("button", { name: "Close" })).toBeNull();
+    expect(dialog.getByRole("button", { name: "Done" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await user.click(dialog.getByRole("checkbox"));
+    await user.click(dialog.getByRole("button", { name: "Done" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("goes back from the verification to the QR code", async () => {
+    renderApp([], "/security", mfaSetup());
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Set up" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    await user.click(dialog.getByRole("button", { name: "Next" }));
+    await user.click(dialog.getByRole("button", { name: "Back" }));
+    expect(dialog.getByAltText("QR code")).toBeInTheDocument();
   });
 
   it("cancels a pending setup and goes back to Set up", async () => {
-    renderApp([], "/security", (c) =>
-      c.url === "/api/me/mfa" && c.method === "GET" ? { json: {} } : c.url === "/api/me/mfa/setup" ? { json: { qr: "data:image/png;base64,AAAA", secret: "JBSWY3DP" } } : undefined,
-    );
+    renderApp([], "/security", mfaSetup());
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Set up" }));
-    await user.type(await screen.findByLabelText("Code"), "12");
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    await user.click(dialog.getByRole("button", { name: "Next" }));
+    await user.type(dialog.getByLabelText("Code"), "12");
+    await user.click(dialog.getByRole("button", { name: "Back" }));
+    await user.click(dialog.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(screen.queryByAltText("QR code")).toBeNull();
     expect(screen.getByRole("button", { name: "Set up" })).toBeInTheDocument();
   });
 
-  it("shows the translated error of a wrong first code", async () => {
-    renderApp([], "/security", (c) =>
-      c.url === "/api/me/mfa" && c.method === "GET"
-        ? { json: {} }
-        : c.url === "/api/me/mfa/setup"
-          ? { json: { qr: "data:image/png;base64,AAAA", secret: "JBSWY3DP" } }
-          : c.url === "/api/me/mfa" && c.method === "POST"
-          ? { status: 400, json: { error: { code: "invalid_argument", reason: "invalid_mfa_code", message: "the code is wrong" } } }
-          : undefined,
-    );
+  it("shows the translated error of a wrong first code and stays on the verification", async () => {
+    renderApp([], "/security", mfaSetup({ status: 400, json: { error: { code: "invalid_argument", reason: "invalid_mfa_code", message: "the code is wrong" } } }));
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Set up" }));
-    await user.type(await screen.findByLabelText("Code"), "000000");
-    await user.click(screen.getByRole("button", { name: "Turn on" }));
-    expect(await screen.findByText("Wrong code. Check the clock of your device and try again.")).toBeInTheDocument();
+    const dialog = within(await screen.findByRole("dialog"));
+    await user.click(dialog.getByRole("button", { name: "Next" }));
+    await user.type(dialog.getByLabelText("Code"), "000000");
+    await user.click(dialog.getByRole("button", { name: "Turn on" }));
+    expect(await dialog.findByText("Wrong code. Check the clock of your device and try again.")).toBeInTheDocument();
+    expect(dialog.getByRole("heading", { name: "Verify your authenticator" })).toBeInTheDocument();
   });
 
-  it("turns MFA off with the password and a code", async () => {
-    const calls = renderApp([], "/security", (c) =>
-      c.url === "/api/me/mfa" && c.method === "GET" ? { json: { enabled: true, recoveryCodesLeft: 7 } } : undefined,
-    );
-    expect(await screen.findByText("Multi-factor authentication is on. Recovery codes left: 7.")).toBeInTheDocument();
+  const mfaOn = (c: Call): Answer =>
+    c.url === "/api/me/mfa" && c.method === "GET"
+      ? { json: { enabled: true, recoveryCodesLeft: 7 } }
+      : c.url === "/api/me/mfa/setup"
+        ? { json: { qr: "data:image/png;base64,AAAA", secret: "JBSWY3DP" } }
+        : undefined;
+
+  /** Opens the menu of the MFA row and picks an item. */
+  async function pickMfa(user: ReturnType<typeof userEvent.setup>, item: string) {
+    await user.click(await screen.findByRole("button", { name: "Authenticator actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: item }));
+    return within(await screen.findByRole("dialog"));
+  }
+
+  it("shows MFA as a row with a menu, and no form", async () => {
+    renderApp([], "/security", mfaOn);
+    const row = await screen.findByTestId("mfa-row");
+    expect(within(row).getByText("Authenticator app")).toBeInTheDocument();
+    expect(within(row).getByText("Recovery codes left: 7")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Code or recovery code")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Turn off" })).toBeNull();
+  });
+
+  it("disables MFA: the dialog confirms first, the password and a code are asked only after that", async () => {
+    const calls = renderApp([], "/security", mfaOn);
     const user = userEvent.setup();
-    await user.type(screen.getByLabelText("Password"), "my-password-123");
-    await user.type(screen.getByLabelText("Code or recovery code"), "123456");
-    await user.click(screen.getByRole("button", { name: "Turn off" }));
+    const dialog = await pickMfa(user, "Disable MFA");
+    expect(dialog.getByText(/Turn off multi-factor authentication\?/)).toBeInTheDocument();
+    expect(dialog.queryByLabelText("Password")).toBeNull();
+    await user.click(dialog.getByRole("button", { name: "Continue" }));
+    expect(calls.some((c) => c.url === "/api/me/mfa/disable")).toBe(false);
+    await user.type(dialog.getByLabelText("Password"), "my-password-123");
+    await user.type(dialog.getByLabelText("Code or recovery code"), "123456");
+    await user.click(dialog.getByRole("button", { name: "Disable MFA" }));
     await waitFor(() => expect(calls.find((c) => c.url === "/api/me/mfa/disable")).toMatchObject({ method: "POST", body: { password: "my-password-123", code: "123456" } }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("keeps the dialog and shows the error when the re-authentication is refused", async () => {
+    renderApp([], "/security", (c) =>
+      c.url === "/api/me/mfa/disable" ? { status: 400, json: { error: { code: "invalid_argument", reason: "wrong_current_password", message: "x" } } } : mfaOn(c),
+    );
+    const user = userEvent.setup();
+    const dialog = await pickMfa(user, "Disable MFA");
+    await user.click(dialog.getByRole("button", { name: "Continue" }));
+    await user.type(dialog.getByLabelText("Password"), "bad");
+    await user.type(dialog.getByLabelText("Code or recovery code"), "123456");
+    await user.click(dialog.getByRole("button", { name: "Disable MFA" }));
+    expect(await dialog.findByText("The current password is wrong.")).toBeInTheDocument();
+  });
+
+  it("changes the authenticator: re-authenticates, turns the old one off and goes on to the setup wizard", async () => {
+    const calls = renderApp([], "/security", mfaOn);
+    const user = userEvent.setup();
+    const dialog = await pickMfa(user, "Change authenticator");
+    expect(dialog.getByText(/stops working now/)).toBeInTheDocument();
+    await user.click(dialog.getByRole("button", { name: "Continue" }));
+    await user.type(dialog.getByLabelText("Password"), "pw");
+    await user.type(dialog.getByLabelText("Code or recovery code"), "123456");
+    await user.click(dialog.getByRole("button", { name: "Change authenticator" }));
+    // the wizard of the new authenticator opens with its QR code
+    expect(await screen.findByAltText("QR code")).toHaveAttribute("src", "data:image/png;base64,AAAA");
+    expect(screen.getByRole("heading", { name: "Connect authenticator" })).toBeInTheDocument();
+    expect(calls.map((c) => c.url).filter((u) => u.startsWith("/api/me/mfa/"))).toEqual(["/api/me/mfa/disable", "/api/me/mfa/setup"]);
+  });
+
+  it("cancelling the dialog changes nothing", async () => {
+    const calls = renderApp([], "/security", mfaOn);
+    const user = userEvent.setup();
+    const dialog = await pickMfa(user, "Disable MFA");
+    await user.click(dialog.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(calls.some((c) => c.url === "/api/me/mfa/disable")).toBe(false);
   });
 
   it("only says it when MFA is required for the account", async () => {
     renderApp([], "/security", (c) => (c.url === "/api/me/mfa" && c.method === "GET" ? { json: { enabled: true, forced: true } } : undefined));
     expect(await screen.findByText("It is required for your account and cannot be turned off.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Turn off" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Authenticator actions" })).toBeNull();
   });
 
   it("hides the card when MFA is turned off on the server", async () => {
@@ -333,5 +432,238 @@ describe("security", () => {
     );
     await screen.findByLabelText("Current password");
     await waitFor(() => expect(screen.queryByText("Multi-factor authentication")).toBeNull());
+  });
+});
+
+describe("security: passkeys", () => {
+  const rows = [
+    { id: "p1", name: "Laptop", createdAt: "1792000000", lastUsedAt: "1793000000", synced: true },
+    { id: "p2", name: "Phone", createdAt: "1792000100" },
+  ];
+  const optionsJson = JSON.stringify({ publicKey: { challenge: "AQID", rp: { name: "Example", id: "localhost" }, user: { id: "BAUG", name: "ann@example.com", displayName: "Ann" } } });
+  const credential = { id: "cred", rawId: new ArrayBuffer(1), type: "public-key", toJSON: () => ({ id: "cred", type: "public-key", response: {} }) };
+  let list = rows;
+
+  function browser(create: unknown = vi.fn().mockResolvedValue(credential)) {
+    vi.stubGlobal("PublicKeyCredential", function () {});
+    Object.defineProperty(navigator, "credentials", { value: { create, get: vi.fn() }, configurable: true });
+    return create as ReturnType<typeof vi.fn>;
+  }
+  const security = (extra?: (c: Call) => Answer) =>
+    renderApp([], "/security", (c) => {
+      const own = extra?.(c);
+      if (own) return own;
+      if (c.url === "/api/me/passkeys" && c.method === "GET") return { json: { passkeys: list, max: 20 } };
+      if (c.url === "/api/me/passkeys/begin") return { json: { ceremonyId: "cer1", optionsJson } };
+      return undefined;
+    });
+  beforeEach(() => {
+    list = rows;
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(navigator, "credentials");
+  });
+
+  it("lists the passkeys with what each is", async () => {
+    browser();
+    security();
+    const items = await screen.findAllByTestId("passkey-row");
+    expect(items).toHaveLength(2);
+    expect(within(items[0]!).getByText("Laptop")).toBeInTheDocument();
+    expect(within(items[0]!).getByText(/Synced/)).toBeInTheDocument();
+    expect(within(items[1]!).getByText(/This device only/)).toBeInTheDocument();
+    expect(within(items[1]!).getByText(/Never used/)).toBeInTheDocument();
+  });
+
+  it("is not shown when the server has passkeys turned off", async () => {
+    browser();
+    renderApp([], "/security", (c) =>
+      c.url === "/api/me/passkeys" ? { status: 404, json: { error: { code: "not_found", reason: "passkeys_off", message: "off" } } } : undefined,
+    );
+    await screen.findByLabelText("Current password");
+    await waitFor(() => expect(screen.queryByTestId("passkeys")).toBeNull());
+  });
+
+  /** Opens the menu of the row and picks an item. */
+  async function pick(user: ReturnType<typeof userEvent.setup>, row: HTMLElement, item: string) {
+    await user.click(within(row).getByRole("button", { name: /^Actions for / }));
+    await user.click(await screen.findByRole("menuitem", { name: item }));
+    return screen.findByRole("dialog");
+  }
+
+  it("has no rename and delete buttons in the rows, only a menu", async () => {
+    browser();
+    security();
+    const [first] = await screen.findAllByTestId("passkey-row");
+    expect(within(first!).queryByRole("button", { name: "Rename" })).toBeNull();
+    expect(within(first!).queryByRole("button", { name: "Delete" })).toBeNull();
+    expect(within(first!).getByRole("button", { name: "Actions for Laptop" })).toBeInTheDocument();
+  });
+
+  it("adds a passkey: a dialog names it, the password comes only after Continue, then the prompt of the browser", async () => {
+    const create = browser();
+    const calls = security((c) => {
+      if (c.url === "/api/me/passkeys" && c.method === "POST") {
+        list = [...rows, { id: "p3", name: "Work key", createdAt: "1793100000" }];
+        return { json: { passkey: list[2] } };
+      }
+      return undefined;
+    });
+    const user = userEvent.setup();
+    await screen.findAllByTestId("passkey-row");
+    // no form, no password field on the page
+    expect(screen.queryByLabelText("Confirm with your password")).toBeNull();
+    await user.click(within(screen.getByTestId("passkeys")).getByRole("button", { name: "Add a passkey" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.queryByLabelText("Confirm with your password")).toBeNull();
+    await user.type(dialog.getByLabelText("Name of the passkey"), "Work key");
+    await user.click(dialog.getByRole("button", { name: "Continue" }));
+    expect(calls.some((c) => c.url === "/api/me/passkeys/begin")).toBe(false); // nothing asked of the server yet
+    await user.type(dialog.getByLabelText("Confirm with your password"), "pw");
+    await user.click(dialog.getByRole("button", { name: "Create passkey" }));
+    expect(await screen.findByText("Passkey added.")).toBeInTheDocument();
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(calls.find((c) => c.url === "/api/me/passkeys/begin")?.body).toEqual({ password: "pw" });
+    const finish = calls.find((c) => c.url === "/api/me/passkeys" && c.method === "POST");
+    expect(finish?.body).toMatchObject({ ceremony_id: "cer1", name: "Work key" });
+    expect(JSON.parse(String(finish?.body?.credential_json))).toMatchObject({ id: "cred" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(await screen.findAllByTestId("passkey-row")).toHaveLength(3);
+  });
+
+  it("shows the translated error of a wrong password in the dialog and does not open the prompt", async () => {
+    const create = browser();
+    security((c) => (c.url === "/api/me/passkeys/begin" ? { status: 400, json: { error: { code: "invalid_argument", reason: "wrong_current_password", message: "x" } } } : undefined));
+    const user = userEvent.setup();
+    await screen.findAllByTestId("passkey-row");
+    await user.click(within(screen.getByTestId("passkeys")).getByRole("button", { name: "Add a passkey" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    await user.click(dialog.getByRole("button", { name: "Continue" }));
+    await user.type(dialog.getByLabelText("Confirm with your password"), "bad");
+    await user.click(dialog.getByRole("button", { name: "Create passkey" }));
+    expect(await dialog.findByText("The current password is wrong.")).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("adds nothing when the prompt of the browser is dismissed", async () => {
+    browser(vi.fn().mockRejectedValue(new DOMException("no", "NotAllowedError")));
+    const calls = security();
+    const user = userEvent.setup();
+    await screen.findAllByTestId("passkey-row");
+    await user.click(within(screen.getByTestId("passkeys")).getByRole("button", { name: "Add a passkey" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    await user.click(dialog.getByRole("button", { name: "Continue" }));
+    await user.type(dialog.getByLabelText("Confirm with your password"), "pw");
+    await user.click(dialog.getByRole("button", { name: "Create passkey" }));
+    await waitFor(() => expect(calls.some((c) => c.url === "/api/me/passkeys/begin")).toBe(true));
+    await waitFor(() => expect(dialog.getByRole("button", { name: "Create passkey" })).not.toBeDisabled());
+    expect(calls.some((c) => c.url === "/api/me/passkeys" && c.method === "POST")).toBe(false);
+    expect(screen.queryByText("Passkey added.")).toBeNull();
+  });
+
+  it("cancelling the dialog asks the server for nothing", async () => {
+    browser();
+    const calls = security();
+    const user = userEvent.setup();
+    await screen.findAllByTestId("passkey-row");
+    await user.click(within(screen.getByTestId("passkeys")).getByRole("button", { name: "Add a passkey" }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(calls.some((c) => c.url === "/api/me/passkeys/begin")).toBe(false);
+  });
+
+  it("renames a passkey in a dialog with PUT", async () => {
+    browser();
+    const calls = security((c) => (c.method === "PUT" && c.url.startsWith("/api/me/passkeys/") ? { json: {} } : undefined));
+    const user = userEvent.setup();
+    const [first] = await screen.findAllByTestId("passkey-row");
+    const dialog = within(await pick(user, first!, "Rename"));
+    const field = dialog.getByLabelText("Name of the passkey");
+    expect(field).toHaveValue("Laptop");
+    await user.clear(field);
+    await user.type(field, "Old laptop");
+    await user.click(dialog.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "PUT" && c.url === "/api/me/passkeys/p1")).toBe(true));
+    expect(calls.find((c) => c.method === "PUT" && c.url === "/api/me/passkeys/p1")?.body).toEqual({ name: "Old laptop" });
+  });
+
+  it("deletes a passkey: the dialog confirms first, the password is asked only after that", async () => {
+    browser();
+    const calls = security((c) => (c.method === "DELETE" ? { json: {} } : undefined));
+    const user = userEvent.setup();
+    const [first] = await screen.findAllByTestId("passkey-row");
+    const dialog = within(await pick(user, first!, "Delete"));
+    expect(dialog.getByText("Delete “Laptop”? You will no longer be able to sign in with it.")).toBeInTheDocument();
+    expect(dialog.queryByLabelText("Confirm with your password")).toBeNull();
+    await user.click(dialog.getByRole("button", { name: "Delete" }));
+    expect(calls.some((c) => c.method === "DELETE")).toBe(false); // confirmed, but not sent without the password
+    expect(dialog.getByText("Enter your password to delete “Laptop”.")).toBeInTheDocument();
+    await user.type(dialog.getByLabelText("Confirm with your password"), "pw");
+    list = [rows[1]!];
+    await user.click(dialog.getByRole("button", { name: "Delete" }));
+    expect(await screen.findByText("Passkey removed.")).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "DELETE")).toMatchObject({ url: "/api/me/passkeys/p1", body: { password: "pw" } });
+    expect(await screen.findAllByTestId("passkey-row")).toHaveLength(1);
+  });
+
+  it("says so in a browser that cannot create passkeys", async () => {
+    security();
+    expect(await screen.findByText("This browser cannot create passkeys.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add a passkey" })).toBeNull();
+  });
+});
+
+describe("security: sessions", () => {
+  const sessions = [
+    { id: "s1", ip: "10.0.0.1", browser: "Chrome", os: "macOS", device: "desktop", amr: ["pwd"], createdAt: "1792000000", lastSeenAt: String(Math.floor(Date.now() / 1000) - 300), current: true },
+    { id: "s2", ip: "10.0.0.2", browser: "Safari", os: "iOS", device: "mobile", amr: ["pwd", "swk", "mfa"], createdAt: "1792000100" },
+  ];
+  const security = (list = sessions) =>
+    renderApp([], "/security", (c) => (c.url === "/api/me/sessions" && c.method === "GET" ? { json: { sessions: list } } : undefined));
+
+  it("lists the sessions and marks this device", async () => {
+    security();
+    const rows = await screen.findAllByTestId("session-row");
+    expect(rows).toHaveLength(2);
+    expect(within(rows[0]!).getByText("Chrome on macOS")).toBeInTheDocument();
+    expect(within(rows[0]!).getByText("This device")).toBeInTheDocument();
+    expect(rows[0]!).toHaveTextContent("last active 5 minutes ago");
+    expect(within(rows[1]!).getByText("Safari on iOS")).toBeInTheDocument();
+    expect(within(rows[1]!).queryByText("This device")).toBeNull();
+  });
+
+  it("signs out another session after a confirmation", async () => {
+    const calls = security();
+    const rows = await screen.findAllByTestId("session-row");
+    await userEvent.click(within(rows[1]!).getByRole("button", { name: "Actions for Safari on iOS" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Sign out this session" }));
+    expect(calls.some((c) => c.method === "DELETE")).toBe(false);
+    await userEvent.click(await screen.findByTestId("confirm-ok"));
+    await waitFor(() => expect(calls).toContainEqual(expect.objectContaining({ method: "DELETE", url: "/api/me/sessions/s2" })));
+    expect(await screen.findByText("Session signed out.")).toBeInTheDocument();
+  });
+
+  it("warns before ending the current session", async () => {
+    const calls = security();
+    const rows = await screen.findAllByTestId("session-row");
+    await userEvent.click(within(rows[0]!).getByRole("button", { name: "Actions for Chrome on macOS" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Sign out this session" }));
+    expect(await screen.findByText(/signed out immediately/)).toBeInTheDocument();
+    await userEvent.click(await screen.findByTestId("confirm-ok"));
+    await waitFor(() => expect(calls).toContainEqual(expect.objectContaining({ method: "DELETE", url: "/api/me/sessions/s1" })));
+  });
+
+  it("signs out of all the other sessions", async () => {
+    const calls = security();
+    await userEvent.click(await screen.findByRole("button", { name: "Sign out of all other sessions" }));
+    await userEvent.click(await screen.findByTestId("confirm-ok"));
+    await waitFor(() => expect(calls).toContainEqual(expect.objectContaining({ method: "POST", url: "/api/me/sessions/revoke-others" })));
+  });
+
+  it("has no 'all others' button when this is the only session", async () => {
+    security([sessions[0]!]);
+    await screen.findAllByTestId("session-row");
+    expect(screen.queryByRole("button", { name: "Sign out of all other sessions" })).toBeNull();
   });
 });

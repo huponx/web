@@ -1,4 +1,4 @@
-import { formatCount, parseReviewSummary, splitInterval } from "./review";
+import { formatCount, mergeReviewSummaries, parseReviewSummary, splitInterval } from "./review";
 
 describe("parseReviewSummary", () => {
   it("reads the counts, with int64 as strings", () => {
@@ -11,6 +11,15 @@ describe("parseReviewSummary", () => {
     expect(parseReviewSummary({ nextDueAt: "" })).toEqual({ newCount: 0, learningCount: 0, dueCount: 0, totalCount: 0, nextDueAt: undefined, newHeld: 0, dueHeld: 0, countsCapped: false });
     expect(parseReviewSummary(undefined).totalCount).toBe(0);
     expect(parseReviewSummary({ newCount: "abc" }).newCount).toBe(0);
+  });
+});
+
+describe("mergeReviewSummaries", () => {
+  it("adds the counts of the groups up and keeps the earliest next due time", () => {
+    const a = parseReviewSummary({ newCount: 3, dueCount: 1, totalCount: 10, nextDueAt: "2030-01-02T00:00:00Z", newHeld: 1 });
+    const b = parseReviewSummary({ newCount: 2, learningCount: 4, totalCount: 5, nextDueAt: "2030-01-01T00:00:00Z", dueHeld: 2, countsCapped: true });
+    expect(mergeReviewSummaries([a, b])).toEqual({ newCount: 5, learningCount: 4, dueCount: 1, totalCount: 15, nextDueAt: "2030-01-01T00:00:00Z", newHeld: 1, dueHeld: 2, countsCapped: true });
+    expect(mergeReviewSummaries([])).toEqual(parseReviewSummary({}));
   });
 });
 

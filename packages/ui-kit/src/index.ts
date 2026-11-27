@@ -1,4 +1,5 @@
 export { cn } from "./lib/cn";
+export { iconTone, tone } from "./lib/tones";
 
 export { Alert } from "./components/ui/alert";
 export { Avatar, AvatarFallback, AvatarImage } from "./components/ui/avatar";
@@ -18,6 +19,22 @@ export { DatePicker, DateTimePicker, TimePicker } from "./components/datetime/pi
 export type { DatePickerProps, DateTimePickerProps, TimePickerProps } from "./components/datetime/pickers";
 export { PickerSurface, usePickerMode } from "./components/datetime/picker-surface";
 export type { PickerAlign, PickerSurfaceProps, PickerPlacement, PickerSide, PickerVariant } from "./components/datetime/picker-surface";
+export {
+  conditionalLoginSupported,
+  createPasskey,
+  credentialToJSON,
+  forgetPasskeyHint,
+  getPasskey,
+  hasPasskeyHint,
+  parseCreationOptions,
+  parseRequestOptions,
+  passkeyFailure,
+  passkeysSupported,
+  rememberPasskey,
+  toBase64Url,
+  toBuffer,
+} from "./lib/webauthn";
+export type { PasskeyFailure } from "./lib/webauthn";
 export { translateApiError } from "./lib/api-error";
 export type { ApiErrorLike, Translator } from "./lib/api-error";
 export { UiMessagesProvider, useUiMessages } from "./components/messages";
@@ -41,11 +58,15 @@ export {
 } from "./components/page-parts";
 export type { Column } from "./components/page-parts";
 export { ClearButton } from "./components/clear-button";
+export { Stepper } from "./components/stepper";
+export type { StepperProps } from "./components/stepper";
 export { SwitchRow } from "./components/switch-row";
 export type { SwitchRowProps } from "./components/switch-row";
 export { DeleteCard } from "./components/delete-card";
 export type { DeleteCardProps } from "./components/delete-card";
 export { Checkbox } from "./components/ui/checkbox";
+export { SplitButton } from "./components/split-button";
+export type { SplitButtonAction, SplitButtonProps } from "./components/split-button";
 export { Dropdown } from "./components/dropdown";
 export type { DropdownOption, DropdownProps } from "./components/dropdown";
 export { useConfirm } from "./components/confirm-dialog";
@@ -126,3 +147,5 @@ export { SidebarNav } from "./shell/Sidebar";
 export { initials, UserMenu } from "./shell/UserMenu";
 export type { UserMenuProps } from "./shell/UserMenu";
 export type { Crumb, NavItem, ShellLabels, ShellLink, ShellLinkProps } from "./shell/types";
+export { SessionsPanel, relativeTime } from "./components/sessions-panel";
+export type { SessionItem, SessionsPanelLabels, SessionsPanelProps } from "./components/sessions-panel";

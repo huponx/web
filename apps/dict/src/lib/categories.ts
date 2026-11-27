@@ -7,23 +7,24 @@ export function notifySavedChanged(): void {
   window.dispatchEvent(new Event(SAVED_CHANGED));
 }
 
-/** The categories of the user, read again when the saved words change anywhere in the app. */
-export function useCategories() {
+/** The categories of the user with the counts of a group, read again when the saved words change anywhere in the app. */
+export function useCategories(group: string) {
   const api = useDictionary();
   const [data, setData] = useState<CategoryList>({ categories: [] });
   const [loaded, setLoaded] = useState(false);
   const seq = useRef(0);
   const reload = useCallback(() => {
     const mine = ++seq.current;
+    if (!group) return;
     api
-      .listCategories()
+      .listCategories(group)
       .then((r) => {
         if (mine !== seq.current) return;
         setData({ ...r, categories: r.categories ?? [] });
         setLoaded(true);
       })
       .catch(() => undefined); // the lists work without categories
-  }, [api]);
+  }, [api, group]);
   useEffect(reload, [reload]);
   useEffect(() => {
     window.addEventListener(SAVED_CHANGED, reload);

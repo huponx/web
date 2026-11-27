@@ -9,25 +9,32 @@
     "required": "This field is required.",
     "invalidEmail": "Enter a valid email address.",
     "invalidFormat": "Use the format shown below the field.",
-    "clearField": "Clear {{label}}"
+    "clearField": "Clear {{label}}",
+    "close": "Close"
   },
   "login": {
     "title": "Sign in",
     "submit": "Sign in",
     "forgot": "Forgot your password?",
-    "register": "Create an account"
+    "register": "Create an account",
+    "passkey": "Sign in with a passkey",
+    "passkeyBusy": "Waiting for your passkey…"
   },
   "register": {
     "title": "Create an account",
     "name": "Name",
     "submit": "Create the account",
     "sentTitle": "Check your e-mail",
-    "sent": "If the address can be used, we sent a link to set your password. Open it to finish creating the account."
+    "sent": "If the address can be used, we sent a link to set your password. Open it to finish creating the account.",
+    "sentPending": "Your request was received. An administrator will review it and you will get an e-mail once it has been decided."
   },
   "mfa": {
     "title": "Verification",
     "code": "Code from your authenticator app, or a recovery code",
-    "submit": "Verify"
+    "submit": "Verify",
+    "passkey": "Use a passkey",
+    "orPasskey": "or",
+    "passkeyOnly": "Confirm it is you with the passkey of your account."
   },
   "passwordChange": {
     "title": "Choose a new password",
@@ -50,22 +57,51 @@
     "invalid": "This link is not valid or has expired. Ask for a new one.",
     "askAgain": "Ask for a new link",
     "doneTitle": "Password changed",
-    "done": "Your password was changed and you were signed out everywhere."
+    "done": "Your password was changed and you were signed out everywhere.",
+    "repeat": "Repeat the new password"
   },
   "account": {
     "title": "Multi-factor authentication",
-    "on": "Multi-factor authentication is on. Recovery codes left: {{count}}.",
     "forced": "It is required for your account and cannot be turned off.",
     "codeOrRecovery": "Code or recovery code",
-    "turnOff": "Turn off",
     "enrollTitle": "Turn on multi-factor authentication",
-    "scan": "Scan the code with an authenticator app, then enter the 6 digit code it shows.",
+    "scan": "Scan the QR code using your authenticator app.",
     "qrAlt": "QR code",
-    "typeKey": "Or type this key:",
+    "typeKey": "Setup key:",
     "code": "Code",
     "turnOn": "Turn on",
     "codesTitle": "Recovery codes",
-    "codesText": "Multi-factor authentication is on. Keep these recovery codes in a safe place: each works once, and they are not shown again."
+    "codesText": "Multi-factor authentication is on. Keep these recovery codes in a safe place: each works once, and they are not shown again.",
+    "onShort": "Multi-factor authentication is on.",
+    "authenticator": "Authenticator app",
+    "codesLeft": "Recovery codes left: {{count}}",
+    "actions": "Authenticator actions",
+    "change": "Change authenticator",
+    "disable": "Disable MFA",
+    "changeTitle": "Change authenticator",
+    "disableTitle": "Disable multi-factor authentication",
+    "changeConfirm": "Your current authenticator stops working now, and you set up a new one next. Until you finish, your account is protected by the password only.",
+    "disableConfirm": "Turn off multi-factor authentication? Your account will be protected by the password only, and the recovery codes are deleted.",
+    "reauth": "Confirm it is you: enter your password and a code from your authenticator app (or a recovery code).",
+    "steps": {
+      "label": "Steps",
+      "connect": "Connect",
+      "verify": "Verify",
+      "save": "Save codes"
+    },
+    "connectTitle": "Connect authenticator",
+    "cantScan": "Can't scan the QR code? Show setup key",
+    "next": "Next",
+    "verifyTitle": "Verify your authenticator",
+    "verifyText": "Enter the 6 digit code your authenticator app shows.",
+    "saveTitle": "Save recovery codes",
+    "copy": "Copy codes",
+    "copied": "Copied",
+    "savedCheck": "I have saved my recovery codes",
+    "switchToPasskey": "Set up a passkey instead",
+    "switchToAuthenticator": "Use an authenticator app instead",
+    "managePasskeys": "Manage passkeys",
+    "backToMfa": "Back to multi-factor authentication"
   },
   "logout": {
     "title": "Sign out",
@@ -93,7 +129,13 @@
       "password_common": "The password is too common.",
       "password_same": "The password must differ from the previous one.",
       "password_email": "The password must not contain the e-mail address.",
-      "invalid_email": "Enter a valid e-mail address."
+      "invalid_email": "Enter a valid e-mail address.",
+      "invalid_passkey": "The passkey was not accepted. Try again or use another way to sign in.",
+      "invalid_password": "Wrong password.",
+      "invalid_passkey_name": "The name must have 1 to 60 characters.",
+      "passkey_limit": "You have reached the maximum number of passkeys.",
+      "passkey_not_found": "This passkey does not exist.",
+      "passkey_failed": "The passkey could not be used. Try again or use your password."
     },
     "internal": "Something went wrong. Please try again.",
     "network": "The server cannot be reached. Please try again.",
@@ -105,18 +147,49 @@
       "internal": "Something went wrong. Please try again."
     }
   },
-  "apps": {
-    "title": "Applications",
-    "signedInAs": "Signed in as {{who}}",
-    "none": "No application is configured.",
-    "security": "Multi-factor authentication",
-    "signOut": "Sign out"
-  },
   "preferences": {
     "group": "Theme",
     "light": "Light",
     "dark": "Dark",
     "system": "System",
     "language": "Language"
+  },
+  "setPassword": {
+    "title": "Set your password",
+    "submit": "Set the password",
+    "doneTitle": "Password set",
+    "done": "Your password is set. You can now sign in with it.",
+    "signIn": "Sign in"
+  },
+  "passkeys": {
+    "title": "Passkeys",
+    "intro": "Sign in with your fingerprint, face or screen lock instead of a password. A passkey also counts as the second factor.",
+    "none": "You have no passkeys yet.",
+    "name": "Name of the passkey",
+    "namePlaceholder": "For example: My laptop",
+    "password": "Your current password",
+    "add": "Add a passkey",
+    "added": "Passkey added.",
+    "removed": "Passkey removed.",
+    "unsupported": "This browser cannot create passkeys.",
+    "lastUsed": "Last used {{date}}",
+    "neverUsed": "Never used",
+    "synced": "Synced",
+    "deviceBound": "This device only",
+    "rename": "Rename",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleteText": "Enter your password to delete “{{name}}”.",
+    "limit": "You have the maximum of {{max}} passkeys.",
+    "defaultName": "My passkey",
+    "actions": "Actions for {{name}}",
+    "addTitle": "Add a passkey",
+    "addText": "Give the passkey a name you will recognize, for example the device it lives on.",
+    "addPasswordText": "Enter your password to add it. Your device then asks you to confirm.",
+    "create": "Create passkey",
+    "renameTitle": "Rename the passkey",
+    "deleteTitle": "Delete the passkey",
+    "deleteConfirm": "Delete “{{name}}”? You will no longer be able to sign in with it."
   }
 }
