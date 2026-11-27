@@ -36,6 +36,22 @@ export function parseReviewSummary(raw: Record<string, unknown> | null | undefin
   };
 }
 
+/** The counts of several groups as one: the numbers add up, the next due time is the earliest. */
+export function mergeReviewSummaries(parts: ReviewSummary[]): ReviewSummary {
+  const sum = (f: (s: ReviewSummary) => number) => parts.reduce((t, s) => t + f(s), 0);
+  const due = parts.flatMap((s) => (s.nextDueAt ? [s.nextDueAt] : []));
+  return {
+    newCount: sum((s) => s.newCount),
+    learningCount: sum((s) => s.learningCount),
+    dueCount: sum((s) => s.dueCount),
+    totalCount: sum((s) => s.totalCount),
+    nextDueAt: due.sort((a, b) => Date.parse(a) - Date.parse(b))[0],
+    newHeld: sum((s) => s.newHeld),
+    dueHeld: sum((s) => s.dueHeld),
+    countsCapped: parts.some((s) => s.countsCapped),
+  };
+}
+
 /** A count for display: `10000+` when the service stopped counting. */
 export function formatCount(n: number, capped: boolean): string {
   return capped && n >= COUNT_CAP ? `${COUNT_CAP}+` : String(n);

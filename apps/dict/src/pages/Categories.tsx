@@ -1,19 +1,4 @@
-import {
-  Alert,
-  AutoAlert,
-  Button,
-  Tip,
-  Dialog,
-  Dropdown,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  useConfirm,
-} from "@huponx/ui-kit";
+import { Alert, AutoAlert, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Dropdown, iconTone, Input, Label, Tip, tone, useConfirm } from "@huponx/ui-kit";
 import { Check, Ellipsis, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -212,7 +197,7 @@ export function NewCategory({
           disabled={name.trim() === ""}
           className="@sm:shrink-0"
         >
-          <Plus aria-hidden="true" />
+          <Plus aria-hidden="true" className={iconTone.add} />
           {t("categories.create")}
         </Button>
       </form>
@@ -332,6 +317,7 @@ export function ManageCategories({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
+                        className={tone.ok}
                         aria-label={t("categories.renameSave")}
                         title={t("categories.renameSave")}
                         onClick={() => void rename(c)}
@@ -361,6 +347,7 @@ export function ManageCategories({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
+                        className={tone.edit}
                         aria-label={t("categories.rename", { name: c.name })}
                         title={t("categories.rename", { name: c.name })}
                         onClick={() => setEditing({ id: c.id, name: c.name })}
@@ -371,6 +358,7 @@ export function ManageCategories({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
+                        className={tone.danger}
                         aria-label={t("categories.delete", { name: c.name })}
                         title={t("categories.delete", { name: c.name })}
                         onClick={() => void remove(c)}

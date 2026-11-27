@@ -8,6 +8,7 @@ coverage/
 playwright-report/
 test-results/
 *.memsearch
+**/.DS_Store
 
 # helm dependencies (helm dependency build)
 charts/*/charts/

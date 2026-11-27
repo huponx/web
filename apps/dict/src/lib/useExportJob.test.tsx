@@ -5,6 +5,7 @@ import { EXPORT_POLL_MS, useExportJob } from "./useExportJob";
 
 const job = (status: ExportJob["status"], built = 0): ExportJob => ({
   id: "j1",
+  group: "en",
   status,
   total: 10,
   built,

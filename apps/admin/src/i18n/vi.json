@@ -2,6 +2,7 @@
   "common": {
     "loading": "Đang tải...",
     "signingIn": "Đang đăng nhập...",
+    "signingOut": "Đang đăng xuất...",
     "tryAgain": "Thử lại",
     "close": "Đóng",
     "cancel": "Hủy",
@@ -74,7 +75,9 @@
       "roles": "Vai trò",
       "permissions": "{{count}} quyền",
       "pending": "Người dùng chờ kích hoạt",
-      "pendingHint": "Chưa đặt mật khẩu"
+      "pendingHint": "Chưa đặt mật khẩu",
+      "awaitingApproval": "Chờ phê duyệt",
+      "awaitingApprovalHint": "Tự đăng ký, đang chờ quản trị viên"
     },
     "quick": {
       "title": "Thao tác nhanh",
@@ -138,6 +141,15 @@
       "mint": "Bạc hà",
       "rose": "Hồng",
       "graphite": "Than chì"
+    },
+    "registration": {
+      "title": "Đăng ký",
+      "description": "Điều gì xảy ra sau khi ai đó tạo tài khoản ở trang đăng nhập.",
+      "requiresApproval": "Đăng ký cần phê duyệt",
+      "requiresApprovalHint": "Tài khoản mới phải chờ quản trị viên phê duyệt. Tắt: email chào mừng kèm liên kết đặt mật khẩu được gửi ngay.",
+      "save": "Lưu",
+      "saved": "Đã lưu cài đặt đăng ký.",
+      "disabledNote": "Tính năng tự đăng ký đang tắt trên máy chủ (IDENTITY_REGISTRATION_ENABLED), nên cài đặt này chưa có tác dụng."
     }
   },
   "settings": {
@@ -160,6 +172,10 @@
       "title": "Hồ sơ",
       "description": "Tên và ảnh đại diện của bạn. Chúng hiển thị ở đầu trang; bạn tự thay đổi mà không cần quyền nào.",
       "saved": "Đã lưu hồ sơ."
+    },
+    "sessions": {
+      "title": "Phiên đăng nhập",
+      "description": "Các trình duyệt và thiết bị bạn đang đăng nhập. Đăng xuất một phiên sẽ kết thúc phiên đó ngay; ứng dụng đã có access token có thể còn hoạt động thêm vài phút."
     }
   },
   "users": {
@@ -186,7 +202,8 @@
     "status": {
       "active": "Hoạt động",
       "pending": "Chờ kích hoạt",
-      "disabled": "Đã khóa"
+      "disabled": "Đã khóa",
+      "awaiting_approval": "Chờ phê duyệt"
     },
     "mfaState": {
       "required": "bắt buộc",
@@ -224,11 +241,28 @@
       "delete": "Xóa tài khoản",
       "deleteTitle": "Xóa tài khoản",
       "confirmDelete": "Xóa tài khoản {{email}}? Người dùng bị đăng xuất ngay và không thể đăng nhập lại, dữ liệu của họ (từ đã lưu, tệp) được xóa dần ở nền. Không thể hoàn tác.",
-      "deleted": "Đã xóa tài khoản {{email}}."
+      "deleted": "Đã xóa tài khoản {{email}}.",
+      "awaitingHint": "Người này tự đăng ký và đang chờ quản trị viên. Sẽ không có email chứa liên kết nào được gửi cho đến khi bạn phê duyệt.",
+      "approve": "Phê duyệt",
+      "approved": "Đã phê duyệt. Email chào mừng kèm liên kết đặt mật khẩu đã được gửi.",
+      "reject": "Từ chối",
+      "rejected": "Đã từ chối. Yêu cầu đã bị xóa và người đăng ký đã được báo qua email.",
+      "rejectTitle": "Từ chối đăng ký",
+      "confirmReject": "Từ chối đăng ký của {{email}}? Yêu cầu sẽ bị xóa và người đăng ký nhận được email. Họ có thể đăng ký lại.",
+      "moreDecisions": "Quyết định khác",
+      "welcomeTitle": "Email chào mừng",
+      "welcomeHint": "Gửi lại liên kết đặt mật khẩu đầu tiên.",
+      "resetTitle": "Mật khẩu",
+      "resetHint": "Gửi email chứa liên kết để chọn mật khẩu mới.",
+      "accessTitle": "Đăng nhập",
+      "accessHint": "Vô hiệu hóa sẽ chặn đăng nhập và kết thúc mọi phiên.",
+      "accessHintDisabled": "Tài khoản đang bị vô hiệu hóa và không thể đăng nhập.",
+      "deleteHint": "Người dùng và dữ liệu của họ sẽ bị xóa. Không thể hoàn tác.",
+      "moreDecisionsFor": "Quyết định khác cho {{email}}"
     },
     "mfa": {
       "title": "Xác thực đa yếu tố",
-      "state": "Chế độ máy chủ: <strong>{{mode}}</strong>. Người dùng này: {{enrolled}}, {{required}}, số mã khôi phục còn lại: {{left}}.",
+      "state": "Chế độ máy chủ: <strong>{{mode}}</strong>. Người dùng này: {{enrolled}}, {{required}}, số mã khôi phục còn lại: {{left}}, khóa truy cập: {{passkeys}}.",
       "enrolledYes": "đã đăng ký ứng dụng xác thực",
       "enrolledNo": "chưa đăng ký",
       "requiredYes": "bắt buộc",
@@ -241,7 +275,7 @@
       "turnedOff": "Đã tắt MFA.",
       "reset": "Đặt lại",
       "resetDone": "Đã đặt lại MFA.",
-      "confirmReset": "Đặt lại MFA? Ứng dụng xác thực và các mã khôi phục sẽ bị xóa.",
+      "confirmReset": "Đặt lại MFA? Ứng dụng xác thực, các mã khôi phục và các khóa truy cập sẽ bị xóa, người dùng bị đăng xuất khỏi mọi nơi.",
       "hint": "Quản trị viên không thể đăng ký ứng dụng xác thực thay người dùng: người dùng tự làm trên thiết bị của họ."
     },
     "add": "Thêm người dùng",
@@ -286,7 +320,8 @@
       "signedIn30d": "Đăng nhập 30 ngày qua",
       "neverSignedIn": "Chưa từng đăng nhập",
       "expand": "Hiện tất cả thống kê",
-      "collapse": "Thu gọn thống kê"
+      "collapse": "Thu gọn thống kê",
+      "awaitingApproval": "Chờ phê duyệt"
     },
     "storage": {
       "title": "Dung lượng từ điển",
@@ -301,7 +336,26 @@
       "defaultPlaceholder": "Mặc định",
       "useDefault": "Dùng mặc định",
       "save": "Lưu hạn mức",
-      "saved": "Đã lưu hạn mức dung lượng."
+      "saved": "Đã lưu hạn mức dung lượng.",
+      "recalculate": "Tính lại",
+      "recalculated": "Đã tính lại dung lượng.",
+      "recalculatedChanged": "Đã tính lại dung lượng. Thay đổi: {{changes}}."
+    },
+    "sessions": {
+      "title": "Phiên đăng nhập",
+      "description": "Các trình duyệt và thiết bị mà người dùng này đang đăng nhập.",
+      "revokeAll": "Đăng xuất khỏi mọi phiên",
+      "confirmRevokeAll": "Đăng xuất {{email}} ở mọi nơi? Mọi phiên và refresh token kết thúc ngay, các access token đã cấp không còn dùng được để đổi token. Ứng dụng kiểm tra access token tại chỗ vẫn chấp nhận nó đến khi hết hạn.",
+      "revokedAll": "Người dùng đã bị đăng xuất ở mọi nơi."
+    }
+  },
+  "lookup": {
+    "dictionaries": {
+      "english": "Anh - Anh",
+      "english-vietnamese": "Anh - Việt"
+    },
+    "groups": {
+      "en": "Tiếng Anh"
     }
   },
   "dictionary": {
@@ -330,10 +384,6 @@
     "retention": "Giữ từ đã xóa trong (giờ)",
     "retentionHint": "Từ 1 đến 8760. Các từ đã rời khỏi danh sách sẽ bị xóa hẳn sau thời gian này. Từ còn trong danh sách không bao giờ bị xóa.",
     "dictionaries": "Từ điển",
-    "english": "Tiếng Anh",
-    "englishHint": "Định nghĩa tiếng Anh.",
-    "englishVi": "Anh-Việt",
-    "englishViHint": "Định nghĩa tiếng Việt của từ tiếng Anh.",
     "oneOn": "Phải còn ít nhất một từ điển được bật.",
     "save": "Lưu cài đặt",
     "saved": "Đã lưu cài đặt từ điển.",
@@ -371,28 +421,19 @@
     },
     "perm": {
       "title": "Quyền",
-      "intro": "Danh mục các quyền có thể cấp cho vai trò. Quyền đang được vai trò sử dụng thì không thể xoá.",
+      "intro": "Các quyền của hệ thống, chỉ đọc. Mỗi dịch vụ tự khai báo quyền của mình và identity lưu lại khi dịch vụ khởi động; wildcard được sinh từ các quyền đó. Cấp quyền cho vai trò ở trang vai trò.",
       "name": "Quyền",
       "description": "Mô tả",
       "roles": "Vai trò",
-      "actions": "Thao tác",
-      "edit": "Sửa",
-      "editAria": "Sửa {{name}}",
-      "deleteAria": "Xoá {{name}}",
-      "editTitle": "Sửa {{name}}",
-      "inUse": "Đang được vai trò sử dụng",
-      "confirmDelete": "Xoá quyền {{name}}?",
-      "created": "Đã thêm quyền {{name}}.",
-      "deleted": "Đã xoá quyền {{name}}.",
-      "updated": "Đã cập nhật quyền {{name}}.",
-      "new": "Thêm quyền",
-      "nameHint": "Ví dụ bill:invoice:read, hoặc wildcard như bill:*.",
-      "add": "Thêm quyền",
       "empty": "Danh mục chưa có quyền nào.",
       "wildcards": "Wildcard",
-      "unknown": "Không có trong danh mục",
       "search": "Tìm permission",
-      "searchHint": "Tên hoặc mô tả"
+      "searchHint": "Tên hoặc mô tả",
+      "service": "Dịch vụ",
+      "wildcardBadge": "wildcard",
+      "retiredBadge": "đã ngừng",
+      "retired": "Đã ngừng",
+      "retiredHint": "Đã ngừng: không dịch vụ nào còn khai báo các quyền này và chúng không còn hiệu lực. Bỏ chọn để gỡ khỏi vai trò."
     },
     "tab": {
       "roles": "Vai trò",
@@ -625,7 +666,27 @@
       "user_not_found": "Không tìm thấy người dùng.",
       "user_id_invalid": "Mã người dùng không hợp lệ.",
       "settings_required": "Cần có cài đặt.",
-      "quota_range": "Hạn mức {{kind}} phải từ {{min}} đến {{max}} byte, hoặc 0 để dùng mặc định."
+      "quota_range": "Hạn mức {{kind}} phải từ {{min}} đến {{max}} byte, hoặc 0 để dùng mặc định.",
+      "session_not_found": "Phiên không tồn tại hoặc đã kết thúc."
     }
+  },
+  "sessions": {
+    "none": "Không có phiên đăng nhập nào.",
+    "thisDevice": "Thiết bị này",
+    "unknownDevice": "Thiết bị không xác định",
+    "browserOnOs": "{{browser}} trên {{os}}",
+    "lastActive": "hoạt động {{when}}",
+    "signedIn": "đăng nhập {{date}}",
+    "password": "Mật khẩu",
+    "otp": "Mã xác thực",
+    "passkey": "Khóa truy cập",
+    "actions": "Thao tác cho {{name}}",
+    "revoke": "Đăng xuất phiên này",
+    "revokeOthers": "Đăng xuất khỏi mọi phiên khác",
+    "confirmRevoke": "Đăng xuất “{{name}}”? Phiên đó sẽ kết thúc ngay.",
+    "confirmRevokeCurrent": "“{{name}}” là phiên bạn đang dùng. Bạn sẽ bị đăng xuất ngay lập tức.",
+    "confirmRevokeOthers": "Đăng xuất khỏi mọi phiên trừ phiên này? Các thiết bị đó phải đăng nhập lại.",
+    "revoked": "Đã đăng xuất phiên.",
+    "revokedOthers": "Đã đăng xuất khỏi các phiên khác."
   }
 }

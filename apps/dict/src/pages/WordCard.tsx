@@ -1,12 +1,4 @@
-import {
-  AutoAlert,
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@huponx/ui-kit";
+import { AutoAlert, Badge, Button, Card, CardContent, CardHeader, CardTitle, tone } from "@huponx/ui-kit";
 import {
   Bookmark,
   BookmarkCheck,
@@ -115,6 +107,7 @@ export function WordCard({
               type="button"
               variant="outline"
               size="icon-sm"
+              className={tone.edit}
               aria-label={t("lookup.edit")}
               title={t("lookup.edit")}
               onClick={() => setEditing(true)}
@@ -128,6 +121,7 @@ export function WordCard({
               type="button"
               variant="outline"
               size="icon-sm"
+              className={tone.revert}
               aria-label={t("lookup.revert")}
               title={t("lookup.revert")}
               onClick={() => onRevert(word)}
@@ -139,6 +133,7 @@ export function WordCard({
             type="button"
             variant="outline"
             size="icon-sm"
+            className={tone.copy}
             aria-label={t("lookup.copyResult")}
             title={t("lookup.copyResult")}
             onClick={() => onCopy(word)}

@@ -1,4 +1,4 @@
-import { Can, useAuth } from "@huponx/auth-client";
+import { Can, P, useAuth } from "@huponx/auth-client";
 import {
   Button,
   Card,
@@ -14,7 +14,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useIdentity } from "../api";
-import type { DictionarySettings } from "../api";
+import type { DictionaryGroup, DictionarySettings } from "../api";
 import { formatBytes } from "../lib/bytes";
 import {
   Actions,
@@ -51,11 +51,17 @@ function sizeOptions(sizes: number[], ceiling: number, current: number) {
     .map((b) => ({ value: String(b), label: formatBytes(b) }));
 }
 
-function Editor({ initial }: { initial: DictionarySettings }) {
+function Editor({
+  initial,
+  registry,
+}: {
+  initial: DictionarySettings;
+  registry: DictionaryGroup[];
+}) {
   const { t } = useTranslation();
   const api = useIdentity();
   const { can } = useAuth();
-  const canWrite = can("dictionary:settings:write");
+  const canWrite = can(P.dictionary.settingsWrite);
   const [max, setMax] = useState(String(initial.maxSavedWords));
   const [keep, setKeep] = useState(String(initial.exportedRetentionHours));
   const [maxCats, setMaxCats] = useState(String(initial.maxCategories));
@@ -97,7 +103,10 @@ function Editor({ initial }: { initial: DictionarySettings }) {
   );
   const set = (patch: Partial<DictionarySettings>) =>
     setS((cur) => ({ ...cur, ...patch }));
-  const oneOn = s.englishEnabled || s.englishViEnabled;
+  // the system switch of the service decides; the registry only lists the dictionaries (its `enabled` is the caller's)
+  const ids = registry.flatMap((g) => g.dictionaries.map((d) => d.id));
+  const on = (id: string) => s.dictionaries[id] !== false;
+  const oneOn = ids.some(on);
 
   async function submit(ev: FormEvent) {
     ev.preventDefault();
@@ -105,6 +114,7 @@ function Editor({ initial }: { initial: DictionarySettings }) {
       () =>
         api.updateDictionarySettings({
           ...s,
+          dictionaries: Object.fromEntries(ids.map((id) => [id, on(id)])),
           maxSavedWords: Number(max),
           exportedRetentionHours: Number(keep),
           maxCategories: Number(maxCats),
@@ -292,25 +302,34 @@ function Editor({ initial }: { initial: DictionarySettings }) {
           <CardDescription>{t("dictionary.oneOn")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <SwitchRow
-            label={t("dictionary.english")}
-            hint={t("dictionary.englishHint")}
-            checked={s.englishEnabled}
-            onChange={(v) => set({ englishEnabled: v })}
-            disabled={!canWrite}
-          />
-          <SwitchRow
-            label={t("dictionary.englishVi")}
-            hint={t("dictionary.englishViHint")}
-            checked={s.englishViEnabled}
-            onChange={(v) => set({ englishViEnabled: v })}
-            disabled={!canWrite}
-          />
+          {registry.map((g) => (
+            <div
+              key={g.id}
+              className="flex flex-col gap-4"
+              data-testid={`group-${g.id}`}
+            >
+              <h3 className="text-sm font-medium text-muted-foreground">
+                {t(`lookup.groups.${g.id}`, { defaultValue: g.id })}
+              </h3>
+              {g.dictionaries.map((d) => (
+                <SwitchRow
+                  key={d.id}
+                  label={t(`lookup.dictionaries.${d.id}`, { defaultValue: d.id })}
+                  hint={`${d.source} → ${d.target}`}
+                  checked={on(d.id)}
+                  onChange={(v) =>
+                    set({ dictionaries: { ...s.dictionaries, [d.id]: v } })
+                  }
+                  disabled={!canWrite}
+                />
+              ))}
+            </div>
+          ))}
         </CardContent>
       </Card>
       <ErrorAlert error={a.error} />
       <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
-      <Can perm="dictionary:settings:write">
+      <Can perm={P.dictionary.settingsWrite}>
         <Actions>
           <Button type="submit" busy={a.busy} disabled={!oneOn}>
             {t("dictionary.save")}
@@ -321,11 +340,18 @@ function Editor({ initial }: { initial: DictionarySettings }) {
   );
 }
 
-/** Settings of the dictionary for the whole system: limits, exports and which dictionaries are on. */
+/**
+ * Settings of the dictionary for the whole system: limits, exports and which dictionaries are on. The switches come
+ * from the registry of the service, by group, named by `lookup.dictionaries.<id>` and `lookup.groups.<id>` (the id
+ * when a name is missing).
+ */
 export function Dictionary() {
   const { t } = useTranslation();
   const api = useIdentity();
-  const load = useLoad(() => api.getDictionarySettings(), [api]);
+  const load = useLoad(
+    () => Promise.all([api.getDictionarySettings(), api.listDictionaries()]),
+    [api],
+  );
   return (
     <div className="flex flex-col gap-6">
       <PageTitle description={t("dictionary.intro")}>
@@ -334,7 +360,7 @@ export function Dictionary() {
       {load.error ? (
         <ErrorAlert error={load.error} />
       ) : load.data ? (
-        <Editor initial={load.data} />
+        <Editor initial={load.data[0]} registry={load.data[1]} />
       ) : (
         <Loading />
       )}

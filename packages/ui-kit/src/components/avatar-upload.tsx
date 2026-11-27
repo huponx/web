@@ -5,6 +5,7 @@ import type { Crop } from "../lib/crop";
 import type { ResizedImage } from "../lib/image";
 import { ImageCropDialog } from "./image-crop-dialog";
 import type { ImageCropLabels } from "./image-crop-dialog";
+import { iconTone } from "../lib/tones";
 import { Button } from "./ui/button";
 import { UserAvatar } from "./user-avatar";
 
@@ -89,12 +90,12 @@ export function AvatarUpload({ name, email, current, value, onChange, disabled, 
             onChange={(ev) => pick(ev.target.files?.[0])}
           />
           <Button type="button" variant="outline" busy={busy} disabled={disabled} onClick={() => input.current?.click()}>
-            <Upload aria-hidden="true" />
+            <Upload aria-hidden="true" className={iconTone.save} />
             {labels.upload}
           </Button>
           {shown ? (
             <Button type="button" variant="ghost" disabled={disabled} onClick={() => onChange(null)}>
-              <Trash2 aria-hidden="true" />
+              <Trash2 aria-hidden="true" className={iconTone.danger} />
               {labels.remove}
             </Button>
           ) : null}

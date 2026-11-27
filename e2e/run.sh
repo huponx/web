@@ -38,7 +38,7 @@ EOF
 
 # the sign in pages: identity serves the build of apps/auth (in production it is the auth-ui image)
 pnpm --filter @huponx/auth build >/dev/null
-export IDENTITY_UI_DIR=$root/apps/auth/dist IDENTITY_APPS="Admin=$ui|$ui/logo.svg"
+export IDENTITY_UI_DIR=$root/apps/auth/dist IDENTITY_PORTAL_URL="$ui"
 
 HTTP_PORT=$ID_HTTP PORT=$ID_GRPC "$tmp/identity" >"$tmp/identity.log" 2>&1 & ipid=$!
 for _ in $(seq 1 50); do curl -fs "$IDENTITY_ISSUER/healthz" >/dev/null && break; sleep 0.2; done

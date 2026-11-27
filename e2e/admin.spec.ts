@@ -78,7 +78,7 @@ async function signIn(page: Page, email: string, password: string) {
   await page.goto("/");
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expectSignedIn(page);
 }
 
@@ -216,7 +216,7 @@ test.describe.serial("identity admin", () => {
     // the user cannot sign in yet, there is no password
     await page.getByLabel("E-mail").fill(plainEmail);
     await page.getByLabel("Password").fill(plainPassword);
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page.getByRole("alert")).toBeVisible();
 
     // the user sets the password with the link of the welcome mail
@@ -521,6 +521,28 @@ test.describe.serial("identity admin", () => {
     });
     expect(status).toBe(403);
   });
+
+  test("Settings lists the own session as this device; the user page lists the sessions of a user and signs them all out", async ({ page }) => {
+    await signIn(page, adminEmail, adminPassword);
+    await page.getByRole("link", { name: "Settings" }).click();
+    const own = page.getByTestId("sessions-card");
+    await expect(own.getByText("This device")).toBeVisible();
+    await expect(own.getByTestId("session-row").first()).toContainText(/\d+\.\d+\.\d+\.\d+|::1|127\.0\.0\.1/); // the IP the session was opened from
+
+    // the user of the previous test has a session; an administrator sees it, read-only, and ends all of them
+    await page.getByRole("link", { name: "Users" }).first().click();
+    await page.getByLabel("Email", { exact: true }).fill(`plain-${suffix}`);
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByRole("link", { name: `Manage ${plainEmail}` }).click();
+    const section = page.getByTestId("user-sessions");
+    await expect(section.getByTestId("session-row")).toHaveCount(1);
+    await expect(section.getByText("This device")).toHaveCount(0);
+    await expect(section.getByRole("button", { name: /^Actions for/ })).toHaveCount(0);
+    await section.getByRole("button", { name: "Sign out of all sessions" }).click();
+    await page.getByRole("alertdialog").getByTestId("confirm-ok").click();
+    await expect(section.getByTestId("session-row")).toHaveCount(0);
+    await expect(section.getByText("No active sessions.")).toBeVisible();
+  });
 });
 
 test("the same browser signs in again after signing out", async ({ page }) => {
@@ -558,20 +580,24 @@ test("account MFA: signed in on identity the page shows the QR code, and a wrong
   await expect(page).toHaveURL(/\/login/);
   await page.getByLabel("E-mail").fill(adminEmail);
   await page.getByLabel("Password").fill(adminPassword);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("img", { name: "QR code" })).toBeVisible();
-  await expect(page.getByText(/Or type this key:/)).toBeVisible();
+  // the key to type is behind a link, the code field on the next step
+  await expect(page.getByText(/Setup key:/)).toHaveCount(0);
+  await page.getByRole("button", { name: "Can't scan the QR code? Show setup key" }).click();
+  await expect(page.getByText(/Setup key:/)).toBeVisible();
+  await page.getByRole("button", { name: "Next" }).click();
   await page.getByLabel("Code", { exact: true }).fill("000000");
   await page.getByRole("button", { name: "Turn on" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
-  await expect(page.getByRole("img", { name: "QR code" })).toBeVisible(); // still enrolling, nothing is on
+  await expect(page.getByRole("heading", { name: "Verify your authenticator" })).toBeVisible(); // still enrolling, nothing is on
 });
 
 test("signing in at identity without an application lists the applications, with no MFA step", async ({ page }) => {
   await page.goto(`${identityUrl}/login`);
   await page.getByLabel("E-mail").fill(adminEmail);
   await page.getByLabel("Password").fill(adminPassword);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/apps$/);
   await expect(page.getByRole("link", { name: "Admin" })).toHaveAttribute("href", /localhost:13002/);
   // the icon of the app loads (the CSP lets the origin of the icon through)
@@ -587,6 +613,96 @@ test("signing in at identity without an application lists the applications, with
 async function signIn2(page: Page, email: string, password: string) {
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expectSignedIn(page);
 }
+
+test.describe("passkeys", () => {
+  /** A virtual authenticator of Chrome: it answers every prompt as a user who verified with a fingerprint. */
+  async function withAuthenticator(page: Page) {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("WebAuthn.enable");
+    await cdp.send("WebAuthn.addVirtualAuthenticator", {
+      options: { protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true },
+    });
+    // the virtual authenticator answers the request of the autofill list at once, so the login page would sign in
+    // before the test can click anything: a flag of the identity origin turns that request off
+    await page.addInitScript(() => {
+      if (localStorage.getItem("e2e.noConditional") === "1") window.PublicKeyCredential.isConditionalMediationAvailable = () => Promise.resolve(false);
+    });
+  }
+
+  /** Opens the login page of identity with the autofill request on or off. */
+  async function loginPage(page: Page, autofill: boolean) {
+    await page.goto(`${identityUrl}/login`);
+    await page.evaluate((off) => (off ? localStorage.setItem("e2e.noConditional", "1") : localStorage.removeItem("e2e.noConditional")), !autofill);
+    await page.reload();
+  }
+
+  test("a passkey is added on the account page, signs in with the button, the autofill list and the password, and is deleted", async ({ page }) => {
+    test.setTimeout(120_000); // several sign ins through three origins
+    await withAuthenticator(page);
+    const name = `e2e key ${suffix}`;
+
+    // add it (the page sends to the login and comes back; the password is asked again to add a key)
+    await page.goto(`${identityUrl}/account/mfa`);
+    await page.getByLabel("E-mail").fill(adminEmail);
+    await page.getByLabel("Password").fill(adminPassword);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    // the enrollment page offers the passkeys as the other way, under Next
+    await page.getByRole("button", { name: "Set up a passkey instead" }).click();
+    const section = page.getByTestId("passkeys");
+    await expect(section).toBeVisible();
+    await section.getByRole("button", { name: "Add a passkey" }).click();
+    const add = page.getByRole("dialog");
+    await add.getByLabel("Name of the passkey").fill(name);
+    await add.getByRole("button", { name: "Continue" }).click();
+    await add.getByLabel("Your current password").fill(adminPassword);
+    await add.getByRole("button", { name: "Create passkey" }).click();
+    await expect(section.getByText("Passkey added.")).toBeVisible();
+    await expect(section.getByTestId("passkey-row").filter({ hasText: name })).toBeVisible();
+
+    try {
+      // sign out, then sign in with the button: no e-mail, no password; it ends in the app the portal address names
+      await page.goto(`${identityUrl}/logout`);
+      await page.getByRole("button", { name: "Sign out" }).click();
+      await expect(page.getByText("You have been signed out.")).toBeVisible();
+      await loginPage(page, false);
+      await page.getByRole("button", { name: "Sign in with a passkey" }).click();
+      await expectSignedIn(page);
+      await signOut(page);
+      await expect(page.getByLabel("E-mail")).toBeVisible();
+
+      // the autofill list: the browser offers the passkey and the page signs in with it, with no click at all
+      await loginPage(page, true);
+      await expectSignedIn(page);
+      // not through the sign out: the login page would sign in again at once, the same way
+      await page.context().clearCookies();
+
+      // the password path still works, and stays a password sign in: no step after it (MFA is optional here)
+      await loginPage(page, false);
+      await page.getByLabel("E-mail").fill(adminEmail);
+      await page.getByLabel("Password").fill(adminPassword);
+      await page.getByRole("button", { name: "Sign in", exact: true }).click();
+      await expectSignedIn(page);
+    } finally {
+      // leave the account as it was: delete the key (with the password)
+      await page.goto(`${identityUrl}/account/mfa`);
+      if (page.url().includes("/login")) {
+        await page.getByRole("button", { name: "Sign in with a passkey" }).click();
+        await page.waitForURL(/localhost:13002/);
+        await page.goto(`${identityUrl}/account/mfa`);
+      }
+      await page.getByRole("button", { name: "Set up a passkey instead" }).click();
+      const row = page.getByTestId("passkey-row").filter({ hasText: name });
+      await row.getByRole("button", { name: /^Actions for / }).click();
+      await page.getByRole("menuitem", { name: "Delete" }).click();
+      const del = page.getByRole("dialog");
+      await del.getByRole("button", { name: "Delete" }).click(); // confirmed; the password comes next
+      await del.getByLabel("Your current password").fill(adminPassword);
+      await del.getByRole("button", { name: "Delete" }).click();
+      await expect(page.getByText("Passkey removed.")).toBeVisible();
+    }
+    await expect(page.getByText("You have no passkeys yet.")).toBeVisible();
+  });
+});

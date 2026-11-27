@@ -2,6 +2,7 @@
   "common": {
     "loading": "Loading...",
     "signingIn": "Signing in...",
+    "signingOut": "Signing out...",
     "tryAgain": "Try again",
     "somethingWrong": "Something went wrong.",
     "notAllowed": "You are not allowed to see this page.",

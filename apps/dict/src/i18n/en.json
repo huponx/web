@@ -28,6 +28,7 @@
   },
   "common": {
     "signingIn": "Signing in...",
+    "signingOut": "Signing out...",
     "tryAgain": "Try again",
     "close": "Close",
     "cancel": "Cancel",
@@ -46,8 +47,15 @@
     "placeholder": "hello, serendipity",
     "input": "Words",
     "dictionary": "Dictionary",
-    "english": "English",
-    "englishVietnamese": "English - Vietnamese",
+    "dictionaries": {
+      "english": "English",
+      "english-vietnamese": "English - Vietnamese"
+    },
+    "groups": {
+      "en": "English"
+    },
+    "group": "Dictionary group",
+    "noDictionaries": "No dictionary is available. Turn one on in the settings.",
     "submit": "Look up",
     "copyInput": "Copy input",
     "copyResult": "Copy",
@@ -263,6 +271,7 @@
       "service_token_not_allowed": "A user sign-in is required.",
       "user_token_required": "A user sign-in is required.",
       "unknown_dictionary": "This dictionary is not known.",
+      "unknown_group": "This group of dictionaries is not known.",
       "invalid_word": "This is not a valid word: use letters, digits, spaces, apostrophes, hyphens and dots, at most 64 characters.",
       "word_not_found": "No entry for this word.",
       "dictionary_unavailable": "The dictionary is not available now. Try again later.",

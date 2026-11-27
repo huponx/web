@@ -1,5 +1,5 @@
 import { StyleProvider, ThemeProvider } from "@huponx/ui-kit";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { App } from "./App";
@@ -15,6 +15,7 @@ type Answer = { status?: number; json?: unknown } | undefined;
 const assign = vi.fn();
 let systemStyle = "saas";
 let registration = false;
+let registrationApproval = false;
 
 /** Stands in for identity: `answer` gets every call (the CSRF fetch is answered here) and returns the response. */
 function renderAt(path: string, answer: (c: Call) => Answer = () => ({ json: {} })) {
@@ -25,7 +26,7 @@ function renderAt(path: string, answer: (c: Call) => Answer = () => ({ json: {} 
       const c: Call = { method: init?.method ?? "GET", url, body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : undefined };
       if (url === "/auth-api/csrf") return Promise.resolve(new Response(JSON.stringify({ csrf: "tok" }), { status: 200 }));
       // the look of the system is read by every page; it is not a call the tests count
-      if (url === "/auth-api/ui-style") return Promise.resolve(new Response(JSON.stringify({ uiStyle: systemStyle, uiPalettes: { saas: "aurora", glass: "ocean", mono: "aurora" }, registration }), { status: 200 }));
+      if (url === "/auth-api/ui-style") return Promise.resolve(new Response(JSON.stringify({ uiStyle: systemStyle, uiPalettes: { saas: "aurora", glass: "ocean", mono: "aurora" }, registration, registrationApproval }), { status: 200 }));
       calls.push(c);
       const a = answer(c) ?? { json: {} };
       return Promise.resolve(new Response(JSON.stringify(a.json ?? {}), { status: a.status ?? 200 }));
@@ -48,6 +49,7 @@ const fail = (status: number, code: string): Answer => ({ status, json: { code, 
 beforeEach(() => {
   systemStyle = "saas";
   registration = false;
+  registrationApproval = false;
   localStorage.clear();
   resetCsrf();
   assign.mockReset();
@@ -68,32 +70,31 @@ describe("system style", () => {
 });
 
 describe("account MFA page", () => {
-  it("has a way back: to return_to, to the applications without one", async () => {
-    renderAt("/account/mfa?return_to=%2Fapps", () => ({ json: { enabled: true, forced: true, codesLeft: 3 } }));
-    expect(await screen.findByTestId("mfa-back")).toHaveAttribute("href", "/apps");
+  it("has a way back: to return_to, to the root without one", async () => {
+    renderAt("/account/mfa?return_to=%2Foauth2%2Fauthorize%3Fq%3D1", () => ({ json: { enabled: true, forced: true, codesLeft: 3 } }));
+    expect(await screen.findByTestId("mfa-back")).toHaveAttribute("href", "/oauth2/authorize?q=1");
   });
   it("does not follow a return_to that leaves the site", async () => {
     renderAt("/account/mfa?return_to=https%3A%2F%2Fevil.example", () => ({ json: { enabled: true, forced: true, codesLeft: 3 } }));
-    expect(await screen.findByTestId("mfa-back")).toHaveAttribute("href", "/apps");
+    expect(await screen.findByTestId("mfa-back")).toHaveAttribute("href", "/");
   });
 });
 
 describe("login", () => {
-  it("sends a user who is already signed in to the applications", async () => {
-    renderAt("/login", (c) => (c.url === "/auth-api/apps" ? { json: { apps: [{ name: "Admin", url: "/admin/" }], name: "Ann", email: "a@x.io", mfa: false } } : undefined));
-    expect(await screen.findByText("Admin")).toBeTruthy(); // the applications page
-    expect(screen.queryByLabelText("Password")).toBeNull();
+  it("sends a user who is already signed in to the portal", async () => {
+    renderAt("/login", (c) => (c.url === "/auth-api/session" ? { json: { redirect: "http://localhost:3004" } } : undefined));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("http://localhost:3004"));
   });
   it("shows the form when nobody is signed in, and when a return_to is waiting", async () => {
-    const calls = renderAt("/login", (c) => (c.url === "/auth-api/apps" ? fail(401, "unauthenticated") : undefined));
+    const calls = renderAt("/login", (c) => (c.url === "/auth-api/session" ? fail(401, "unauthenticated") : undefined));
     expect(await screen.findByLabelText("Password")).toBeTruthy();
-    await waitFor(() => expect(calls.some((c) => c.url === "/auth-api/apps")).toBe(true));
+    await waitFor(() => expect(calls.some((c) => c.url === "/auth-api/session")).toBe(true));
     expect(screen.getByLabelText("Password")).toBeTruthy();
   });
   it("does not check the session when a return_to is waiting", async () => {
     const calls = renderAt("/login?return_to=%2Fauthorize%3Fx%3D1");
     expect(await screen.findByLabelText("Password")).toBeTruthy();
-    expect(calls.some((c) => c.url === "/auth-api/apps")).toBe(false);
+    expect(calls.some((c) => c.url === "/auth-api/session")).toBe(false);
   });
   it("has switches for the theme and the language on every page", async () => {
     renderAt("/login");
@@ -149,8 +150,17 @@ describe("login", () => {
     expect(assign).not.toHaveBeenCalled();
   });
 
-  it("never follows a redirect that is not a path of this site", async () => {
-    renderAt("/login", () => ({ json: { redirect: "https://evil.example/" } }));
+  it("follows the portal address after the sign in", async () => {
+    renderAt("/login", (c) => (c.url === "/auth-api/session" ? fail(401, "unauthenticated") : { json: { redirect: "http://localhost:3004" } }));
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("E-mail"), "a@example.com");
+    await user.type(screen.getByLabelText("Password"), "pw");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("http://localhost:3004"));
+  });
+
+  it("never follows a redirect that is not http(s) or a path of this site", async () => {
+    renderAt("/login", (c) => (c.url === "/auth-api/session" ? fail(401, "unauthenticated") : { json: { redirect: "javascript:alert(1)" } }));
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText("E-mail"), "a@example.com");
     await user.type(screen.getByLabelText("Password"), "pw");
@@ -256,6 +266,16 @@ describe("register", () => {
     expect(calls[0]).toMatchObject({ url: "/auth-api/register", body: { email: "a@example.com", name: "An", locale: "en" } });
   });
 
+  it("says the request waits for an administrator when approval is on", async () => {
+    registrationApproval = true;
+    renderAt("/register");
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("E-mail"), "a@example.com");
+    await user.click(screen.getByRole("button", { name: "Create the account" }));
+    expect(await screen.findByText(/An administrator will review it/)).toBeInTheDocument();
+    expect(screen.queryByText(/we sent a link to set your password/)).toBeNull();
+  });
+
   it("shows the translated error of the server", async () => {
     renderAt("/register", () => fail(429, "rate_limited"));
     const user = userEvent.setup();
@@ -286,16 +306,41 @@ describe("forgot and reset", () => {
     const calls = renderAt("/password/reset?token=tok1");
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText("New password (at least 12 characters)"), "a-long-password-1");
+    await user.type(screen.getByLabelText("Repeat the new password"), "a-long-password-1");
     await user.click(screen.getByRole("button", { name: "Set the password" }));
     expect(await screen.findByText(/signed out everywhere/)).toBeInTheDocument();
     expect(calls.find((c) => c.method === "POST")?.body).toMatchObject({ token: "tok1", password: "a-long-password-1" });
     expect(screen.getByRole("link", { name: "Continue" })).toHaveAttribute("href", "/login");
   });
 
+  it("the welcome link has its own wording and ends at the sign in", async () => {
+    const calls = renderAt("/password/set?token=tok1");
+    const user = userEvent.setup();
+    expect(await screen.findByRole("heading", { name: "Set your password" })).toBeInTheDocument();
+    await user.type(screen.getByLabelText("New password (at least 12 characters)"), "a-long-password-1");
+    await user.type(screen.getByLabelText("Repeat the new password"), "a-long-password-1");
+    await user.click(screen.getByRole("button", { name: "Set the password" }));
+    expect(await screen.findByText("Your password is set. You can now sign in with it.")).toBeInTheDocument();
+    expect(screen.queryByText(/signed out everywhere/)).toBeNull();
+    expect(calls.find((c) => c.method === "POST")).toMatchObject({ url: "/auth-api/password/reset", body: { token: "tok1", password: "a-long-password-1" } });
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
+  });
+
+  it("does not send two different passwords", async () => {
+    const calls = renderAt("/password/reset?token=tok1");
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText("New password (at least 12 characters)"), "a-long-password-1");
+    await user.type(screen.getByLabelText("Repeat the new password"), "a-long-password-2");
+    await user.click(screen.getByRole("button", { name: "Set the password" }));
+    expect(await screen.findByText("The two passwords are not the same.")).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")).toBeUndefined();
+  });
+
   it("shows the reason of a refused password", async () => {
     renderAt("/password/reset?token=tok1", (c) => (c.method === "POST" ? fail(422, "password_common") : { json: {} }));
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText("New password (at least 12 characters)"), "passwordpassword");
+    await user.type(screen.getByLabelText("Repeat the new password"), "passwordpassword");
     await user.click(screen.getByRole("button", { name: "Set the password" }));
     expect(await screen.findByText("The password is too common.")).toBeInTheDocument();
   });
@@ -307,54 +352,136 @@ describe("account MFA", () => {
     await waitFor(() => expect(assign).toHaveBeenCalledWith(`/login?return_to=${encodeURIComponent("/account/mfa?return_to=%2Foauth2%2Fauthorize%3Fq%3D1")}`));
   });
 
-  it("enrolls: QR code and key, then the recovery codes once and a Continue button", async () => {
+  const enrollment = { json: { enabled: false, qr: "data:image/png;base64,AAAA", secret: "ABCDEF" } };
+
+  it("enrolls in three steps: connect the authenticator, verify it, save the recovery codes, then Continue", async () => {
     const calls = renderAt("/account/mfa?return_to=%2Foauth2%2Fauthorize%3Fq%3D1", (c) =>
-      c.method === "GET"
-        ? { json: { enabled: false, qr: "data:image/png;base64,AAAA", secret: "ABCDEF" } }
-        : { json: { recoveryCodes: ["aaaa-bbbb", "cccc-dddd"], redirect: "/oauth2/authorize?q=1" } },
+      c.method === "GET" ? enrollment : { json: { recoveryCodes: ["aaaa-bbbb", "cccc-dddd"], redirect: "/oauth2/authorize?q=1" } },
     );
     const user = userEvent.setup();
+    // 1. connect: the key to type stays hidden until the user cannot scan
     expect(await screen.findByAltText("QR code")).toHaveAttribute("src", "data:image/png;base64,AAAA");
+    expect(screen.getByRole("heading", { name: "Connect authenticator" })).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { current: "step" })).toHaveTextContent("Connect");
+    expect(screen.queryByText("ABCDEF")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Can't scan the QR code? Show setup key" }));
     expect(screen.getByText("ABCDEF")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Code")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    // 2. verify
+    expect(screen.getByRole("heading", { name: "Verify your authenticator" })).toBeInTheDocument();
     await user.type(screen.getByLabelText("Code"), "123456");
     await user.click(screen.getByRole("button", { name: "Turn on" }));
+    // 3. save: Continue waits for the confirmation
     expect(await screen.findByText("aaaa-bbbb")).toBeInTheDocument();
     expect(calls.find((c) => c.method === "POST")?.body).toMatchObject({ code: "123456", return_to: "/oauth2/authorize?q=1" });
+    expect(screen.getByRole("listitem", { current: "step" })).toHaveTextContent("Save codes");
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(assign).toHaveBeenCalledWith("/oauth2/authorize?q=1");
   });
 
-  it("shows a wrong code and keeps the QR code", async () => {
-    renderAt("/account/mfa", (c) => (c.method === "GET" ? { json: { enabled: false, qr: "data:image/png;base64,AAAA", secret: "ABCDEF" } } : fail(401, "invalid_code")));
+  it("Back never leads to this page itself", async () => {
+    renderAt("/account/mfa?return_to=%2Faccount%2Fmfa", () => enrollment);
+    expect(await screen.findByTestId("mfa-back")).toHaveAttribute("href", "/");
+  });
+
+  it("a user who must enroll has Sign out instead of Back: going back would only send them here again", async () => {
+    renderAt("/account/mfa?return_to=%2Foauth2%2Fauthorize%3Fq%3D1", () => ({ json: { enabled: false, forced: true, qr: "data:image/png;base64,AAAA", secret: "S" } }));
+    expect(await screen.findByTestId("mfa-signout")).toHaveAttribute("href", "/logout");
+    expect(screen.queryByTestId("mfa-back")).toBeNull();
+  });
+
+  it("goes back from the verification to the QR code", async () => {
+    renderAt("/account/mfa", () => enrollment);
     const user = userEvent.setup();
-    await user.type(await screen.findByLabelText("Code"), "000000");
-    await user.click(screen.getByRole("button", { name: "Turn on" }));
-    expect(await screen.findByText(/Wrong code. Check the clock/)).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByAltText("QR code")).toBeInTheDocument();
   });
 
-  it("turns MFA off with the password and a code, then shows the enrollment again", async () => {
+  it("shows a wrong code and stays on the verification", async () => {
+    renderAt("/account/mfa", (c) => (c.method === "GET" ? enrollment : fail(401, "invalid_code")));
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+    await user.type(screen.getByLabelText("Code"), "000000");
+    await user.click(screen.getByRole("button", { name: "Turn on" }));
+    expect(await screen.findByText(/Wrong code. Check the clock/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Verify your authenticator" })).toBeInTheDocument();
+  });
+
+  /** An account with MFA on; a POST to the disable route turns it off, and the next status is a new enrollment. */
+  function mfaOn() {
     let enabled = true;
     const calls = renderAt("/account/mfa", (c) => {
       if (c.method === "POST") {
         enabled = false;
         return { json: {} };
       }
-      return { json: enabled ? { enabled: true, codesLeft: 8, forced: false } : { enabled: false, qr: "data:image/png;base64,AAAA", secret: "S" } };
+      return { json: enabled ? { enabled: true, codesLeft: 8, forced: false } : enrollment.json };
     });
+    return calls;
+  }
+
+  async function pickMfa(user: ReturnType<typeof userEvent.setup>, item: string) {
+    await user.click(await screen.findByRole("button", { name: "Authenticator actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: item }));
+    return within(await screen.findByRole("dialog"));
+  }
+
+  it("shows MFA as a row with a menu, and no form", async () => {
+    mfaOn();
+    const row = await screen.findByTestId("mfa-row");
+    expect(within(row).getByText("Authenticator app")).toBeInTheDocument();
+    expect(within(row).getByText("Recovery codes left: 8")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Code or recovery code")).toBeNull();
+  });
+
+  it("disables MFA: the dialog confirms first, the password and a code are asked only after that", async () => {
+    const calls = mfaOn();
     const user = userEvent.setup();
-    expect(await screen.findByText(/Recovery codes left: 8/)).toBeInTheDocument();
-    await user.type(screen.getByLabelText("Password"), "pw");
-    await user.type(screen.getByLabelText("Code or recovery code"), "123456");
-    await user.click(screen.getByRole("button", { name: "Turn off" }));
+    const dialog = await pickMfa(user, "Disable MFA");
+    expect(dialog.getByText(/Turn off multi-factor authentication\?/)).toBeInTheDocument();
+    expect(dialog.queryByLabelText("Password")).toBeNull();
+    await user.click(dialog.getByRole("button", { name: "Continue" }));
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+    await user.type(dialog.getByLabelText("Password"), "pw");
+    await user.type(dialog.getByLabelText("Code or recovery code"), "123456");
+    await user.click(dialog.getByRole("button", { name: "Disable MFA" }));
+    // MFA is off: the page shows the enrollment again
     expect(await screen.findByAltText("QR code")).toBeInTheDocument();
     expect(calls.find((c) => c.method === "POST")).toMatchObject({ url: "/auth-api/account/mfa/disable", body: { password: "pw", code: "123456" } });
+  });
+
+  it("changes the authenticator: re-authenticates, then the wizard of the new one", async () => {
+    const calls = mfaOn();
+    const user = userEvent.setup();
+    const dialog = await pickMfa(user, "Change authenticator");
+    expect(dialog.getByText(/stops working now/)).toBeInTheDocument();
+    await user.click(dialog.getByRole("button", { name: "Continue" }));
+    await user.type(dialog.getByLabelText("Password"), "pw");
+    await user.type(dialog.getByLabelText("Code or recovery code"), "123456");
+    await user.click(dialog.getByRole("button", { name: "Change authenticator" }));
+    expect(await screen.findByRole("heading", { name: "Connect authenticator" })).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")?.url).toBe("/auth-api/account/mfa/disable");
+  });
+
+  it("keeps the dialog and shows the error when the re-authentication is refused", async () => {
+    renderAt("/account/mfa", (c) => (c.method === "POST" ? fail(401, "invalid_password_or_code") : { json: { enabled: true, codesLeft: 8, forced: false } }));
+    const user = userEvent.setup();
+    const dialog = await pickMfa(user, "Disable MFA");
+    await user.click(dialog.getByRole("button", { name: "Continue" }));
+    await user.type(dialog.getByLabelText("Password"), "bad");
+    await user.type(dialog.getByLabelText("Code or recovery code"), "000000");
+    await user.click(dialog.getByRole("button", { name: "Disable MFA" }));
+    expect(await dialog.findByText("Wrong password or code.")).toBeInTheDocument();
   });
 
   it("cannot turn MFA off when it is required", async () => {
     renderAt("/account/mfa", () => ({ json: { enabled: true, codesLeft: 3, forced: true } }));
     expect(await screen.findByText(/required for your account/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Turn off" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Authenticator actions" })).toBeNull();
   });
 
   it("says the page does not exist when MFA is off for the whole service", async () => {
@@ -408,52 +535,5 @@ describe("logout and error pages", () => {
     renderAt("/error?e=%3Cb%3Ehello%3C%2Fb%3E");
     expect(await screen.findByText("Something went wrong. Please try again.")).toBeInTheDocument();
     expect(screen.queryByText(/hello/)).toBeNull();
-  });
-});
-
-describe("apps", () => {
-  it("lists the applications and the MFA link of the signed in user", async () => {
-    renderAt("/apps", () => ({ json: { apps: [{ name: "Admin", url: "http://localhost:3002", icon: "http://localhost:3002/logo.svg" }, { name: "Bill", url: "http://localhost:3001" }], name: "Ann", email: "a@example.com", mfa: true } }));
-    const link = await screen.findByRole("link", { name: "Admin" });
-    expect(link).toHaveAttribute("href", "http://localhost:3002");
-    expect(link.querySelector("img")).toHaveAttribute("src", "http://localhost:3002/logo.svg"); // the icon of the app
-    expect(screen.getByRole("link", { name: "Bill" }).querySelector("img")).toBeNull(); // no icon configured
-    expect(screen.getByText("Signed in as Ann")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Multi-factor authentication" })).toHaveAttribute("href", "/account/mfa?return_to=%2Fapps");
-  });
-
-  it("hides the MFA link when MFA is off and says so when no application is configured", async () => {
-    renderAt("/apps", () => ({ json: { apps: [], name: "", email: "a@example.com", mfa: false } }));
-    expect(await screen.findByText("No application is configured.")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Multi-factor authentication" })).toBeNull();
-  });
-
-  it("applies the theme of the account", async () => {
-    renderAt("/apps", (c) =>
-      c.url === "/auth-api/preferences" ? { json: { theme: "dark", locale: "en" } } : { json: { apps: [], name: "Ann", email: "a@example.com", mfa: false } },
-    );
-    await screen.findByText("Signed in as Ann");
-    await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
-    expect(window.localStorage.getItem("theme")).toBe("dark"); // kept for the next visit of the pages
-  });
-
-  it("saves to the account a theme and a language picked while signed in", async () => {
-    window.localStorage.setItem("theme", "light");
-    const calls = renderAt("/apps", (c) =>
-      c.url === "/auth-api/preferences" ? { json: { theme: "light", locale: "en" } } : { json: { apps: [], name: "Ann", email: "a@example.com", mfa: false } },
-    );
-    const user = userEvent.setup();
-    await screen.findByText("Signed in as Ann");
-    await waitFor(() => expect(calls.some((c) => c.url === "/auth-api/preferences")).toBe(true));
-    await user.click(screen.getByTestId("language-switch"));
-    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url === "/auth-api/preferences" && c.body?.locale === "vi")).toBe(true));
-    await user.click(screen.getByTestId("language-switch")); // back to the language the other tests expect
-    await user.click(screen.getByTestId("theme-switch"));
-    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url === "/auth-api/preferences" && typeof c.body?.theme === "string")).toBe(true));
-  });
-
-  it("goes to the login when there is no session", async () => {
-    renderAt("/apps", () => fail(401, "unauthenticated"));
-    await waitFor(() => expect(assign).toHaveBeenCalledWith("/login?return_to=%2Fapps"));
   });
 });

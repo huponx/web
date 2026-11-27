@@ -1,4 +1,4 @@
-import { Can, useAuth } from "@huponx/auth-client";
+import { Can, P, useAuth } from "@huponx/auth-client";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, DeleteCard, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -17,7 +17,7 @@ function Editor({ role, catalog, reload, createdNote }: { role?: Role; catalog?:
   const navigate = useNavigate();
   const { can } = useAuth();
   const editing = Boolean(role);
-  const canWrite = can("identity:role:write");
+  const canWrite = can(P.identity.roleWrite);
   const [name, setName] = useState(role?.name ?? "");
   const [description, setDescription] = useState(role?.description ?? "");
   const [perms, setPerms] = useState<string[]>(role?.permissions ?? []);
@@ -135,7 +135,7 @@ export function RoleForm() {
         reload={roles.reload}
         createdNote={state?.created ? t("roles.new.created", { name: state.created }) : undefined}
       />
-      <Can perm="identity:role:write">
+      <Can perm={P.identity.roleWrite}>
         <DeleteSection role={role} />
       </Can>
     </div>

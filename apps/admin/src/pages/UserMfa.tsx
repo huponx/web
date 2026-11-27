@@ -1,4 +1,4 @@
-import { Can } from "@huponx/auth-client";
+import { Can, P } from "@huponx/auth-client";
 import { Button, useAction, useLoad } from "@huponx/ui-kit";
 import { Trans, useTranslation } from "react-i18next";
 import { useIdentity } from "../api";
@@ -35,12 +35,13 @@ export function UserMfa({ user, onChanged }: { user: User; onChanged: () => void
               enrolled: data.enabled ? t("users.mfa.enrolledYes") : t("users.mfa.enrolledNo"),
               required: data.enforced ? t("users.mfa.requiredYes") : t("users.mfa.requiredNo"),
               left: data.recoveryCodesLeft,
+              passkeys: data.passkeyCount ?? 0,
             }}
             components={{ strong: <strong /> }}
           />
         </p>
       ) : null}
-      <Can perm="identity:mfa:write">
+      <Can perm={P.identity.mfaWrite}>
         <Actions className="justify-start">
           <Button
             variant="outline"

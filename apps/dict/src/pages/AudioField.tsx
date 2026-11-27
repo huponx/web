@@ -1,4 +1,4 @@
-import { Button, Input, Label } from "@huponx/ui-kit";
+import { Button, Input, Label, tone } from "@huponx/ui-kit";
 import { Play, Trash2, Upload } from "lucide-react";
 import { useRef } from "react";
 import type { ChangeEvent } from "react";
@@ -59,6 +59,7 @@ export default function AudioField({
               type="button"
               variant="ghost"
               size="icon-sm"
+              className={tone.ok}
               aria-label={t("editor.audioListen", { region })}
               title={t("editor.audioListen", { region })}
               onClick={() => void play(value).catch(() => undefined)}
@@ -69,6 +70,7 @@ export default function AudioField({
               type="button"
               variant="ghost"
               size="icon-sm"
+              className={tone.danger}
               aria-label={t("editor.audioRemove", { region })}
               title={t("editor.audioRemove", { region })}
               onClick={() => onChange("")}

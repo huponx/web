@@ -1,8 +1,9 @@
-import { Alert, Button, Card, CardContent, Progress } from "@huponx/ui-kit";
+import { Alert, Button, Card, CardContent, Progress, tone } from "@huponx/ui-kit";
 import { Check, Download, Link2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { exportJobActive, exportProgress } from "./api";
 import type { ExportJob } from "./api";
+import { groupLabel, useRegistry } from "./lib/registry";
 
 /** Progress of an export in parts, then the list of its parts to download. */
 export function ExportJobPanel({
@@ -25,6 +26,7 @@ export function ExportJobPanel({
   onDismiss: () => void;
 }) {
   const { t } = useTranslation();
+  const { groups } = useRegistry();
   const active = exportJobActive(job);
   const total = job.total ?? 0;
   const built = exportProgress(job);
@@ -35,6 +37,11 @@ export function ExportJobPanel({
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium">
             {t(`saved.job.${job.status}`, { name: job.deckName ?? "" })}
+            {groups.length > 1 ? (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                {groupLabel(t, job.group)}
+              </span>
+            ) : null}
           </p>
           {active ? (
             <Button variant="outline" size="sm" onClick={onCancel}>
@@ -86,6 +93,7 @@ export function ExportJobPanel({
                     <Button
                       variant="outline"
                       size="icon-sm"
+                      className={tone.copy}
                       aria-label={t("saved.job.copyLink")}
                       title={t("saved.job.copyLink")}
                       disabled={busyPart === p.n}

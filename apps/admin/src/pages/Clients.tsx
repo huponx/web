@@ -1,5 +1,5 @@
-import { Can } from "@huponx/auth-client";
-import { Badge, Button, Card, CardContent, useFlash, usePaged } from "@huponx/ui-kit";
+import { Can, P } from "@huponx/auth-client";
+import { Badge, Button, Card, CardContent, iconTone, useFlash, usePaged } from "@huponx/ui-kit";
 import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -31,7 +31,7 @@ export function Clients() {
   return (
     <>
       <PageTitle>{t("clients.title")}</PageTitle>
-      <Can perm="identity:client:write">
+      <Can perm={P.identity.clientWrite}>
         <Actions>
           <Button asChild>
             <Link to="/clients/new">
@@ -114,7 +114,7 @@ export function Clients() {
                     <Actions>
                       <Button asChild variant="outline" size="sm" className={ROW_ACTION}>
                         <Link to={`/clients/${encodeURIComponent(c.clientId)}`} aria-label={t("clients.manageAria", { id: c.clientId })}>
-                          <ActionLabel icon={Pencil}>{t("clients.manage")}</ActionLabel>
+                          <ActionLabel icon={Pencil} iconClassName={iconTone.edit}>{t("clients.manage")}</ActionLabel>
                         </Link>
                       </Button>
                     </Actions>

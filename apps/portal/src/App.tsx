@@ -72,6 +72,7 @@ export function App() {
   return (
     <RequireAuth
       loading={<Loading label={t("common.signingIn")} />}
+      signingOut={<Loading label={t("common.signingOut")} />}
       error={({ message, retry }) => (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
           <p>{message}</p>

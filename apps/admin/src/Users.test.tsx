@@ -33,9 +33,9 @@ function user(over: Record<string, unknown> = {}) {
   };
 }
 
-function renderApp(route: string, answer: (c: Call) => unknown) {
+function renderApp(route: string, answer: (c: Call) => unknown, perms: string[] = ["identity:*"]) {
   const calls: Call[] = [];
-  const me: Me = { sub: "root", roles: ["admin"], scopes: [], perms: ["identity:*"], amr: [], csrf_token: "c", expires_at: "2030-01-01T00:00:00Z" };
+  const me: Me = { sub: "root", roles: ["admin"], scopes: [], perms, amr: [], csrf_token: "c", expires_at: "2030-01-01T00:00:00Z" };
   const client = createClient({
     apiBase: "https://api.example.com",
     fetch: async (url, init) => {
@@ -294,11 +294,16 @@ describe("confirmation dialog", () => {
     const calls = renderApp("/users/u1", edit);
     await userEvent.click(await screen.findByRole("button", { name: "Reset" }));
     const dialog = await screen.findByRole("alertdialog");
-    expect(within(dialog).getByText(/authenticator and the recovery codes are deleted/)).toBeTruthy();
+    expect(within(dialog).getByText(/authenticator, the recovery codes and the passkeys are deleted/)).toBeTruthy();
     await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     expect(calls.find((c) => c.url.endsWith("/mfa/reset"))).toBeUndefined();
     expect(native).not.toHaveBeenCalled();
+  });
+
+  it("shows how many passkeys the user has", async () => {
+    renderApp("/users/u1", (c) => (c.url.endsWith("/mfa") ? { mode: "optional", enabled: true, recoveryCodesLeft: 4, passkeyCount: 2 } : edit(c)));
+    expect((await screen.findByTestId("mfa-state")).textContent).toContain("passkeys: 2");
   });
 
   it("resets MFA after Confirm", async () => {
@@ -306,5 +311,162 @@ describe("confirmation dialog", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Reset" }));
     await userEvent.click(within(await screen.findByRole("alertdialog")).getByTestId("confirm-ok"));
     await waitFor(() => expect(calls.find((c) => c.method === "POST" && c.url.endsWith("/mfa/reset"))).toBeTruthy());
+  });
+});
+
+describe("awaiting approval", () => {
+  const waiting = (c: Call) =>
+    c.url === "/api/users/u1" ? { user: user({ status: "USER_STATUS_PENDING_APPROVAL", roles: [] }) } : c.url === "/api/roles" ? { roles: ROLES } : c.url.endsWith("/mfa") ? { mode: "optional" } : {};
+
+  it("filters the list by the status and shows its badge", async () => {
+    const calls = renderApp("/users?status=awaiting_approval", (c) =>
+      c.url.startsWith("/api/users?") ? { users: [user({ status: "USER_STATUS_PENDING_APPROVAL", roles: [] })], nextPageToken: "" } : {},
+    );
+    expect(await screen.findByText("ann@example.com")).toBeTruthy();
+    expect(screen.getAllByText("Awaiting approval").length).toBeGreaterThan(0);
+    expect(calls.find((c) => c.url.startsWith("/api/users?") && c.url.includes("status=USER_STATUS_PENDING_APPROVAL"))).toBeTruthy();
+  });
+
+  it("approves: the welcome email goes out and the page reloads", async () => {
+    const calls = renderApp("/users/u1", waiting);
+    expect(await screen.findByText(/registered themselves and waits for an administrator/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Resend welcome email" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send password reset" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Approve" }));
+    expect(await screen.findByText(/Approved/)).toBeTruthy();
+    expect(calls.find((c) => c.method === "POST" && c.url === "/api/users/u1/approve")).toBeTruthy();
+  });
+
+  it("rejects only after a confirmation", async () => {
+    const calls = renderApp("/users/u1", waiting);
+    const reject = async () => {
+      await userEvent.click(await screen.findByRole("button", { name: "More decisions" }));
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Reject" }));
+    };
+    await reject();
+    const dialog = await screen.findByRole("alertdialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(calls.find((c) => c.url.endsWith("/reject"))).toBeUndefined();
+    await reject();
+    await userEvent.click(within(await screen.findByRole("alertdialog")).getByTestId("confirm-ok"));
+    await waitFor(() => expect(calls.find((c) => c.method === "POST" && c.url === "/api/users/u1/reject")).toBeTruthy());
+  });
+
+  it("gives a user_approver the buttons but no editing", async () => {
+    renderApp("/users/u1", waiting, ["identity:user:read", "identity:user:approve"]);
+    expect(await screen.findByRole("button", { name: "Approve" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "More decisions" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete account" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Disable account" })).toBeNull();
+  });
+
+  it("hides the buttons from someone without identity:user:approve", async () => {
+    renderApp("/users/u1", waiting, ["identity:user:read", "identity:user:write"]);
+    await screen.findByText(/registered themselves and waits/);
+    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "More decisions" })).toBeNull();
+  });
+
+  it("approves and rejects from the list row, before the Manage button", async () => {
+    let waitingUsers = [user({ status: "USER_STATUS_PENDING_APPROVAL", roles: [] }), user({ id: "u2", email: "bob@example.com", status: "USER_STATUS_ACTIVE" })];
+    const calls = renderApp("/users", (c) => {
+      if (c.method === "POST" && c.url.endsWith("/approve")) return {};
+      if (c.method === "POST" && c.url.endsWith("/reject")) {
+        waitingUsers = waitingUsers.slice(1);
+        return {};
+      }
+      return c.url.startsWith("/api/users?") ? { users: waitingUsers, nextPageToken: "" } : {};
+    });
+    expect(await screen.findByTestId("quick-u1")).toBeTruthy();
+    expect(screen.queryByTestId("quick-u2")).toBeNull(); // only a user awaiting approval has it
+    await userEvent.click(within(screen.getByTestId("quick-u1")).getByRole("button", { name: "Approve" }));
+    await waitFor(() => expect(calls.find((c) => c.method === "POST" && c.url === "/api/users/u1/approve")).toBeTruthy());
+    expect(await screen.findByText(/Approved/)).toBeTruthy();
+
+    await userEvent.click(screen.getByTestId("quick-u1-menu"));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Reject" }));
+    await userEvent.click(within(await screen.findByRole("alertdialog")).getByTestId("confirm-ok"));
+    await waitFor(() => expect(calls.find((c) => c.method === "POST" && c.url === "/api/users/u1/reject")).toBeTruthy());
+    await waitFor(() => expect(screen.queryByTestId("quick-u1")).toBeNull());
+  });
+});
+
+const SESSIONS = [
+  { id: "s1", ip: "10.0.0.1", browser: "Chrome", os: "macOS", device: "desktop", amr: ["pwd"], createdAt: "1792000000", lastSeenAt: String(Math.floor(Date.now() / 1000) - 120), current: true },
+  { id: "s2", ip: "10.0.0.2", browser: "Firefox", os: "Windows", device: "desktop", amr: ["pwd", "otp"], createdAt: "1792000100" },
+];
+
+describe("sessions of a user (edit user page)", () => {
+  const page = (perms: string[], list = SESSIONS) =>
+    renderApp(
+      "/users/u1",
+      (c) => {
+        if (c.url === "/api/users/u1" && c.method === "GET") return { user: user() };
+        if (c.url === "/api/users/u1/sessions" && c.method === "GET") return { sessions: list };
+        return c.url === "/api/roles" ? { roles: ROLES } : c.url.endsWith("/mfa") ? { mode: "optional" } : {};
+      },
+      perms,
+    );
+
+  it("lists the sessions of the user without a menu on the rows or an 'others' button", async () => {
+    page(["identity:user:read"]);
+    const section = await screen.findByTestId("user-sessions");
+    const rows = await within(section).findAllByTestId("session-row");
+    expect(rows).toHaveLength(2);
+    expect(within(rows[1]!).getByText("Firefox on Windows")).toBeInTheDocument();
+    expect(rows[1]).toHaveTextContent("Password + Authenticator code");
+    expect(within(section).queryByRole("button")).toBeNull(); // read-only: no row menu, no revoke at all without the write permission
+  });
+
+  it("signs the user out of every session after a confirmation", async () => {
+    let list = SESSIONS;
+    const calls = renderApp(
+      "/users/u1",
+      (c) => {
+        if (c.url === "/api/users/u1" && c.method === "GET") return { user: user() };
+        if (c.url === "/api/users/u1/sessions" && c.method === "GET") return { sessions: list };
+        if (c.url === "/api/users/u1/sessions" && c.method === "DELETE") {
+          list = [];
+          return { revoked: 2 };
+        }
+        return c.url === "/api/roles" ? { roles: ROLES } : c.url.endsWith("/mfa") ? { mode: "optional" } : {};
+      },
+      ["identity:user:read", "identity:user:write"],
+    );
+    const section = await screen.findByTestId("user-sessions");
+    await within(section).findAllByTestId("session-row");
+    expect(within(section).queryByRole("button", { name: /Actions for/ })).toBeNull();
+    await userEvent.click(within(section).getByRole("button", { name: "Sign out of all sessions" }));
+    const dialog = await screen.findByRole("alertdialog");
+    expect(dialog).toHaveTextContent("ann@example.com");
+    expect(calls.some((c) => c.method === "DELETE" && c.url === "/api/users/u1/sessions")).toBe(false);
+    await userEvent.click(within(dialog).getByTestId("confirm-ok"));
+    await waitFor(() => expect(calls.some((c) => c.method === "DELETE" && c.url === "/api/users/u1/sessions")).toBe(true));
+    await waitFor(() => expect(within(section).queryAllByTestId("session-row")).toHaveLength(0));
+    expect(within(section).getByText("No active sessions.")).toBeInTheDocument();
+  });
+});
+
+describe("own sessions (settings)", () => {
+  it("lists them with this device marked, and signs out another one", async () => {
+    const calls = renderApp("/settings", (c) => (c.url === "/api/me/sessions" && c.method === "GET" ? { sessions: SESSIONS } : {}), []);
+    const card = await screen.findByTestId("sessions-card");
+    const rows = await within(card).findAllByTestId("session-row");
+    expect(within(rows[0]!).getByText("This device")).toBeInTheDocument();
+    expect(within(rows[1]!).queryByText("This device")).toBeNull();
+    await userEvent.click(within(rows[1]!).getByRole("button", { name: "Actions for Firefox on Windows" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Sign out this session" }));
+    await userEvent.click(await screen.findByTestId("confirm-ok"));
+    await waitFor(() => expect(calls).toContainEqual(expect.objectContaining({ method: "DELETE", url: "/api/me/sessions/s2" })));
+    expect(await screen.findByText("Session signed out.")).toBeInTheDocument();
+  });
+
+  it("signs out of all the other sessions", async () => {
+    const calls = renderApp("/settings", (c) => (c.url === "/api/me/sessions" && c.method === "GET" ? { sessions: SESSIONS } : {}), []);
+    await userEvent.click(await screen.findByRole("button", { name: "Sign out of all other sessions" }));
+    await userEvent.click(await screen.findByTestId("confirm-ok"));
+    await waitFor(() => expect(calls).toContainEqual(expect.objectContaining({ method: "POST", url: "/api/me/sessions/revoke-others" })));
   });
 });

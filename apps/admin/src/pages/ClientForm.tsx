@@ -1,4 +1,4 @@
-import { Can, useAuth } from "@huponx/auth-client";
+import { Can, P, useAuth } from "@huponx/auth-client";
 import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -37,7 +37,7 @@ function Editor({ client, reload, createdNote }: { client?: IdentityClient; relo
   const navigate = useNavigate();
   const { can } = useAuth();
   const editing = Boolean(client);
-  const canWrite = can("identity:client:write");
+  const canWrite = can(P.identity.clientWrite);
   const [id, setId] = useState(client?.clientId ?? "");
   const [name, setName] = useState(client?.name ?? "");
   const [type, setType] = useState<ClientType>(client?.type ?? "CLIENT_TYPE_CONFIDENTIAL");
@@ -143,14 +143,14 @@ function Editor({ client, reload, createdNote }: { client?: IdentityClient; relo
             <ScopeField value={scopes} onChange={setScopes} disabled={!canWrite} />
           </CardContent>
         </Card>
-        <Can perm="identity:role:read">
+        <Can perm={P.identity.roleRead}>
           <Card>
             <CardHeader>
               <CardTitle>{t("clients.new.roles")}</CardTitle>
               <CardDescription>{t("clients.new.rolesHint")}</CardDescription>
             </CardHeader>
             <CardContent>
-              <RoleCards selected={roles} onChange={setRoles} disabled={!canWrite || (editing && !can("identity:role:write"))} />
+              <RoleCards selected={roles} onChange={setRoles} disabled={!canWrite || (editing && !can(P.identity.roleWrite))} />
             </CardContent>
           </Card>
         </Can>
@@ -299,7 +299,7 @@ export function ClientForm() {
         reload={clients.reload}
         createdNote={state?.created ? t("clients.form.created", { id: state.created }) : undefined}
       />
-      <Can perm="identity:client:write">
+      <Can perm={P.identity.clientWrite}>
         {client.type === "CLIENT_TYPE_CONFIDENTIAL" ? <RotateCard client={client} /> : null}
         <DangerCard client={client} reload={clients.reload} />
       </Can>

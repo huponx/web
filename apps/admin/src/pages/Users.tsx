@@ -1,11 +1,12 @@
-import { Can, useAuth } from "@huponx/auth-client";
-import { Badge, Button, Card, CardContent, cn, useFlash, useLoad, usePaged } from "@huponx/ui-kit";
-import { ChevronDown, ChevronUp, KeyRound, Plus, ShieldCheck, UserCheck, UserMinus, UserX, Users as UsersIcon, Clock, LogIn, Pencil } from "lucide-react";
+import { Can, P, useAuth } from "@huponx/auth-client";
+import { Badge, Button, Card, CardContent, cn, iconTone, SplitButton, useAction, useFlash, useLoad, usePaged } from "@huponx/ui-kit";
+import { Check, X, ChevronDown, ChevronUp, KeyRound, Plus, ShieldCheck, UserCheck, UserMinus, UserRoundCheck, UserX, Users as UsersIcon, Clock, LogIn, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import { statusOf, useIdentity } from "../api";
-import type { UserFilter, UserStats } from "../api";
+import type { User, UserFilter, UserStats } from "../api";
+import { useConfirm } from "../components/ConfirmDialog";
 import { formatDate, formatDateTime } from "../lib/date";
 
 import { ActionLabel, Actions, BadgeList, DataTable, DoneAlert, ErrorAlert, LoadMore, Loading, PageTitle, ROW_ACTION, SelectField, TextField } from "../components/common";
@@ -26,6 +27,7 @@ function Stats() {
     { key: "total", icon: UsersIcon, value: n(s.total) },
     { key: "active", icon: UserCheck, value: n(s.active) },
     { key: "pending", icon: Clock, value: n(s.pending) },
+    { key: "awaitingApproval", icon: UserRoundCheck, value: n(s.awaitingApproval) },
     { key: "disabled", icon: UserX, value: n(s.disabled) },
     { key: "mfaEnabled", icon: ShieldCheck, value: n(s.mfaEnabled) },
     { key: "mfaEnforced", icon: KeyRound, value: n(s.mfaEnforced) },
@@ -54,7 +56,7 @@ function Stats() {
               <div className="relative ml-2 mt-3 mb-3">
                 {/* the round badge sits on the top left corner of the card */}
                 <span className="absolute -left-2 -top-3 z-10 flex size-10 items-center justify-center rounded-full border bg-popover shadow-md">
-                  <Icon className="size-4" aria-hidden="true" />
+                  <Icon className={cn("size-4", STAT_TONE[key])} aria-hidden="true" />
                 </span>
                 <Card className="shadow-md">
                   <CardContent className="flex flex-col items-center gap-1 py-5 text-center">
@@ -85,6 +87,19 @@ function Stats() {
   );
 }
 
+/** The colour of the icon of each count, the same as the badge of the status it counts. */
+const STAT_TONE: Record<string, string> = {
+  total: "text-sky-700 dark:text-sky-400",
+  active: "text-emerald-700 dark:text-emerald-400",
+  pending: "text-amber-700 dark:text-amber-400",
+  awaitingApproval: "text-violet-700 dark:text-violet-400",
+  disabled: "text-destructive",
+  mfaEnabled: "text-emerald-700 dark:text-emerald-400",
+  mfaEnforced: "text-amber-700 dark:text-amber-400",
+  signedIn30d: "text-sky-700 dark:text-sky-400",
+  neverSignedIn: "text-muted-foreground",
+};
+
 export function Users() {
   // set by the edit page after it deleted the account
   const deleted = useFlash<{ deleted?: string }>()?.deleted;
@@ -95,16 +110,26 @@ export function Users() {
   // the fields of the form, and the filter applied by Search
   // a link from the home page can open the list narrowed to a status (?status=pending)
   const urlStatus = useSearchParams()[0].get("status");
-  const initial: UserFilter = urlStatus === "pending" || urlStatus === "active" || urlStatus === "disabled" ? { status: urlStatus } : {};
+  const initial: UserFilter = urlStatus === "awaiting_approval" || urlStatus === "pending" || urlStatus === "active" || urlStatus === "disabled" ? { status: urlStatus } : {};
   const [draft, setDraft] = useState<UserFilter>(initial);
   const [search, setSearch] = useState<UserFilter>(initial);
   const searchKey = JSON.stringify(search);
-  const roles = useLoad(() => (can("identity:role:read") ? api.listRoles() : Promise.resolve(undefined)), [api, can]);
+  const roles = useLoad(() => (can(P.identity.roleRead) ? api.listRoles() : Promise.resolve(undefined)), [api, can]);
   const set = (patch: UserFilter) => setDraft((d) => ({ ...d, ...patch }));
   const paged = usePaged(
     (token) => api.listUsers(search, token).then((r) => ({ items: r.users ?? [], next: r.nextPageToken ?? "" })),
     [api, searchKey],
   );
+  // quick approve / reject of a row; the list reloads after it
+  const decide = useAction();
+  const { confirm, dialog } = useConfirm();
+  async function approve(u: User) {
+    if (await decide.run(async () => (await api.approveUser(u.id), true), t("users.account.approved"))) void paged.reload();
+  }
+  async function reject(u: User) {
+    if (!(await confirm({ title: t("users.account.rejectTitle"), message: t("users.account.confirmReject", { email: u.email }), confirmLabel: t("users.account.reject") }))) return;
+    if (await decide.run(async () => (await api.rejectUser(u.id), true), t("users.account.rejected"))) void paged.reload();
+  }
   const first = { loading: paged.loading, error: paged.error, data: paged.items };
   const users = paged.items ?? [];
 
@@ -112,7 +137,7 @@ export function Users() {
     <>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageTitle>{t("users.title")}</PageTitle>
-        <Can perm="identity:user:write">
+        <Can perm={P.identity.userWrite}>
           <Button asChild>
             <Link to="/users/new">
               <Plus aria-hidden="true" />
@@ -140,7 +165,7 @@ export function Users() {
                 onValueChange={(v) => set({ status: v === ALL ? "" : (v as UserFilter["status"]) })}
                 options={[
                   { value: ALL, label: t("users.search.any") },
-                  ...(["pending", "active", "disabled"] as const).map((x) => ({ value: x, label: t(`users.status.${x}`) })),
+                  ...(["awaiting_approval", "pending", "active", "disabled"] as const).map((x) => ({ value: x, label: t(`users.status.${x}`) })),
                 ]}
               />
               {roles.data ? (
@@ -171,6 +196,8 @@ export function Users() {
             </Actions>
           </form>
           <ErrorAlert error={first.error} />
+          <ErrorAlert error={decide.error} />
+          <DoneAlert watch={decide.doneId}>{decide.done}</DoneAlert>
           {deleted ? <DoneAlert>{t("users.account.deleted", { email: deleted })}</DoneAlert> : null}
           {first.loading ? <Loading /> : null}
           {first.data ? (
@@ -210,17 +237,31 @@ export function Users() {
                   header: <span className="sr-only">{t("users.manage")}</span>,
                   className: "text-right",
                   cell: (u) => (
-                    <Button asChild variant="outline" size="sm" className={ROW_ACTION}>
-                      <Link to={`/users/${encodeURIComponent(u.id)}`} aria-label={t("users.manageAria", { email: u.email })}>
-                        <ActionLabel icon={Pencil}>{t("users.manage")}</ActionLabel>
-                      </Link>
-                    </Button>
+                    <div className="flex items-center justify-end gap-2">
+                      {statusOf(u) === "awaiting_approval" && can(P.identity.userApprove) ? (
+                        <SplitButton
+                          testId={`quick-${u.id}`}
+                          busy={decide.busy}
+                          menuLabel={t("users.account.moreDecisionsFor", { email: u.email })}
+                          actions={[
+                            { key: "approve", label: t("users.account.approve"), icon: Check, onSelect: () => void approve(u) },
+                            { key: "reject", label: t("users.account.reject"), icon: X, destructive: true, onSelect: () => void reject(u) },
+                          ]}
+                        />
+                      ) : null}
+                      <Button asChild variant="outline" size="sm" className={ROW_ACTION}>
+                        <Link to={`/users/${encodeURIComponent(u.id)}`} aria-label={t("users.manageAria", { email: u.email })}>
+                          <ActionLabel icon={Pencil} iconClassName={iconTone.edit}>{t("users.manage")}</ActionLabel>
+                        </Link>
+                      </Button>
+                    </div>
                   ),
                 },
               ]}
             />
           ) : null}
           <LoadMore paged={paged} />
+          {dialog}
         </CardContent>
       </Card>
     </>
