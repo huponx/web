@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@huponx/protogen': link:../protogen/ts
+
 importers:
 
   .:
@@ -399,6 +402,10 @@ importers:
         version: 3.2.7(@types/node@20.19.43)(jiti@2.7.0)(jsdom@25.0.1)(lightningcss@1.33.0)
 
   packages/auth-client:
+    dependencies:
+      '@huponx/protogen':
+        specifier: link:../../../protogen/ts
+        version: link:../../../protogen/ts
     devDependencies:
       '@testing-library/react':
         specifier: ^16.1.0

@@ -5,6 +5,8 @@ import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useIdentity } from "../api";
 import { Mfa } from "./Mfa";
+import { Passkeys } from "./Passkeys";
+import { Sessions } from "./Sessions";
 
 function ChangePassword() {
   const { t } = useTranslation();
@@ -49,7 +51,7 @@ function ChangePassword() {
             </div>
           </div>
         ) : (
-          <form className="flex max-w-md flex-col gap-4" onSubmit={(ev) => void submit(ev)}>
+          <form className="flex flex-col gap-4" onSubmit={(ev) => void submit(ev)}>
             <TextField label={t("security.password.current")} type="password" name="current" autoComplete="current-password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
             <TextField label={t("security.password.new")} type="password" name="new" autoComplete="new-password" required value={next} onChange={(e) => setNext(e.target.value)} />
             <TextField
@@ -80,8 +82,12 @@ export function Security() {
   return (
     <>
       <PageTitle>{t("security.title")}</PageTitle>
-      <ChangePassword />
-      <Mfa />
+      <div className="flex flex-col gap-4">
+        <ChangePassword />
+        <Passkeys />
+        <Mfa />
+        <Sessions />
+      </div>
     </>
   );
 }

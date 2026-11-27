@@ -5,6 +5,9 @@ import {
   cardText,
   combinedCardBack,
   escapeHtml,
+  genericPart,
+  joinParts,
+  renderPart,
 } from "./anki";
 import { parseWords, serviceCode } from "./api";
 import type { Word } from "./api";
@@ -113,9 +116,11 @@ describe("combinedCardBack", () => {
       { definition: "xin chào", examples: [], machineTranslated: false },
     ],
   };
+  const en = { id: "english", word: hello };
+  const envi = { id: "english-vietnamese", word: vi };
 
   it("puts English first, a rule, then Vietnamese without a second phonetics line", () => {
-    const html = combinedCardBack(hello, vi);
+    const html = combinedCardBack([en, envi]);
     const [first, second] = html.split("<hr>");
     expect(first).toContain("used as a greeting");
     expect(first).toContain("replace_audio_uk");
@@ -125,8 +130,43 @@ describe("combinedCardBack", () => {
   });
 
   it("has no rule when one dictionary is missing", () => {
-    expect(combinedCardBack(hello, undefined)).not.toContain("<hr>");
-    expect(combinedCardBack(undefined, vi)).toContain("xin chào");
-    expect(combinedCardBack(undefined, undefined)).toBe("");
+    expect(combinedCardBack([en, { id: envi.id }])).not.toContain("<hr>");
+    expect(combinedCardBack([{ id: en.id }, envi])).toContain("xin chào");
+    expect(combinedCardBack([{ id: en.id }, { id: envi.id }])).toBe("");
+  });
+
+  it("takes the HTML of an edit instead of the entry", () => {
+    expect(combinedCardBack([{ id: "english", html: "<p>mine</p>" }, envi])).toMatch(
+      /^<p>mine<\/p><hr>/,
+    );
+  });
+
+  it("gives the phonetics to the first part that has one", () => {
+    expect(combinedCardBack([{ id: en.id }, envi])).toContain("replace_audio_uk");
+  });
+});
+
+describe("joinParts", () => {
+  it("joins one, two and three parts with a rule and drops the empty ones", () => {
+    expect(joinParts(["a"])).toBe("a");
+    expect(joinParts(["a", "b"])).toBe("a<hr>b");
+    expect(joinParts(["a", "b", "c"])).toBe("a<hr>b<hr>c");
+    expect(joinParts(["a", "", "c"])).toBe("a<hr>c");
+    expect(joinParts([])).toBe("");
+  });
+});
+
+describe("renderPart", () => {
+  it("keeps the output of the English and English-Vietnamese renderers", () => {
+    expect(renderPart("english", hello, true)).toBe(cardBack(hello));
+    expect(renderPart("english-vietnamese", hello, false)).toBe(
+      cardBack(hello, { placeholders: false, phonetics: false }),
+    );
+  });
+
+  it("uses the generic renderer for an id that has no entry", () => {
+    expect(renderPart("test-x", hello, true)).toBe(genericPart(hello, true));
+    expect(renderPart("test-x", hello, true)).toContain("replace_audio_uk");
+    expect(renderPart("test-x", hello, false)).not.toContain("replace_audio");
   });
 });

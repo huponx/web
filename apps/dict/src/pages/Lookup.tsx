@@ -1,25 +1,5 @@
-import { ApiError, useAuth } from "@huponx/auth-client";
-import {
-  Alert,
-  AutoAlert,
-  Button,
-  Card,
-  CardContent,
-  ClearButton,
-  Dialog,
-  DialogContent,
-  Input,
-  NOTICE_MS,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Label,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  Textarea,
-} from "@huponx/ui-kit";
+import { ApiError, P, useAuth } from "@huponx/auth-client";
+import { Alert, AutoAlert, Button, Card, CardContent, ClearButton, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, iconTone, Input, Label, NOTICE_MS, Tabs, TabsList, TabsTrigger, Textarea } from "@huponx/ui-kit";
 import {
   Check,
   Copy,
@@ -45,20 +25,15 @@ import {
   cardsHtml,
   cardsText,
   cardText,
+  combinedCardBack,
   copyRich,
-  enPart,
   escapeHtml,
-  joinParts,
-  viPart,
+  renderPart,
 } from "../anki";
-import {
-  enabledDictionaries,
-  parseWords,
-  serviceCode,
-  startDictionary,
-  useDictionary,
-} from "../api";
-import type { Category, Dictionary, Word } from "../api";
+import type { CardPart } from "../anki";
+import { parseWords, serviceCode, useDictionary } from "../api";
+import type { Category, Word } from "../api";
+import { GroupSwitcher } from "../GroupSwitcher";
 import {
   notifySavedChanged,
   readLookupCategories,
@@ -66,6 +41,7 @@ import {
   writeLookupCategories,
 } from "../lib/categories";
 import { errorMessage, Localized } from "../lib/errors";
+import { dictionaryLabel, useRegistry } from "../lib/registry";
 import { useSettings } from "../lib/settings";
 import { useCopied } from "../lib/useCopied";
 import { CategoryPicker } from "./CategoryPicker";
@@ -105,11 +81,8 @@ function wordProblem(
   return undefined;
 }
 
-const EN = "DICTIONARY_ENGLISH" as const;
-const VI = "DICTIONARY_ENGLISH_VIETNAMESE" as const;
-
-/** The edits of the user, by word and by dictionary. */
-type Edits = Record<string, Partial<Record<Dictionary, CardOverride>>>;
+/** The edits of the user, by word and by dictionary id. */
+type Edits = Record<string, Record<string, CardOverride>>;
 
 /** A word with nothing in it: stands for a word that has an edit but no entry (yet) in the shown dictionary. */
 const blank = (text: string): Word => ({
@@ -123,25 +96,21 @@ const blank = (text: string): Word => ({
   meanings: [],
 });
 
-/** The part of a saved card that one dictionary gives, as the editor starts from it. */
-const partOf = (w: Word, d: Dictionary) =>
-  d === EN ? enPart(w) : viPart(w, true);
-
 /** What the lookup page shows: kept while the user visits another page, so coming back finds it as it was. */
 interface Memo {
   input: string;
   /** What the user picked; none yet: the default of the settings. */
-  dictionary: Dictionary | undefined;
+  dictionary: string | undefined;
   words: Word[];
   /** The words of the last lookup, as typed. */
   searchedList: string[];
-  shownDict: Dictionary;
+  shownDict: string;
   notFound: string[];
   searched: boolean;
   /** The edits and the entries fetched: they live as long as the lookup does. */
   overrides: Edits;
   unsaved: Set<string>;
-  entries: Record<Dictionary, Record<string, Word>>;
+  entries: Record<string, Record<string, Word>>;
 }
 
 const MemoContext = createContext<{ current: Memo } | null>(null);
@@ -153,12 +122,12 @@ export function LookupMemoProvider({ children }: { children: ReactNode }) {
     dictionary: undefined,
     words: [],
     searchedList: [],
-    shownDict: "DICTIONARY_ENGLISH",
+    shownDict: "",
     notFound: [],
     searched: false,
     overrides: {},
     unsaved: new Set(),
-    entries: { [EN]: {}, [VI]: {} },
+    entries: {},
   });
   return <MemoContext.Provider value={memo}>{children}</MemoContext.Provider>;
 }
@@ -174,24 +143,33 @@ export function Lookup() {
     dictionary: undefined,
     words: [],
     searchedList: [],
-    shownDict: "DICTIONARY_ENGLISH",
+    shownDict: "",
     notFound: [],
     searched: false,
     overrides: {},
     unsaved: new Set(),
-    entries: { [EN]: {}, [VI]: {} },
+    entries: {},
   });
   const memo = useContext(MemoContext) ?? fallback;
   const [input, setInput] = useState(memo.current.input);
-  const [picked, setPicked] = useState<Dictionary | undefined>(
+  const [picked, setPicked] = useState<string | undefined>(
     memo.current.dictionary,
   );
-  const enabled = enabledDictionaries(settings);
-  // the pick of the user while that dictionary is on, else the default of the settings
-  const dictionary: Dictionary =
-    picked && enabled.includes(picked) ? picked : startDictionary(settings);
+  const {
+    all: registry,
+    group,
+    dictionaries: groupDicts,
+    enabled: isOn,
+    loaded: registryLoaded,
+  } = useRegistry();
+  const enabled = groupDicts.filter((d) => isOn(d.id));
+  // the pick of the user while that dictionary is on, else the default of the settings, else the first one that is on
+  const dictionary: string =
+    (enabled.find((d) => d.id === picked) ??
+      enabled.find((d) => d.id === settings.user.defaultDictionary) ??
+      enabled[0])?.id ?? "";
   const maxWords = settings.user.maxLookupWords;
-  const chosen = useRef<Dictionary>(dictionary);
+  const chosen = useRef(dictionary);
   chosen.current = dictionary;
   const [words, setWords] = useState<Word[]>(memo.current.words);
   // the dictionary the shown entries come from
@@ -202,9 +180,7 @@ export function Lookup() {
   const entries = useRef(memo.current.entries);
   // the last fetch wins when the user changes the tab quickly
   const seq = useRef(0);
-  const [shownDict, setShownDict] = useState<Dictionary>(
-    memo.current.shownDict,
-  );
+  const [shownDict, setShownDict] = useState(memo.current.shownDict);
   const [notFound, setNotFound] = useState<string[]>(memo.current.notFound);
   const [busy, setBusy] = useState(false);
   // words (lower case) whose card is being written by hand, with no entry behind it; dropped when the editor is cancelled
@@ -218,7 +194,7 @@ export function Lookup() {
   const [searched, setSearched] = useState(memo.current.searched);
   const [saving, setSaving] = useState<string>();
   // the categories of each word: a saved word has them on the service (savedCats), the others start from the last pick
-  const { categories, loaded: catsLoaded } = useCategories();
+  const { categories, loaded: catsLoaded } = useCategories(group);
   // the default of the cards: only what the user set with "Use as default" (kept in the browser)
   const [defaults, setDefaults] = useState<string[]>(readLookupCategories);
   const [drafts, setDrafts] = useState<Record<string, string[]>>({});
@@ -303,10 +279,10 @@ export function Lookup() {
   );
   const checkedKey = checkNames.join("\n");
   useEffect(() => {
-    if (checkNames.length === 0) return;
+    if (checkNames.length === 0 || !group) return;
     let live = true;
     api
-      .checkSaved(checkNames)
+      .checkSaved(group, checkNames)
       .then((found) => {
         if (live) setSavedCats((m) => withChecked(m, checkNames, found));
       })
@@ -315,7 +291,21 @@ export function Lookup() {
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, version, checkedKey]);
+  }, [api, group, version, checkedKey]);
+
+  // another group: the entries shown are fetched again in the dictionary that is selected there
+  const shownGroup = useRef(group);
+  useEffect(() => {
+    if (shownGroup.current === group) return;
+    shownGroup.current = group;
+    chosen.current = dictionary;
+    if (searched && dictionary)
+      void fetchFor(
+        dictionary,
+        searchedList.filter((s) => !overrides[key(s)]?.[dictionary]),
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group]);
 
   // the notices hide by themselves (AutoAlert); a new object shows one again
   // and are dropped from here too: a card that is rebuilt (another dictionary tab) must not show an old one again
@@ -349,32 +339,36 @@ export function Lookup() {
     else void submit();
   }
 
-  const mark = (set: Set<string>, id: string, d: Dictionary, on: boolean) => {
+  const mark = (set: Set<string>, id: string, d: string, on: boolean) => {
     const next = new Set(set);
     if (on) next.add(`${key(id)}|${d}`);
     else next.delete(`${key(id)}|${d}`);
     return next;
   };
-  // a word saved: nothing of it is unsaved, in either dictionary
-  const settle = (set: Set<string>, id: string) =>
-    new Set([...set].filter((m) => !m.startsWith(`${key(id)}|`)));
+  // a word saved: nothing of it is unsaved in the dictionaries of its group
+  const settle = (set: Set<string>, id: string, ids: string[]) => {
+    const saved = new Set(ids.map((d) => `${key(id)}|${d}`));
+    return new Set([...set].filter((m) => !saved.has(m)));
+  };
 
   /** A new lookup of the typed words: edits and entries of the last one are dropped. */
-  async function submit(e?: FormEvent, dict: Dictionary = dictionary) {
+  async function submit(e?: FormEvent, dict: string = dictionary) {
     e?.preventDefault();
     const list = parseWords(input);
-    if (list.length === 0 || list.length > maxWords) {
+    if (list.length === 0 || list.length > maxWords || !dict) {
       setRetry(false);
       return setError(
-        list.length === 0
-          ? new Localized("lookup.empty")
-          : new Localized("lookup.tooMany", { max: maxWords }),
+        !dict
+          ? new Localized("lookup.noDictionaries")
+          : list.length === 0
+            ? new Localized("lookup.empty")
+            : new Localized("lookup.tooMany", { max: maxWords }),
       );
     }
     setSearched(true);
     setSearchedList(list);
     setOverrides({});
-    entries.current = { [EN]: {}, [VI]: {} };
+    entries.current = {};
     setUnsaved(new Set());
     setManualKeys(new Set());
     setGeneration((g) => g + 1);
@@ -382,7 +376,7 @@ export function Lookup() {
   }
 
   /** Fetches the words in one dictionary and shows them (the words with an edit there are not in the list). */
-  async function fetchFor(dict: Dictionary, list: string[]) {
+  async function fetchFor(dict: string, list: string[]) {
     const id = ++seq.current;
     setBusy(true);
     let found: Word[] = [];
@@ -407,7 +401,7 @@ export function Lookup() {
       failed = err;
     }
     if (id !== seq.current) return;
-    for (const w of found) entries.current[dict][key(w.text)] = w;
+    for (const w of found) (entries.current[dict] ??= {})[key(w.text)] = w;
     setWords(found);
     setShownDict(dict);
     setNotices({});
@@ -432,15 +426,15 @@ export function Lookup() {
   /** The entry of a word in one dictionary for the saved card: fetched before, the shown one, or fetched now (none: undefined). */
   async function entryOf(
     w: Word,
-    d: Dictionary,
+    d: string,
     lenient = false,
   ): Promise<Word | undefined> {
     const had =
-      entries.current[d][key(w.text)] ?? (d === shownDict ? w : undefined);
+      entries.current[d]?.[key(w.text)] ?? (d === shownDict ? w : undefined);
     if (had) return had;
     try {
       const got = await api.lookup(w.text, d);
-      entries.current[d][key(w.text)] = got;
+      (entries.current[d] ??= {})[key(w.text)] = got;
       return got;
     } catch (err) {
       // no entry there, or an administrator turned that dictionary off: the card has one dictionary
@@ -455,33 +449,35 @@ export function Lookup() {
     }
   }
 
-  /** Saves the card of both dictionaries, English first: an edit of a dictionary replaces its entry, the other is fetched when needed. */
+  /** Saves the card of the dictionaries of the group, in the order of the registry: an edit of a dictionary replaces its entry, the others are fetched when needed. */
   async function save(w: Word): Promise<boolean> {
     const again = savedCats.has(key(w.text));
     const cats = categoriesOf(w);
+    // the group can change while the entries are fetched: the card belongs to the one it was saved in
+    const saveGroup = group;
+    const ids = groupDicts.map((d) => d.id);
     setSaving(w.text);
     try {
       const edits = overrides[key(w.text)] ?? {};
       const lenient = isManual(w);
-      const en = edits[EN] ? undefined : await entryOf(w, EN, lenient);
-      const vi = edits[VI] ? undefined : await entryOf(w, VI, lenient);
-      const enHtml = edits[EN]?.content ?? (en ? enPart(en) : "");
-      const viHtml =
-        edits[VI]?.content ?? (vi ? viPart(vi, enHtml !== "") : "");
-      const audio = (field: "audioUk" | "audioUs") =>
-        edits[EN]?.[field] ||
-        en?.[field] ||
-        edits[VI]?.[field] ||
-        vi?.[field] ||
-        "";
+      const parts: CardPart[] = [];
+      const audio = { audioUk: "", audioUs: "" };
+      for (const id of ids) {
+        const edit = edits[id];
+        const entry = edit ? undefined : await entryOf(w, id, lenient);
+        parts.push({ id, word: entry, html: edit?.content });
+        audio.audioUk ||= edit?.audioUk || entry?.audioUk || "";
+        audio.audioUs ||= edit?.audioUs || entry?.audioUs || "";
+      }
       const r = await api.save({
+        group: saveGroup,
         word: w.text,
-        content: joinParts(enHtml, viHtml),
-        audioUk: audio("audioUk"),
-        audioUs: audio("audioUs"),
+        content: combinedCardBack(parts),
+        audioUk: audio.audioUk,
+        audioUs: audio.audioUs,
         ...(cats.length > 0 ? { categoryIds: cats } : {}),
       });
-      setUnsaved((u) => settle(u, w.text));
+      setUnsaved((u) => settle(u, w.text, ids));
       setSavedCats((m) =>
         new Map(m).set(key(w.text), [
           ...new Set([...(m.get(key(w.text)) ?? []), ...cats]),
@@ -517,7 +513,12 @@ export function Lookup() {
     }
     setSavedCats((m) => new Map(m).set(k, next));
     try {
-      await api.updateWordCategories([w.text], on ? [] : [id], on ? [id] : []);
+      await api.updateWordCategories(
+        group,
+        [w.text],
+        on ? [] : [id],
+        on ? [id] : [],
+      );
       notifySavedChanged();
     } catch (err) {
       setSavedCats((m) => new Map(m).set(k, had));
@@ -538,7 +539,7 @@ export function Lookup() {
   // what the cards show, in the order typed: the fetched entry, or the one fetched before for a word that was not fetched again (it has an edit here), else an empty one
   const found = new Map(words.map((w) => [key(w.text), w]));
   const entryFor = (s: string) =>
-    found.get(key(s)) ?? entries.current[shownDict][key(s)];
+    found.get(key(s)) ?? entries.current[shownDict]?.[key(s)];
   const shown = searchedList.flatMap((s) => {
     const entry = entryFor(s);
     return entry
@@ -549,7 +550,7 @@ export function Lookup() {
   });
   // a card with no entry behind it: written by hand
   const isManual = (w: Word) => !entryFor(w.text);
-  const canWrite = can("dictionary:word:write");
+  const canWrite = can(P.dictionary.wordWrite);
 
   /** The words that can still get a card by hand: those not found, or all the typed ones when the lookup failed. */
   const candidates = (error ? searchedList : notFound).filter(
@@ -574,11 +575,11 @@ export function Lookup() {
   // the word typed for a new card: is it saved already? (asked once the user stops typing)
   const newCheck = newOpen && !newProblem && newClean ? newClean : "";
   useEffect(() => {
-    if (!newCheck) return;
+    if (!newCheck || !group) return;
     let live = true;
     const id = setTimeout(() => {
       api
-        .checkSaved([newCheck])
+        .checkSaved(group, [newCheck])
         .then((found) => {
           if (live) setSavedCats((m) => withChecked(m, [key(newCheck)], found));
         })
@@ -588,7 +589,7 @@ export function Lookup() {
       live = false;
       clearTimeout(id);
     };
-  }, [api, newCheck, version]);
+  }, [api, group, newCheck, version]);
 
   function submitNew(e: FormEvent) {
     e.preventDefault();
@@ -600,13 +601,14 @@ export function Lookup() {
     setNewOpen(false);
   }
 
-  const dicts: { id: Dictionary; label: string }[] = enabled.map((id) => ({
-    id,
-    label:
-      id === "DICTIONARY_ENGLISH"
-        ? t("lookup.english")
-        : t("lookup.englishVietnamese"),
-  }));
+  // the editor of a card starts from the part its dictionary gives: the first of the group has the phonetics
+  const partOf = (w: Word, id: string) =>
+    renderPart(
+      id,
+      w,
+      registry.find((g) => g.dictionaries.some((d) => d.id === id))
+        ?.dictionaries[0]?.id === id,
+    );
 
   // desktop: the lookup on the left, the saved words on the right (the menu item Saved words stays)
   return (
@@ -617,10 +619,11 @@ export function Lookup() {
           <Card>
             <CardContent>
               <form onSubmit={ask} className="space-y-3">
+                <GroupSwitcher />
                 <Tabs
                   value={dictionary}
                   onValueChange={(v) => {
-                    const d = v as Dictionary;
+                    const d = v;
                     // a tab fires on mouse down and on focus: the ref tells at once that this change was handled
                     if (d === chosen.current) return;
                     chosen.current = d;
@@ -633,11 +636,11 @@ export function Lookup() {
                       );
                   }}
                 >
-                  {dicts.length > 1 ? (
+                  {enabled.length > 1 ? (
                     <TabsList aria-label={t("lookup.dictionary")}>
-                      {dicts.map((d) => (
+                      {enabled.map((d) => (
                         <TabsTrigger key={d.id} value={d.id}>
-                          {d.label}
+                          {dictionaryLabel(t, d.id)}
                         </TabsTrigger>
                       ))}
                     </TabsList>
@@ -691,7 +694,7 @@ export function Lookup() {
                       {copied === "#input" ? (
                         <Check aria-hidden="true" />
                       ) : (
-                        <Copy aria-hidden="true" />
+                        <Copy aria-hidden="true" className={iconTone.copy} />
                       )}
                       <span className="max-sm:sr-only">
                         {t("lookup.copyInput")}
@@ -710,7 +713,7 @@ export function Lookup() {
                           setNewOpen(true);
                         }}
                       >
-                        <Plus aria-hidden="true" />
+                        <Plus aria-hidden="true" className={iconTone.add} />
                         <span className="max-sm:sr-only">
                           {t("lookup.newCard")}
                         </span>
@@ -734,6 +737,9 @@ export function Lookup() {
             </CardContent>
           </Card>
 
+          {registryLoaded && !dictionary ? (
+            <Alert variant="warning">{t("lookup.noDictionaries")}</Alert>
+          ) : null}
           {error ? (
             // space-y on the Alert itself would push its text below the icon (the icon is a child of the flex row)
             <Alert variant="destructive">
@@ -845,11 +851,11 @@ export function Lookup() {
                 {copied === "#all" ? (
                   <Check aria-hidden="true" />
                 ) : (
-                  <Copy aria-hidden="true" />
+                  <Copy aria-hidden="true" className={iconTone.copy} />
                 )}
                 {t("lookup.copyAll")}
               </Button>
-              {can("dictionary:word:write") ? (
+              {can(P.dictionary.wordWrite) ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -858,7 +864,7 @@ export function Lookup() {
                   disabled={saving !== undefined}
                   onClick={() => void saveAll()}
                 >
-                  <Save aria-hidden="true" />
+                  <Save aria-hidden="true" className={iconTone.save} />
                   {t("lookup.saveAll")}
                 </Button>
               ) : null}

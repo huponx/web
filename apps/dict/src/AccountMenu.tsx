@@ -1,4 +1,4 @@
-import { useAuth } from "@huponx/auth-client";
+import { P, useAuth } from "@huponx/auth-client";
 import {
   AccountMenuView,
   portalHref,
@@ -53,7 +53,7 @@ export function AccountMenu() {
       label={t("shell.userMenu")}
       portal={portalLink(t("shell.portal"))}
       settings={
-        can("dictionary:word:read")
+        can(P.dictionary.wordRead)
           ? { to: "/settings", label: t("nav.settings") }
           : undefined
       }

@@ -1,4 +1,4 @@
-import { Button } from "@huponx/ui-kit";
+import { Button, tone } from "@huponx/ui-kit";
 import { Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { usePlayAudio } from "../lib/playAudio";
@@ -21,7 +21,7 @@ export function Play({
       type="button"
       variant="ghost"
       size="icon-sm"
-      className={className}
+      className={[tone.ok, className].filter(Boolean).join(" ")}
       aria-label={t("lookup.play", { region })}
       title={t("lookup.play", { region })}
       onClick={() => void play(url).catch(() => undefined)}

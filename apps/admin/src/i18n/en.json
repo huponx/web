@@ -2,6 +2,7 @@
   "common": {
     "loading": "Loading...",
     "signingIn": "Signing in...",
+    "signingOut": "Signing out...",
     "tryAgain": "Try again",
     "close": "Close",
     "cancel": "Cancel",
@@ -74,7 +75,9 @@
       "roles": "Roles",
       "permissions": "{{count}} permissions",
       "pending": "Pending users",
-      "pendingHint": "Waiting to set a password"
+      "pendingHint": "Waiting to set a password",
+      "awaitingApproval": "Awaiting approval",
+      "awaitingApprovalHint": "Self-registered, waiting for an administrator"
     },
     "quick": {
       "title": "Quick actions",
@@ -138,6 +141,15 @@
       "mint": "Mint",
       "rose": "Rose",
       "graphite": "Graphite"
+    },
+    "registration": {
+      "title": "Registration",
+      "description": "What happens after somebody creates an account on the sign in page.",
+      "requiresApproval": "Registration requires approval",
+      "requiresApprovalHint": "A new account waits until an administrator approves it. Off: the welcome email with the link to set a password is sent at once.",
+      "save": "Save",
+      "saved": "Registration settings saved.",
+      "disabledNote": "Self-registration is turned off on the server (IDENTITY_REGISTRATION_ENABLED), so this setting has no effect yet."
     }
   },
   "settings": {
@@ -160,6 +172,10 @@
       "title": "Profile",
       "description": "Your name and picture. They show in the header; you can change them without any permission.",
       "saved": "Profile saved."
+    },
+    "sessions": {
+      "title": "Active sessions",
+      "description": "The browsers and devices where you are signed in. Signing out a session ends it at once; an app that already holds an access token may keep working for a few more minutes."
     }
   },
   "users": {
@@ -186,7 +202,8 @@
     "status": {
       "active": "Active",
       "pending": "Pending",
-      "disabled": "Disabled"
+      "disabled": "Disabled",
+      "awaiting_approval": "Awaiting approval"
     },
     "mfaState": {
       "required": "required",
@@ -224,11 +241,28 @@
       "delete": "Delete account",
       "deleteTitle": "Delete account",
       "confirmDelete": "Delete the account {{email}}? The user signs out at once and cannot sign in again, and their data (words, files) is deleted in the background. This cannot be undone.",
-      "deleted": "The account {{email}} was deleted."
+      "deleted": "The account {{email}} was deleted.",
+      "awaitingHint": "This person registered themselves and waits for an administrator. No e-mail with a link is sent until you approve.",
+      "approve": "Approve",
+      "approved": "Approved. The welcome email with the link to set a password was sent.",
+      "reject": "Reject",
+      "rejected": "Rejected. The request was deleted and the applicant was told by email.",
+      "rejectTitle": "Reject registration",
+      "confirmReject": "Reject the registration of {{email}}? The request is deleted and the applicant gets an email. They can register again.",
+      "moreDecisions": "More decisions",
+      "welcomeTitle": "Welcome email",
+      "welcomeHint": "Sends the link to set the first password again.",
+      "resetTitle": "Password",
+      "resetHint": "E-mails a link to choose a new password.",
+      "accessTitle": "Sign in",
+      "accessHint": "Disabling blocks sign in and ends all sessions.",
+      "accessHintDisabled": "The account is disabled and cannot sign in.",
+      "deleteHint": "The user and their data are removed. This cannot be undone.",
+      "moreDecisionsFor": "More decisions for {{email}}"
     },
     "mfa": {
       "title": "Multi-factor authentication",
-      "state": "Server mode: <strong>{{mode}}</strong>. This user: {{enrolled}}, {{required}}, recovery codes left: {{left}}.",
+      "state": "Server mode: <strong>{{mode}}</strong>. This user: {{enrolled}}, {{required}}, recovery codes left: {{left}}, passkeys: {{passkeys}}.",
       "enrolledYes": "authenticator enrolled",
       "enrolledNo": "not enrolled",
       "requiredYes": "required",
@@ -241,7 +275,7 @@
       "turnedOff": "MFA turned off.",
       "reset": "Reset",
       "resetDone": "MFA reset.",
-      "confirmReset": "Reset MFA? The authenticator and the recovery codes are deleted.",
+      "confirmReset": "Reset MFA? The authenticator, the recovery codes and the passkeys are deleted, and the user is signed out everywhere.",
       "hint": "An admin cannot enroll an authenticator for a user: the user does it on their own device."
     },
     "add": "Add user",
@@ -286,7 +320,8 @@
       "signedIn30d": "Signed in, last 30 days",
       "neverSignedIn": "Never signed in",
       "expand": "Show all statistics",
-      "collapse": "Show fewer statistics"
+      "collapse": "Show fewer statistics",
+      "awaitingApproval": "Awaiting approval"
     },
     "storage": {
       "title": "Dictionary storage",
@@ -301,7 +336,26 @@
       "defaultPlaceholder": "Default",
       "useDefault": "Use default",
       "save": "Save limits",
-      "saved": "Storage limits saved."
+      "saved": "Storage limits saved.",
+      "recalculate": "Recalculate",
+      "recalculated": "Storage recalculated.",
+      "recalculatedChanged": "Storage recalculated. Changed: {{changes}}."
+    },
+    "sessions": {
+      "title": "Sessions",
+      "description": "The browsers and devices where this user is signed in.",
+      "revokeAll": "Sign out of all sessions",
+      "confirmRevokeAll": "Sign out {{email}} everywhere? Every session and refresh token ends now and the access tokens issued so far stop working for token exchange. An app that verifies an access token locally accepts it until it expires.",
+      "revokedAll": "The user is signed out everywhere."
+    }
+  },
+  "lookup": {
+    "dictionaries": {
+      "english": "English",
+      "english-vietnamese": "English - Vietnamese"
+    },
+    "groups": {
+      "en": "English"
     }
   },
   "dictionary": {
@@ -330,10 +384,6 @@
     "retention": "Keep removed words for (hours)",
     "retentionHint": "From 1 to 8760. Words that left the list are deleted after this time. Words still in the list are never deleted.",
     "dictionaries": "Dictionaries",
-    "english": "English",
-    "englishHint": "English definitions.",
-    "englishVi": "English-Vietnamese",
-    "englishViHint": "Vietnamese definitions of English words.",
     "oneOn": "At least one dictionary must stay enabled.",
     "save": "Save settings",
     "saved": "Dictionary settings saved.",
@@ -371,28 +421,19 @@
     },
     "perm": {
       "title": "Permissions",
-      "intro": "The catalog of permissions that roles can be given. A permission in use by a role cannot be deleted.",
+      "intro": "The permissions of the system, read only. Each service declares its own and identity saves them when the service starts; the wildcards are generated from them. Roles are given permissions on the role page.",
       "name": "Permission",
       "description": "Description",
       "roles": "Roles",
-      "actions": "Actions",
-      "edit": "Edit",
-      "editAria": "Edit {{name}}",
-      "deleteAria": "Delete {{name}}",
-      "editTitle": "Edit {{name}}",
-      "inUse": "In use by a role",
-      "confirmDelete": "Delete the permission {{name}}?",
-      "created": "Permission {{name}} added.",
-      "deleted": "Permission {{name}} deleted.",
-      "updated": "Permission {{name}} updated.",
-      "new": "Add a permission",
-      "nameHint": "For example bill:invoice:read, or a wildcard such as bill:*.",
-      "add": "Add permission",
       "empty": "No permissions in the catalog.",
       "wildcards": "Wildcards",
-      "unknown": "Not in the catalog",
       "search": "Search permissions",
-      "searchHint": "Name or description"
+      "searchHint": "Name or description",
+      "service": "Service",
+      "wildcardBadge": "wildcard",
+      "retiredBadge": "retired",
+      "retired": "Retired",
+      "retiredHint": "Retired: no service declares these any more and they are not enforced. Clear them to remove them from the role."
     },
     "tab": {
       "roles": "Roles",
@@ -625,7 +666,27 @@
       "user_not_found": "The user was not found.",
       "user_id_invalid": "The user id is not valid.",
       "settings_required": "The settings are required.",
-      "quota_range": "The {{kind}} quota must be between {{min}} and {{max}} bytes, or 0 for the default."
+      "quota_range": "The {{kind}} quota must be between {{min}} and {{max}} bytes, or 0 for the default.",
+      "session_not_found": "The session does not exist or has already ended."
     }
+  },
+  "sessions": {
+    "none": "No active sessions.",
+    "thisDevice": "This device",
+    "unknownDevice": "Unknown device",
+    "browserOnOs": "{{browser}} on {{os}}",
+    "lastActive": "last active {{when}}",
+    "signedIn": "signed in {{date}}",
+    "password": "Password",
+    "otp": "Authenticator code",
+    "passkey": "Passkey",
+    "actions": "Actions for {{name}}",
+    "revoke": "Sign out this session",
+    "revokeOthers": "Sign out of all other sessions",
+    "confirmRevoke": "Sign out “{{name}}”? That session ends at once.",
+    "confirmRevokeCurrent": "“{{name}}” is the session you are using now. You will be signed out immediately.",
+    "confirmRevokeOthers": "Sign out of every session except this one? Those devices have to sign in again.",
+    "revoked": "Session signed out.",
+    "revokedOthers": "Signed out of the other sessions."
   }
 }

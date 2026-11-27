@@ -1,37 +1,5 @@
-import { useAuth } from "@huponx/auth-client";
-import {
-  cn,
-  Alert,
-  AutoAlert,
-  Loading,
-  Progress,
-  Button,
-  Card,
-  Checkbox,
-  ClearButton,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-  useConfirm,
-} from "@huponx/ui-kit";
+import { P, useAuth } from "@huponx/auth-client";
+import { Alert, AutoAlert, Button, Card, CardContent, CardHeader, CardTitle, Checkbox, ClearButton, cn, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, iconTone, Input, Label, Loading, Progress, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, tone, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, useConfirm } from "@huponx/ui-kit";
 import {
   Check,
   CircleCheck,
@@ -74,6 +42,7 @@ import {
   SAVED_CHANGED,
 } from "../api";
 import { ExportJobPanel } from "../ExportJobPanel";
+import { GroupSwitcher } from "../GroupSwitcher";
 import { useExportJob } from "../lib/useExportJob";
 import { cardViewHtml, hasAudioSlot } from "../lib/cardHtml";
 import {
@@ -86,6 +55,7 @@ import { useCardImages } from "../lib/useCardImages";
 import { useCopied } from "../lib/useCopied";
 import { errorMessage, Localized } from "../lib/errors";
 import { formatBytes } from "../lib/bytes";
+import { useRegistry } from "../lib/registry";
 import { useSettings } from "../lib/settings";
 import { nearlyFull, useStorage } from "../lib/useStorage";
 import { CategoryChips, CategoryFilter, ManageCategories } from "./Categories";
@@ -330,6 +300,7 @@ const SavedRow = memo(function SavedRow({
             type="button"
             variant="ghost"
             size="icon-sm"
+            className={tone.danger}
             aria-label={t("saved.deleteWord", { word: w.word })}
             title={t("saved.deleteWord", { word: w.word })}
             onClick={() => onRemove(w)}
@@ -456,6 +427,8 @@ export function SavedList({
   const { t } = useTranslation();
   const { can } = useAuth();
   const api = useDictionary();
+  // the list of the group the pages work in (the switcher of the page changes it)
+  const { group, loaded: registryLoaded } = useRegistry();
   const [words, setWords] = useState<SavedWord[]>([]);
   // the panel read one page and the list has more words
   const [more, setMore] = useState(false);
@@ -467,7 +440,7 @@ export function SavedList({
     list: catList,
     loaded: catsLoaded,
     reload: reloadCategories,
-  } = useCategories();
+  } = useCategories(group);
   const [savedFilter, setSavedFilter] = usePersistedCategory(
     "saved",
     categories,
@@ -483,6 +456,8 @@ export function SavedList({
   useEffect(() => setFilterCounts({}), [catList]);
   // the words the user ticked, by word: they stay when a search or a filter shows other words
   const [selected, setSelected] = useState<Map<string, SavedWord>>(new Map());
+  // the ticked words belong to a group: another group starts with none
+  useEffect(() => setSelected(new Map()), [group]);
   const [managing, setManaging] = useState(false);
   // the export dialog: which export, and what it packs
   const [exportOpen, setExportOpen] = useState(false);
@@ -517,7 +492,7 @@ export function SavedList({
   const [link, setLink] = useState<{ url: string; expiresAt: string }>();
   const [linking, setLinking] = useState(false);
   // the export in parts of a list too long for one deck
-  const jobs = useExportJob(api, can("dictionary:word:write") && !compact);
+  const jobs = useExportJob(api, can(P.dictionary.wordWrite) && !compact);
   const [busyPart, setBusyPart] = useState<number>();
   // the links of the parts of one job: a new link replaces the one before, so each is made once and kept
   const [partLinkState, setPartLinks] = useState<{
@@ -546,7 +521,7 @@ export function SavedList({
     cancel: t("common.cancel"),
     close: t("common.close"),
   });
-  const write = can("dictionary:word:write");
+  const write = can(P.dictionary.wordWrite);
   usePreloadCardEditor(write);
   // the word whose full card is open
   const [viewing, setViewing] = useState<SavedWord>();
@@ -578,12 +553,18 @@ export function SavedList({
   const readSeq = useRef(0);
   const load = useCallback(() => {
     const seq = ++readSeq.current;
+    if (!group) {
+      // no group to read: still waiting for the registry, or it has no dictionary
+      setLoading(!registryLoaded);
+      return;
+    }
     setFetching(true);
     // the panel shows the first COMPACT_LIMIT words, the list its first page: the rest is read on demand (the list can
     // hold 1,000,000 words); the totals come with the page
     const params = filterParams(filter);
     api
       .list(
+        group,
         undefined,
         debouncedQuery,
         compact ? COMPACT_LIMIT : PAGE_SIZE,
@@ -600,7 +581,7 @@ export function SavedList({
       .then(async (r) => {
         // with a filter the totals of the answer are the filter's: the whole list is one more (small) read
         const all = filter
-          ? await api.list(undefined, "", 1).then((p) => ({
+          ? await api.list(group, undefined, "", 1).then((p) => ({
               total: p.total,
               newTotal: p.newTotal ?? p.total,
             }))
@@ -642,7 +623,7 @@ export function SavedList({
         setLoading(false);
         setFetching(false);
       });
-  }, [api, debouncedQuery, compact, filter, reloadCategories]);
+  }, [api, group, registryLoaded, debouncedQuery, compact, filter, reloadCategories]);
 
   // `version` is the signal to read the list again
   useEffect(load, [load, version]);
@@ -659,6 +640,7 @@ export function SavedList({
     setLoadingMore(true);
     try {
       const p = await api.list(
+        group,
         nextToken,
         debouncedQuery,
         PAGE_SIZE,
@@ -687,7 +669,7 @@ export function SavedList({
     )
       return;
     try {
-      await api.remove(w.word);
+      await api.remove(group, w.word);
       setError(undefined);
       setWords((list) => list.filter((x) => x.word !== w.word));
       setAllCounts((c) => ({
@@ -716,13 +698,13 @@ export function SavedList({
     setEditError(undefined);
     try {
       // the word is saved again (which keeps its categories); the categories change by their own call
-      await api.save({ word: w.word, ...edit });
+      await api.save({ group, word: w.word, ...edit });
       reloadStorage();
       const had = w.categoryIds ?? [];
       const add = editCategories.filter((id) => !had.includes(id));
       const drop = had.filter((id) => !editCategories.includes(id));
       if (add.length > 0 || drop.length > 0) {
-        await api.updateWordCategories([w.word], add, drop);
+        await api.updateWordCategories(group, [w.word], add, drop);
         notifySavedChanged();
       }
       const updated: SavedWord = {
@@ -780,6 +762,7 @@ export function SavedList({
     const remove = categoryState(id) === "all";
     try {
       await api.updateWordCategories(
+        group,
         [...selected.keys()],
         remove ? [] : [id],
         remove ? [id] : [],
@@ -892,7 +875,7 @@ export function SavedList({
   async function exportDeck(name: string, from: ExportSource) {
     setExporting(true);
     try {
-      const r = await api.exportAnki(name, from);
+      const r = await api.exportAnki(group, name, from);
       downloadBase64(r.data, r.filename);
       setError(undefined);
       setNotice({
@@ -918,7 +901,7 @@ export function SavedList({
   async function exportLink(name: string, from: ExportSource) {
     setLinking(true);
     try {
-      const r = await api.exportLink(name, from);
+      const r = await api.exportLink(group, name, from);
       setLink({ url: r.url, expiresAt: r.expiresAt });
       setError(undefined);
       setNotice({
@@ -950,7 +933,7 @@ export function SavedList({
     });
     if (!ok) return;
     try {
-      jobs.set(await api.startExport(name, from));
+      jobs.set(await api.startExport(group, name, from));
       setError(undefined);
     } catch (e) {
       setError(e);
@@ -1140,6 +1123,7 @@ export function SavedList({
                 type="button"
                 variant="outline"
                 size="icon-sm"
+                className={tone.copy}
                 aria-label={t("saved.copyLink")}
                 title={t("saved.copyLink")}
                 onClick={() => void copyLink()}
@@ -1188,7 +1172,7 @@ export function SavedList({
               className="max-sm:size-9 max-sm:px-0"
               onClick={() => setManaging(true)}
             >
-              <Tags aria-hidden="true" />
+              <Tags aria-hidden="true" className={iconTone.tags} />
               <span className="max-sm:sr-only">{t("categories.manage")}</span>
             </Button>
           ) : null}
@@ -1366,6 +1350,7 @@ export function SavedList({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
+                        className={tone.danger}
                         aria-label={t("saved.deleteWord", { word: w.word })}
                         title={t("saved.deleteWord", { word: w.word })}
                         onClick={() => void remove(w)}
@@ -1646,6 +1631,7 @@ export function Saved() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-4">
       <h1 className="text-2xl font-semibold">{t("saved.title")}</h1>
+      <GroupSwitcher />
       <SavedList />
     </div>
   );

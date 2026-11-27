@@ -3,8 +3,23 @@ import { useMemo } from "react";
 import { audioId, readAudio } from "./lib/audio";
 import { downscaleImage } from "./lib/image";
 
-/** Source of a lookup: the enum `dictionary.v1.Dictionary` as the gateway writes it (protojson). */
-export type Dictionary = "DICTIONARY_ENGLISH" | "DICTIONARY_ENGLISH_VIETNAMESE";
+/** One dictionary of the registry (`GET /api/dictionary/dictionaries`); its id is what a lookup takes. */
+export interface DictionaryInfo {
+  id: string;
+  /** The group whose saved words the dictionary feeds. */
+  group: string;
+  /** Language codes of the words and of the meanings ("en", "vi"). */
+  source: string;
+  target: string;
+  /** On for the caller: the system and the user switches both allow it. */
+  enabled: boolean;
+}
+
+/** The dictionaries that merge into one card; a saved word belongs to one group. */
+export interface DictionaryGroup {
+  id: string;
+  dictionaries: DictionaryInfo[];
+}
 
 export interface Meaning {
   definition: string;
@@ -25,6 +40,8 @@ export interface Word {
 
 export interface SavedWord {
   word: string;
+  /** The group of the dictionaries the word belongs to. */
+  group: string;
   /** The card back (HTML). */
   content: string;
   audioUk: string;
@@ -77,6 +94,10 @@ export function filterParams(value: string): CategoryFilterParams {
   return value ? { categoryId: value } : {};
 }
 
+function groupQuery(group: string): string {
+  return `group=${encodeURIComponent(group)}`;
+}
+
 function filterQuery(f: CategoryFilterParams): string {
   // a query string reaches the service as text, which a bool field refuses: the id stands for it
   if (f.uncategorized) return "&categoryId=uncategorized";
@@ -86,6 +107,7 @@ function filterQuery(f: CategoryFilterParams): string {
 /** A card of the review: the front is the word, the back the card (HTML) like a saved word. */
 export interface ReviewCard {
   word: string;
+  group: string;
   content: string;
   audioUk: string;
   audioUs: string;
@@ -184,6 +206,7 @@ function parseQueue(raw: {
   return {
     cards: (raw.cards ?? []).map((c) => ({
       word: c.word ?? "",
+      group: c.group ?? "",
       content: c.content ?? "",
       audioUk: c.audioUk ?? "",
       audioUs: c.audioUs ?? "",
@@ -260,6 +283,7 @@ export interface ExportPart {
 /** An export in parts of a list too long for one deck. protojson leaves out zero counts. */
 export interface ExportJob {
   id: string;
+  group: string;
   status: ExportJobStatus;
   deckName?: string;
   total?: number;
@@ -302,17 +326,18 @@ export interface SystemSettings {
   maxCategoryNameLength: number;
   allowExportDeck: boolean;
   allowExportLink: boolean;
-  englishEnabled: boolean;
-  englishViEnabled: boolean;
+  /** Dictionary id to its system switch (an id that is missing is on). */
+  dictionaries: Record<string, boolean>;
   /** An export takes the words out of the list (a user can turn it off for themself). */
   removeAfterExport: boolean;
 }
 
 /** Preferences of the signed in user (they only narrow the system settings). */
 export interface UserSettings {
-  englishEnabled: boolean;
-  englishViEnabled: boolean;
-  defaultDictionary: Dictionary;
+  /** Dictionary id to the switch of the user (an id that is missing is on). */
+  dictionaries: Record<string, boolean>;
+  /** The id of the dictionary a lookup starts with; empty: the first one that is on. */
+  defaultDictionary: string;
   /** Empty: the built-in name. */
   deckName: string;
   /** Words per lookup, 1 to 20. */
@@ -363,15 +388,13 @@ export const DEFAULT_SYSTEM: SystemSettings = {
   maxCategoryNameLength: DEFAULT_MAX_CATEGORY_NAME,
   allowExportDeck: true,
   allowExportLink: true,
-  englishEnabled: true,
-  englishViEnabled: true,
+  dictionaries: {},
   removeAfterExport: true,
 };
 
 export const DEFAULT_USER: UserSettings = {
-  englishEnabled: true,
-  englishViEnabled: true,
-  defaultDictionary: "DICTIONARY_ENGLISH",
+  dictionaries: {},
+  defaultDictionary: "",
   deckName: "",
   maxLookupWords: MAX_LOOKUP_WORDS,
   removeAfterExport: true,
@@ -414,19 +437,14 @@ export function parseSettings(
           s.maxCategoryNameLength || DEFAULT_MAX_CATEGORY_NAME,
         allowExportDeck: s.allowExportDeck ?? false,
         allowExportLink: s.allowExportLink ?? false,
-        englishEnabled: s.englishEnabled ?? false,
-        englishViEnabled: s.englishViEnabled ?? false,
+        dictionaries: s.dictionaries ?? {},
         removeAfterExport: s.removeAfterExport ?? false,
       }
     : DEFAULT_SYSTEM;
   const user: UserSettings = u
     ? {
-        englishEnabled: u.englishEnabled ?? false,
-        englishViEnabled: u.englishViEnabled ?? false,
-        defaultDictionary:
-          u.defaultDictionary === "DICTIONARY_ENGLISH_VIETNAMESE"
-            ? "DICTIONARY_ENGLISH_VIETNAMESE"
-            : "DICTIONARY_ENGLISH",
+        dictionaries: u.dictionaries ?? {},
+        defaultDictionary: u.defaultDictionary ?? "",
         deckName: u.deckName ?? "",
         maxLookupWords: u.maxLookupWords || MAX_LOOKUP_WORDS,
         removeAfterExport: u.removeAfterExport ?? false,
@@ -449,41 +467,28 @@ export function parseSettings(
   };
 }
 
-/** The dictionaries the user may use now: on for the system and for the user, English first. */
-export function enabledDictionaries(s: MySettings): Dictionary[] {
-  const out: Dictionary[] = [];
-  if (s.system.englishEnabled && s.user.englishEnabled)
-    out.push("DICTIONARY_ENGLISH");
-  if (s.system.englishViEnabled && s.user.englishViEnabled)
-    out.push("DICTIONARY_ENGLISH_VIETNAMESE");
-  return out.length > 0 ? out : ["DICTIONARY_ENGLISH"];
-}
-
-/** The dictionary a new lookup starts with: the default of the user when it is on, else the first that is. */
-export function startDictionary(s: MySettings): Dictionary {
-  const on = enabledDictionaries(s);
-  return on.includes(s.user.defaultDictionary)
-    ? s.user.defaultDictionary
-    : on[0]!;
+/** A switch of a dictionary: an id the map does not name is on. */
+export function dictionaryOn(map: Record<string, boolean>, id: string): boolean {
+  return map[id] !== false;
 }
 
 /** The words an export packs: the new or all of the list (of a category, if one is given), or exactly these words. */
 export type ExportSource =
   ({ scope: ExportScope } & CategoryFilterParams) | { words: string[] };
 
-/** The query string of the review queue: the limit and the category filter, or nothing. */
+/** The query string of the review queue: the group, the limit and the category filter. */
 function reviewQuery(
+  group: string,
   limit: number | undefined,
   f: CategoryFilterParams,
 ): string {
-  const q = `${limit ? `&limit=${limit}` : ""}${filterQuery(f)}`;
-  return q ? `?${q.slice(1)}` : "";
+  return `?${groupQuery(group)}${limit ? `&limit=${limit}` : ""}${filterQuery(f)}`;
 }
 
-function exportBody(deckName: string, source: ExportSource) {
+function exportBody(group: string, deckName: string, source: ExportSource) {
   return "words" in source
-    ? { deckName, words: source.words }
-    : { deckName, ...source };
+    ? { group, deckName, words: source.words }
+    : { group, deckName, ...source };
 }
 
 /** Codes the service puts at the start of an error message (`dictionary/internal/service`). */
@@ -633,20 +638,26 @@ export function useDictionary() {
   const { client } = useAuth();
   return useMemo(
     () => ({
-      lookup: (word: string, dictionary: Dictionary) =>
+      /** The registry: the groups with their dictionaries, in the order the service lists them. */
+      listDictionaries: () =>
+        client
+          .api<{ groups?: DictionaryGroup[] }>("GET", "/api/dictionary/dictionaries")
+          .then((r) => r.groups ?? []),
+      lookup: (word: string, dictionary: string) =>
         client
           .api<{ word: Word }>(
             "GET",
-            `/api/dictionary/words/${encodeURIComponent(word)}?dictionary=${dictionary}`,
+            `/api/dictionary/words/${encodeURIComponent(word)}?dictionary=${encodeURIComponent(dictionary)}`,
           )
           .then((r) => r.word),
-      lookupMany: (words: string[], dictionary: Dictionary) =>
+      lookupMany: (words: string[], dictionary: string) =>
         client.api<{ words: Word[]; notFound: string[] }>(
           "POST",
           "/api/dictionary/lookup",
           { words, dictionary },
         ),
       save: (w: {
+        group: string;
         word: string;
         content: string;
         audioUk: string;
@@ -655,8 +666,12 @@ export function useDictionary() {
         categoryIds?: string[];
       }) =>
         client.api<{ savedCount: number }>("POST", "/api/dictionary/saved", w),
-      listCategories: () =>
-        client.api<CategoryList>("GET", "/api/dictionary/categories"),
+      /** The categories of the user; the counts are those of the group. */
+      listCategories: (group: string) =>
+        client.api<CategoryList>(
+          "GET",
+          `/api/dictionary/categories?${groupQuery(group)}`,
+        ),
       createCategory: (name: string) =>
         client
           .api<{ category: Category }>("POST", "/api/dictionary/categories", {
@@ -679,6 +694,7 @@ export function useDictionary() {
         ),
       /** Adds the words to some categories and takes them out of others; the card and the exported flag stay. */
       updateWordCategories: (
+        group: string,
         words: string[],
         addCategoryIds: string[],
         removeCategoryIds: string[],
@@ -687,6 +703,7 @@ export function useDictionary() {
           "POST",
           "/api/dictionary/saved-words/categories",
           {
+            group,
             words,
             addCategoryIds,
             removeCategoryIds,
@@ -734,6 +751,7 @@ export function useDictionary() {
         return url;
       },
       list: (
+        group: string,
         pageToken?: string,
         query?: string,
         pageSize = 50,
@@ -741,29 +759,29 @@ export function useDictionary() {
       ) =>
         client.api<SavedPage>(
           "GET",
-          `/api/dictionary/saved?pageSize=${pageSize}${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""}${query ? `&query=${encodeURIComponent(query)}` : ""}${filterQuery(filter)}`,
+          `/api/dictionary/saved?${groupQuery(group)}&pageSize=${pageSize}${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""}${query ? `&query=${encodeURIComponent(query)}` : ""}${filterQuery(filter)}`,
         ),
       /** Which of the words (at most 100) are in the list, with the ids of their categories. */
-      checkSaved: (words: string[]) =>
+      checkSaved: (group: string, words: string[]) =>
         client
           .api<{ words?: { word: string; categoryIds?: string[] }[] }>(
             "POST",
             "/api/dictionary/saved/check",
-            { words },
+            { group, words },
           )
           .then((r) => r.words ?? []),
-      remove: (word: string) =>
+      remove: (group: string, word: string) =>
         client.api<unknown>(
           "DELETE",
-          `/api/dictionary/saved/${encodeURIComponent(word)}`,
+          `/api/dictionary/saved/${encodeURIComponent(word)}?${groupQuery(group)}`,
         ),
       /** Starts an export in parts (`EXPORT_USE_JOB`): the words of a category, or all/new words. */
-      startExport: (deckName: string, source: ExportSource) =>
+      startExport: (group: string, deckName: string, source: ExportSource) =>
         client
           .api<{ job: ExportJob }>(
             "POST",
             "/api/dictionary/exports",
-            exportBody(deckName, source),
+            exportBody(group, deckName, source),
           )
           .then((r) => r.job),
       /** A job, or the one started last ("latest"); undefined when the user has none. */
@@ -801,13 +819,14 @@ export function useDictionary() {
       },
       /** Keeps the deck behind a link an Anki app can import (works once, a few minutes); returns the URL too. */
       exportLink: async (
+        group: string,
         deckName: string,
         source: ExportSource = { scope: "EXPORT_SCOPE_NEW" },
       ) => {
         const l = await client.api<DeckLink>(
           "POST",
           "/api/dictionary/export-link",
-          exportBody(deckName, source),
+          exportBody(group, deckName, source),
         );
         return {
           ...l,
@@ -815,21 +834,25 @@ export function useDictionary() {
         };
       },
       /** The cards to review now: the due ones first, then new words up to the daily limit of the user. */
-      getReviewQueue: (limit?: number, filter: CategoryFilterParams = {}) =>
+      getReviewQueue: (
+        group: string,
+        limit?: number,
+        filter: CategoryFilterParams = {},
+      ) =>
         client
           .api<Parameters<typeof parseQueue>[0]>(
             "GET",
-            `/api/dictionary/review${reviewQuery(limit, filter)}`,
+            `/api/dictionary/review${reviewQuery(group, limit, filter)}`,
           )
           .then(parseQueue),
       /** Grades a card; the service schedules the next review. */
-      submitReview: (word: string, grade: ReviewGrade) =>
+      submitReview: (group: string, word: string, grade: ReviewGrade) =>
         client
           .api<{
             dueAt: string;
             intervalSeconds?: string | number;
             gradeIntervalsSeconds?: (string | number)[];
-          }>("POST", "/api/dictionary/review", { word, grade })
+          }>("POST", "/api/dictionary/review", { group, word, grade })
           .then((r): ReviewResult => ({
             dueAt: r.dueAt,
             intervalSeconds: Number(r.intervalSeconds ?? 0),
@@ -886,21 +909,22 @@ export function useDictionary() {
           )
           .then(parseSettings),
       exportAnki: (
+        group: string,
         deckName: string,
         source: ExportSource = { scope: "EXPORT_SCOPE_NEW" },
       ) =>
         client.api<Exported>(
           "POST",
           "/api/dictionary/export",
-          exportBody(deckName, source),
+          exportBody(group, deckName, source),
         ),
       /** Takes the exported words out of the list (the new ones stay); returns how many left. */
-      removeExportedWords: () =>
+      removeExportedWords: (group: string) =>
         client
           .api<{ removed?: number }>(
             "POST",
             "/api/dictionary/saved-words/remove-exported",
-            {},
+            { group },
           )
           .then((r) => r.removed ?? 0),
     }),

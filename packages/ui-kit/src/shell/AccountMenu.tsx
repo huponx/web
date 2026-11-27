@@ -1,3 +1,4 @@
+import { iconTone } from "../lib/tones";
 import { Languages, LayoutGrid, LogOut, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -79,7 +80,7 @@ export function AccountMenu({ name, image, label, portal, settings, language, si
       </DropdownMenuSub>
       <DropdownMenuSeparator />
       <DropdownMenuItem data-testid="logout" onSelect={signOut.onSelect}>
-        <LogOut aria-hidden="true" />
+        <LogOut aria-hidden="true" className={iconTone.danger} />
         {signOut.label}
       </DropdownMenuItem>
     </UserMenu>

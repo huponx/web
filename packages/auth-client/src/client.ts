@@ -61,6 +61,8 @@ export interface AuthClient {
   loginUrl(returnTo?: string): string;
   /** Moves the browser to the login. */
   login(returnTo?: string): void;
+  /** True from the sign out until somebody is signed in again: the page that identity returns to shows "signing out", not "signing in". */
+  signedOut(): boolean;
   /** True when a login started a moment ago and there is still no session (cookies blocked?). */
   loginLooped(): boolean;
   /** Ends the session and moves the browser to the end-session URL of identity. */
@@ -70,6 +72,7 @@ export interface AuthClient {
 }
 
 const ATTEMPT_KEY = "auth:login-attempt";
+const SIGNED_OUT_KEY = "auth:signed-out";
 const LOOP_WINDOW_MS = 15_000;
 
 function bodyError(status: number, text: string): ApiError {
@@ -95,12 +98,23 @@ export function createClient(opts: ClientOptions): AuthClient {
 
   let current: Promise<Me | null> | undefined;
 
+  /** The last login attempts of this tab: how many in a row (each within the window of the one before) and when the last was. */
+  function readAttempt(): { count: number; at: number } | undefined {
+    const raw = storage?.getItem(ATTEMPT_KEY);
+    if (!raw) return undefined;
+    const [c, a] = raw.includes(":") ? raw.split(":") : ["1", raw];
+    const count = Number(c);
+    const at = Number(a);
+    return count > 0 && at > 0 ? { count, at } : undefined;
+  }
+
   async function fetchMe(): Promise<Me | null> {
     const r = await doFetch(`${apiBase}/auth/me`, { credentials: "include", headers: { Accept: "application/json" } });
     if (r.status === 401) return null;
     if (!r.ok) throw bodyError(r.status, await r.text());
     const me = (await r.json()) as Me;
     storage?.removeItem(ATTEMPT_KEY);
+    storage?.removeItem(SIGNED_OUT_KEY);
     return me;
   }
 
@@ -128,13 +142,21 @@ export function createClient(opts: ClientOptions): AuthClient {
       const t = now();
       if (lastLogin !== undefined && t - lastLogin < 3000) return;
       lastLogin = t;
-      storage?.setItem(ATTEMPT_KEY, String(t));
+      // a second attempt within the window is what makes a loop; the first is a normal sign in (the user may spend
+      // a while on the login form, so one recent attempt alone proves nothing)
+      const prev = readAttempt();
+      storage?.removeItem(SIGNED_OUT_KEY); // the page has shown "signing out" by now; from here it is a sign in
+      storage?.setItem(ATTEMPT_KEY, `${prev && t - prev.at < LOOP_WINDOW_MS ? prev.count + 1 : 1}:${t}`);
       navigate(client.loginUrl(returnTo));
     },
 
     loginLooped() {
-      const at = Number(storage?.getItem(ATTEMPT_KEY) ?? 0);
-      return at > 0 && now() - at < LOOP_WINDOW_MS;
+      const a = readAttempt();
+      return a !== undefined && a.count >= 2 && now() - a.at < LOOP_WINDOW_MS;
+    },
+
+    signedOut() {
+      return storage?.getItem(SIGNED_OUT_KEY) === "1";
     },
 
     async logout() {
@@ -151,6 +173,7 @@ export function createClient(opts: ClientOptions): AuthClient {
       }
       current = Promise.resolve(null);
       storage?.removeItem(ATTEMPT_KEY);
+      storage?.setItem(SIGNED_OUT_KEY, "1");
       navigate(target);
     },
 

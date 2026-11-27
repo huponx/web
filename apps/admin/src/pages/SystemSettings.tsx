@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
   DEFAULT_UI_PALETTE,
+  SwitchRow,
   UI_PALETTES,
   UI_STYLES,
   cn,
@@ -18,6 +19,7 @@ import type { UIPalette, UIStyle } from "@huponx/ui-kit";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useIdentity } from "../api";
+import { Can, P } from "@huponx/auth-client";
 import { DoneAlert, ErrorAlert, PageTitle } from "../components/common";
 
 /** A miniature of one style: the tokens of `data-style` apply to this element and its children, so no copy of the colours is kept here. */
@@ -148,6 +150,61 @@ function SystemStyle() {
   );
 }
 
+/** What happens to a self-registered account: it waits for an administrator (default) or gets the welcome mail at once. */
+function RegistrationSettings() {
+  const { t } = useTranslation();
+  const api = useIdentity();
+  const a = useAction();
+  const [requiresApproval, setRequiresApproval] = useState(true);
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
+  useEffect(() => {
+    let live = true;
+    api.getRegistrationSettings().then(
+      (v) => {
+        if (!live) return;
+        setRequiresApproval(v.requiresApproval);
+        setRegistrationEnabled(v.registrationEnabled);
+      },
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [api]);
+
+  async function save() {
+    await a.run(async () => {
+      await api.updateRegistrationSettings({ requiresApproval });
+      return true;
+    }, t("systemSettings.registration.saved"));
+  }
+
+  return (
+    <Card data-testid="registration-card">
+      <CardHeader>
+        <CardTitle>{t("systemSettings.registration.title")}</CardTitle>
+        <CardDescription>{t("systemSettings.registration.description")}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <SwitchRow
+          label={t("systemSettings.registration.requiresApproval")}
+          hint={t("systemSettings.registration.requiresApprovalHint")}
+          checked={requiresApproval}
+          onChange={setRequiresApproval}
+        />
+        {!registrationEnabled ? <p className="text-sm text-muted-foreground">{t("systemSettings.registration.disabledNote")}</p> : null}
+        <ErrorAlert error={a.error} />
+        <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
+        <div className="flex justify-end">
+          <Button onClick={() => void save()} busy={a.busy}>
+            {t("systemSettings.registration.save")}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 /** Settings of the whole system (every user, every app), unlike Settings, which holds the ones of the signed in user. */
 export function SystemSettings() {
   const { t } = useTranslation();
@@ -155,6 +212,9 @@ export function SystemSettings() {
     <>
       <PageTitle description={t("systemSettings.description")}>{t("systemSettings.title")}</PageTitle>
       <SystemStyle />
+      <Can perm={P.identity.settingsRead}>
+        <RegistrationSettings />
+      </Can>
     </>
   );
 }

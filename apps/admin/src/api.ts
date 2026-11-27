@@ -1,6 +1,6 @@
 import type { AuthClient } from "@huponx/auth-client";
 import { useAuth } from "@huponx/auth-client";
-import type { Page, SystemStyleReply } from "@huponx/ui-kit";
+import type { Page, SessionItem, SystemStyleReply } from "@huponx/ui-kit";
 import { useMemo } from "react";
 
 // The gateway answers with protojson: camelCase names, int64 as strings, enums by name.
@@ -11,6 +11,8 @@ export interface Role {
   permissions: string[];
   /** Users and clients that hold the role (int64: a string); a role that is held cannot be deleted. */
   assignedCount?: string;
+  /** Grants that do nothing any more: a permission no service declares, a wildcard that covers none. They can be removed. */
+  retiredPermissions?: string[];
 }
 
 export type ClientType = "CLIENT_TYPE_PUBLIC" | "CLIENT_TYPE_CONFIDENTIAL";
@@ -29,11 +31,20 @@ export interface IdentityClient {
   disabled?: boolean;
 }
 
-/** An entry of the permission catalog; role_count is an int64, so it arrives as a string. */
+/**
+ * An entry of the permission catalog, read only: services declare their permissions and identity saves them at start.
+ * role_count is an int64, so it arrives as a string.
+ */
 export interface Permission {
   name: string;
   description?: string;
   roleCount?: string;
+  /** The service that declares it; empty for a wildcard. */
+  service?: string;
+  /** A generated wildcard ("identity:*:read"), not stored. */
+  wildcard?: boolean;
+  /** No service declares it any more but a role still holds it: not enforced, hidden from the picker. */
+  retired?: boolean;
 }
 
 export interface ExchangePolicy {
@@ -44,7 +55,10 @@ export interface ExchangePolicy {
 }
 
 export type UserStatus =
-  "USER_STATUS_PENDING" | "USER_STATUS_ACTIVE" | "USER_STATUS_DISABLED";
+  | "USER_STATUS_PENDING"
+  | "USER_STATUS_ACTIVE"
+  | "USER_STATUS_DISABLED"
+  | "USER_STATUS_PENDING_APPROVAL";
 
 export interface User {
   id: string;
@@ -73,7 +87,7 @@ export interface UserFilter {
   email?: string;
   /** Part of the name. */
   name?: string;
-  status?: "" | "pending" | "active" | "disabled";
+  status?: "" | "awaiting_approval" | "pending" | "active" | "disabled";
   role?: string;
 }
 
@@ -82,6 +96,8 @@ export interface UserStats {
   total?: string;
   active?: string;
   pending?: string;
+  /** Self-registered, waiting for an administrator. */
+  awaitingApproval?: string;
   disabled?: string;
   mfaEnabled?: string;
   mfaEnforced?: string;
@@ -106,10 +122,24 @@ export interface SystemApp {
 /** The status of a user, with a fallback for answers that carry only `disabled`. */
 export function statusOf(
   u: Pick<User, "status" | "disabled">,
-): "pending" | "active" | "disabled" {
-  if (u.status === "USER_STATUS_PENDING") return "pending";
+): "awaiting_approval" | "pending" | "active" | "disabled" {
   if (u.status === "USER_STATUS_DISABLED" || u.disabled) return "disabled";
+  if (u.status === "USER_STATUS_PENDING_APPROVAL") return "awaiting_approval";
+  if (u.status === "USER_STATUS_PENDING") return "pending";
   return "active";
+}
+
+interface RegistrationSettingsReply {
+  requiresApproval?: boolean;
+  registrationEnabled?: boolean;
+}
+
+/** proto3 JSON leaves a false bool out: absent means false. */
+function registrationSettingsOf(r: RegistrationSettingsReply) {
+  return {
+    requiresApproval: r.requiresApproval === true,
+    registrationEnabled: r.registrationEnabled === true,
+  };
 }
 
 export interface NewUser {
@@ -131,8 +161,8 @@ export interface DictionarySettings {
   maxSavedWords: number;
   allowExportDeck: boolean;
   allowExportLink: boolean;
-  englishEnabled: boolean;
-  englishViEnabled: boolean;
+  /** Dictionary id to its system switch (the service answers every id of the registry). */
+  dictionaries: Record<string, boolean>;
   /** An export takes the words out of the list (a user can turn it off for themself). */
   removeAfterExport: boolean;
   /** Hours a word that left the list is kept before the cleanup deletes it. */
@@ -160,6 +190,22 @@ export interface DictionarySettings {
   audioUserQuotaCeiling: number;
 }
 
+/** One dictionary of the registry (gateway: GET /api/dictionary/dictionaries). `enabled` is the caller's, not the system's. */
+export interface DictionaryInfo {
+  id: string;
+  group: string;
+  /** Language codes of the words and of the meanings. */
+  source: string;
+  target: string;
+  enabled: boolean;
+}
+
+/** The dictionaries that merge into one card. */
+export interface DictionaryGroup {
+  id: string;
+  dictionaries: DictionaryInfo[];
+}
+
 /** Bytes of each kind of storage of a user. */
 export interface StorageQuota {
   content: number;
@@ -174,6 +220,11 @@ export interface UserQuota {
   effective: StorageQuota;
 }
 
+/** The answer of a recalculation: the storage after it and the counters before. */
+export interface RecalculatedQuota extends UserQuota {
+  previous: StorageQuota;
+}
+
 /** The gateway writes int64 as a JSON string (protobuf JSON). */
 type Int64 = string | number | undefined;
 
@@ -181,6 +232,7 @@ function settingsOf(r: Record<string, unknown>): DictionarySettings {
   const n = (k: string) => Number(r[k] ?? 0);
   return {
     ...(r as unknown as DictionarySettings),
+    dictionaries: (r.dictionaries as Record<string, boolean> | undefined) ?? {},
     contentUserQuota: n("contentUserQuota"),
     imageUserQuota: n("imageUserQuota"),
     audioUserQuota: n("audioUserQuota"),
@@ -190,12 +242,26 @@ function settingsOf(r: Record<string, unknown>): DictionarySettings {
   };
 }
 
-function quotaOf(r: Partial<Record<keyof StorageQuota, Int64>> | undefined): StorageQuota {
-  return { content: Number(r?.content ?? 0), image: Number(r?.image ?? 0), audio: Number(r?.audio ?? 0) };
+function quotaOf(
+  r: Partial<Record<keyof StorageQuota, Int64>> | undefined,
+): StorageQuota {
+  return {
+    content: Number(r?.content ?? 0),
+    image: Number(r?.image ?? 0),
+    audio: Number(r?.audio ?? 0),
+  };
 }
 
-function userQuotaOf(r: { used?: object; override?: object; effective?: object }): UserQuota {
-  return { used: quotaOf(r.used), override: quotaOf(r.override), effective: quotaOf(r.effective) };
+function userQuotaOf(r: {
+  used?: object;
+  override?: object;
+  effective?: object;
+}): UserQuota {
+  return {
+    used: quotaOf(r.used),
+    override: quotaOf(r.override),
+    effective: quotaOf(r.effective),
+  };
 }
 
 export interface UserMfa {
@@ -203,6 +269,8 @@ export interface UserMfa {
   enforced: boolean;
   mode: string;
   recoveryCodesLeft: number;
+  /** Passkeys of the user; protobuf JSON leaves 0 out. */
+  passkeyCount?: number;
 }
 
 export interface NewClient {
@@ -321,20 +389,6 @@ export function identityApi(c: AuthClient) {
     listPermissions: (q = "") => drain((t) => permissionsPage(q, t)),
     listPermissionsPage: (q = "", token = "") =>
       permissionsPage(q, token, String(PAGE_SIZE)),
-    createPermission: (p: { name: string; description: string }) =>
-      c
-        .api<{ permission: Permission }>("POST", "/api/permissions", {
-          permission: p,
-        })
-        .then((r) => r.permission),
-    updatePermission: (name: string, description: string) =>
-      c
-        .api<{ permission: Permission }>("PUT", `/api/permissions/${e(name)}`, {
-          description,
-        })
-        .then((r) => r.permission),
-    deletePermission: (name: string) =>
-      c.api<unknown>("DELETE", `/api/permissions/${e(name)}`),
     assignRole: (role: string, who: { user_id?: string; client_id?: string }) =>
       c.api<unknown>("POST", `/api/roles/${e(role)}/assignments`, who),
     revokeRole: (
@@ -398,8 +452,7 @@ export function identityApi(c: AuthClient) {
               max_saved_words: s.maxSavedWords,
               allow_export_deck: s.allowExportDeck,
               allow_export_link: s.allowExportLink,
-              english_enabled: s.englishEnabled,
-              english_vi_enabled: s.englishViEnabled,
+              dictionaries: s.dictionaries,
               remove_after_export: s.removeAfterExport,
               exported_retention_hours: s.exportedRetentionHours,
               max_categories: s.maxCategories,
@@ -415,6 +468,15 @@ export function identityApi(c: AuthClient) {
           },
         )
         .then((r) => settingsOf(r.settings)),
+
+    /** The registry: the groups and their dictionaries in the order of the service, for the list of switches. */
+    listDictionaries: () =>
+      c
+        .api<{ groups?: DictionaryGroup[] }>(
+          "GET",
+          "/api/dictionary/dictionaries",
+        )
+        .then((r) => r.groups ?? []),
 
     // the storage limits of one user
     getUserQuota: (userId: string) =>
@@ -433,6 +495,20 @@ export function identityApi(c: AuthClient) {
           { quotas: q },
         )
         .then(userQuotaOf),
+    /** Recomputes the counters of the user from what is stored; answers the new usage and the counters before. */
+    recalculateUserStorage: (userId: string): Promise<RecalculatedQuota> =>
+      c
+        .api<{
+          used?: object;
+          override?: object;
+          effective?: object;
+          previous?: object;
+        }>(
+          "POST",
+          `/api/dictionary/users/${encodeURIComponent(userId)}/storage/recalculate`,
+          {},
+        )
+        .then((r) => ({ ...userQuotaOf(r), previous: quotaOf(r.previous) })),
 
     // token exchange
     listPolicies: (
@@ -456,12 +532,10 @@ export function identityApi(c: AuthClient) {
     // the look of the web apps, one value for the whole system: any signed-in user reads it, identity:settings:write sets it
     // together with the palette of each style ({saas, glass, mono} to a palette name)
     getUiStyle: () =>
-      c
-        .api<SystemStyleReply>("GET", "/api/ui-style")
-        .then((r) => ({
-          uiStyle: r.uiStyle ?? "saas",
-          uiPalettes: r.uiPalettes ?? {},
-        })),
+      c.api<SystemStyleReply>("GET", "/api/ui-style").then((r) => ({
+        uiStyle: r.uiStyle ?? "saas",
+        uiPalettes: r.uiPalettes ?? {},
+      })),
     updateUiStyle: (v: {
       uiStyle: string;
       uiPalettes: Record<string, string>;
@@ -475,6 +549,39 @@ export function identityApi(c: AuthClient) {
           uiStyle: r.uiStyle ?? v.uiStyle,
           uiPalettes: r.uiPalettes ?? v.uiPalettes,
         })),
+    // self-registration: does a new account wait for an administrator (identity:settings:read / :write); registrationEnabled is
+    // the read-only switch of the server (IDENTITY_REGISTRATION_ENABLED)
+    getRegistrationSettings: () =>
+      c
+        .api<RegistrationSettingsReply>("GET", "/api/registration-settings")
+        .then(registrationSettingsOf),
+    updateRegistrationSettings: (v: { requiresApproval: boolean }) =>
+      c
+        .api<RegistrationSettingsReply>("PUT", "/api/registration-settings", {
+          requires_approval: v.requiresApproval,
+        })
+        .then((r) =>
+          registrationSettingsOf({
+            registrationEnabled: r.registrationEnabled,
+            requiresApproval: r.requiresApproval ?? v.requiresApproval,
+          }),
+        ),
+    // the own sessions (browsers and devices): no permission needed, the user is the one of the token
+    listMySessions: () =>
+      c.api<{ sessions?: SessionItem[] }>("GET", "/api/me/sessions"),
+    revokeMySession: (id: string) =>
+      c.api<unknown>("DELETE", `/api/me/sessions/${e(id)}`),
+    revokeMyOtherSessions: () =>
+      c.api<{ revoked?: number }>("POST", "/api/me/sessions/revoke-others", {}),
+    /** identity:user:read: the sessions of a user (`current` is never set). */
+    listUserSessions: (id: string) =>
+      c.api<{ sessions?: SessionItem[] }>(
+        "GET",
+        `/api/users/${e(id)}/sessions`,
+      ),
+    /** identity:user:write: ends every session and refresh token of the user and the access tokens issued so far. */
+    revokeUserSessions: (id: string) =>
+      c.api<{ revoked?: number }>("DELETE", `/api/users/${e(id)}/sessions`),
     // the signed in user: no permission needed, the user is the one of the session
     getMe: () => c.api<{ user: User }>("GET", "/api/me").then((r) => r.user),
     updateMe: (u: { name?: string; locale?: string; theme?: string }) =>
@@ -490,7 +597,12 @@ export function identityApi(c: AuthClient) {
       if (filter.email) q.set("query", filter.email);
       if (filter.name) q.set("name", filter.name);
       if (filter.status)
-        q.set("status", `USER_STATUS_${filter.status.toUpperCase()}`);
+        q.set(
+          "status",
+          filter.status === "awaiting_approval"
+            ? "USER_STATUS_PENDING_APPROVAL"
+            : `USER_STATUS_${filter.status.toUpperCase()}`,
+        );
       if (filter.role) q.set("role", filter.role);
       if (pageToken) q.set("page_token", pageToken);
       return c.api<{ users: User[]; nextPageToken: string }>(
@@ -529,10 +641,15 @@ export function identityApi(c: AuthClient) {
       c.api<unknown>("POST", `/api/users/${e(id)}/welcome`),
     setDisabled: (id: string, disabled: boolean) =>
       c.api<unknown>("PUT", `/api/users/${e(id)}/disabled`, { disabled }),
+    /** identity:user:approve: accepts a self-registered user; the welcome email goes out. */
+    approveUser: (id: string) =>
+      c.api<unknown>("POST", `/api/users/${e(id)}/approve`),
+    /** identity:user:approve: deletes a self-registered user and tells them by email. */
+    rejectUser: (id: string) =>
+      c.api<unknown>("POST", `/api/users/${e(id)}/reject`),
     sendReset: (id: string) =>
       c.api<unknown>("POST", `/api/users/${e(id)}/password-reset`),
-    deleteUser: (id: string) =>
-      c.api<unknown>("DELETE", `/api/users/${e(id)}`),
+    deleteUser: (id: string) => c.api<unknown>("DELETE", `/api/users/${e(id)}`),
 
     // MFA
     getMfa: (id: string) => c.api<UserMfa>("GET", `/api/users/${e(id)}/mfa`),

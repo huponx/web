@@ -1,4 +1,4 @@
-import { Can, useAuth } from "@huponx/auth-client";
+import { Can, P, useAuth } from "@huponx/auth-client";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, DeleteCard, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -18,14 +18,14 @@ function Editor({ policy, reload, createdNote }: { policy?: ExchangePolicy; relo
   const navigate = useNavigate();
   const { can } = useAuth();
   const editing = Boolean(policy);
-  const canWrite = can("identity:exchange:write");
+  const canWrite = can(P.identity.exchangeWrite);
   const [clientId, setClientId] = useState(policy?.clientId ?? "");
   const [audience, setAudience] = useState(policy?.audience ?? "");
   const [maxScope, setMaxScope] = useState(policy?.maxScope ?? "");
   const [depth, setDepth] = useState(String(policy?.maxChainDepth ?? 1));
   const a = useAction();
   // the clients are offered as suggestions to whoever may read them; anything else can still be typed
-  const clients = useLoad(() => (!editing && can("identity:client:read") ? api.listClients() : Promise.resolve(undefined)), [api, editing, can]);
+  const clients = useLoad(() => (!editing && can(P.identity.clientRead) ? api.listClients() : Promise.resolve(undefined)), [api, editing, can]);
 
   async function submit(ev: FormEvent) {
     ev.preventDefault();
@@ -163,7 +163,7 @@ export function ExchangeForm() {
   return (
     <div className="flex flex-col gap-6">
       <Editor key={`${policy.clientId}/${policy.audience}`} policy={policy} reload={policies.reload} createdNote={state?.created ? t("exchange.form.created") : undefined} />
-      <Can perm="identity:exchange:write">
+      <Can perm={P.identity.exchangeWrite}>
         <DeleteSection policy={policy} />
       </Can>
     </div>
