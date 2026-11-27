@@ -28,6 +28,7 @@
   },
   "common": {
     "signingIn": "Đang đăng nhập...",
+    "signingOut": "Đang đăng xuất...",
     "tryAgain": "Thử lại",
     "close": "Đóng",
     "cancel": "Hủy",

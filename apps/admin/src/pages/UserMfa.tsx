@@ -1,4 +1,4 @@
-import { Can } from "@huponx/auth-client";
+import { Can, P } from "@huponx/auth-client";
 import { Button, useAction, useLoad } from "@huponx/ui-kit";
 import { Trans, useTranslation } from "react-i18next";
 import { useIdentity } from "../api";
@@ -40,7 +40,7 @@ export function UserMfa({ user, onChanged }: { user: User; onChanged: () => void
           />
         </p>
       ) : null}
-      <Can perm="identity:mfa:write">
+      <Can perm={P.identity.mfaWrite}>
         <Actions className="justify-start">
           <Button
             variant="outline"

@@ -80,8 +80,10 @@ export function Security() {
   return (
     <>
       <PageTitle>{t("security.title")}</PageTitle>
-      <ChangePassword />
-      <Mfa />
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <ChangePassword />
+        <Mfa />
+      </div>
     </>
   );
 }

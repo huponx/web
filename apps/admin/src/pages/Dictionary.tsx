@@ -1,4 +1,4 @@
-import { Can, useAuth } from "@huponx/auth-client";
+import { Can, P, useAuth } from "@huponx/auth-client";
 import {
   Button,
   Card,
@@ -55,7 +55,7 @@ function Editor({ initial }: { initial: DictionarySettings }) {
   const { t } = useTranslation();
   const api = useIdentity();
   const { can } = useAuth();
-  const canWrite = can("dictionary:settings:write");
+  const canWrite = can(P.dictionary.settingsWrite);
   const [max, setMax] = useState(String(initial.maxSavedWords));
   const [keep, setKeep] = useState(String(initial.exportedRetentionHours));
   const [maxCats, setMaxCats] = useState(String(initial.maxCategories));
@@ -310,7 +310,7 @@ function Editor({ initial }: { initial: DictionarySettings }) {
       </Card>
       <ErrorAlert error={a.error} />
       <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
-      <Can perm="dictionary:settings:write">
+      <Can perm={P.dictionary.settingsWrite}>
         <Actions>
           <Button type="submit" busy={a.busy} disabled={!oneOn}>
             {t("dictionary.save")}

@@ -1,4 +1,4 @@
-import { Can } from "@huponx/auth-client";
+import { Can, P } from "@huponx/auth-client";
 import { Badge, Button, Card, CardContent, useFlash, usePaged } from "@huponx/ui-kit";
 import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
@@ -31,7 +31,7 @@ export function Clients() {
   return (
     <>
       <PageTitle>{t("clients.title")}</PageTitle>
-      <Can perm="identity:client:write">
+      <Can perm={P.identity.clientWrite}>
         <Actions>
           <Button asChild>
             <Link to="/clients/new">

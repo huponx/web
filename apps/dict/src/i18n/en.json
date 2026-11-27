@@ -28,6 +28,7 @@
   },
   "common": {
     "signingIn": "Signing in...",
+    "signingOut": "Signing out...",
     "tryAgain": "Try again",
     "close": "Close",
     "cancel": "Cancel",

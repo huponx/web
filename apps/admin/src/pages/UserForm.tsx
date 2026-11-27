@@ -1,7 +1,9 @@
-import { Can, useAuth } from "@huponx/auth-client";
-import { AvatarUpload, Badge, Button, Card, CardContent, CardHeader, CardTitle, useAction, useFlash, useLoad } from "@huponx/ui-kit";
+import { Can, P, useAuth } from "@huponx/auth-client";
+import { AvatarUpload, Badge, Button, Card, CardContent, CardHeader, CardTitle, SplitButton, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import type { AvatarChange } from "@huponx/ui-kit";
+import { Check, X } from "lucide-react";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { statusOf, useIdentity } from "../api";
@@ -48,54 +50,102 @@ function AccountCard({ user, onChanged }: { user: User; onChanged: () => void })
     if (done) navigate("/users", { state: { deleted: user.email } });
   }
 
+  async function reject() {
+    if (!(await confirm({ title: t("users.account.rejectTitle"), message: t("users.account.confirmReject", { email: user.email }), confirmLabel: t("users.account.reject") }))) return;
+    const done = await a.run(async () => (await api.rejectUser(user.id), true));
+    if (done) navigate("/users", { state: { deleted: user.email } });
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>{t("users.account.title")}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <p className="flex items-center gap-2 text-sm">
-          {t("users.account.status")} <StatusBadge user={user} />
-        </p>
-        <p className="text-sm">
-          {t("users.account.lastLogin")}{" "}
-          <span className="text-muted-foreground">{formatDateTime(user.lastLoginAt, i18n.resolvedLanguage ?? "en") ?? t("users.never")}</span>
-        </p>
+      <CardContent className="flex flex-col gap-4">
+        <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            <dt className="text-muted-foreground">{t("users.account.status")}</dt>
+            <dd>
+              <StatusBadge user={user} />
+            </dd>
+          </div>
+          <div className="flex items-center gap-2">
+            <dt className="text-muted-foreground">{t("users.account.lastLogin")}</dt>
+            <dd>{formatDateTime(user.lastLoginAt, i18n.resolvedLanguage ?? "en") ?? t("users.never")}</dd>
+          </div>
+        </dl>
         {status === "pending" ? <p className="text-sm text-muted-foreground">{t("users.account.pendingHint")}</p> : null}
-        <Can perm="identity:user:write">
-          <Actions className="justify-start">
-            {status === "pending" ? (
-              <Button variant="outline" busy={a.busy} onClick={() => void act(() => api.sendWelcome(user.id), t("users.account.welcomeSent"))}>
-                {t("users.account.resendWelcome")}
-              </Button>
-            ) : (
-              <Button variant="outline" busy={a.busy} onClick={() => void act(() => api.sendReset(user.id), t("users.account.resetSent"))}>
-                {t("users.account.sendReset")}
-              </Button>
+        {status === "awaiting_approval" ? (
+          <div className="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning/10 p-4 sm:flex-row sm:items-center sm:justify-between" data-testid="approval-panel">
+            <p className="text-sm">{t("users.account.awaitingHint")}</p>
+            <Can perm={P.identity.userApprove}>
+              <SplitButton
+                size="default"
+                busy={a.busy}
+                menuLabel={t("users.account.moreDecisions")}
+                actions={[
+                  { key: "approve", label: t("users.account.approve"), icon: Check, onSelect: () => void act(() => api.approveUser(user.id), t("users.account.approved"), true) },
+                  { key: "reject", label: t("users.account.reject"), icon: X, destructive: true, onSelect: () => void reject() },
+                ]}
+              />
+            </Can>
+          </div>
+        ) : null}
+        <Can perm={P.identity.userWrite}>
+          <div className="divide-y rounded-lg border">
+            {status === "awaiting_approval" ? null : (
+              <ActionRow title={status === "pending" ? t("users.account.welcomeTitle") : t("users.account.resetTitle")} hint={status === "pending" ? t("users.account.welcomeHint") : t("users.account.resetHint")}>
+                {status === "pending" ? (
+                  <Button variant="outline" busy={a.busy} onClick={() => void act(() => api.sendWelcome(user.id), t("users.account.welcomeSent"))}>
+                    {t("users.account.resendWelcome")}
+                  </Button>
+                ) : (
+                  <Button variant="outline" busy={a.busy} onClick={() => void act(() => api.sendReset(user.id), t("users.account.resetSent"))}>
+                    {t("users.account.sendReset")}
+                  </Button>
+                )}
+              </ActionRow>
             )}
-            <Button
-              variant="outline"
-              busy={a.busy}
-              onClick={() =>
-                void act(
-                  () => api.setDisabled(user.id, !user.disabled),
-                  user.disabled ? t("users.account.enabled") : t("users.account.disabled"),
-                  true,
-                )
-              }
-            >
-              {user.disabled ? t("users.account.enable") : t("users.account.disable")}
-            </Button>
-            <Button variant="destructive" busy={a.busy} onClick={() => void remove()}>
-              {t("users.account.delete")}
-            </Button>
-          </Actions>
+            <ActionRow title={t("users.account.accessTitle")} hint={user.disabled ? t("users.account.accessHintDisabled") : t("users.account.accessHint")}>
+              <Button
+                variant="outline"
+                busy={a.busy}
+                onClick={() =>
+                  void act(
+                    () => api.setDisabled(user.id, !user.disabled),
+                    user.disabled ? t("users.account.enabled") : t("users.account.disabled"),
+                    true,
+                  )
+                }
+              >
+                {user.disabled ? t("users.account.enable") : t("users.account.disable")}
+              </Button>
+            </ActionRow>
+            <ActionRow title={t("users.account.deleteTitle")} hint={t("users.account.deleteHint")} danger>
+              <Button variant="destructive" busy={a.busy} onClick={() => void remove()}>
+                {t("users.account.delete")}
+              </Button>
+            </ActionRow>
+          </div>
         </Can>
         <ErrorAlert error={a.error} />
         <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
         {dialog}
       </CardContent>
     </Card>
+  );
+}
+
+/** One line of the account actions: what it does on the left, its button on the right (below the text on a phone). */
+function ActionRow({ title, hint, danger, children }: { title: string; hint: string; danger?: boolean; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div className="flex flex-col">
+        <span className={danger ? "text-sm font-medium text-destructive" : "text-sm font-medium"}>{title}</span>
+        <span className="text-sm text-muted-foreground">{hint}</span>
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
   );
 }
 
@@ -107,7 +157,7 @@ function Editor({ user, reload, createdNote }: { user?: User; reload: () => void
   const navigate = useNavigate();
   const a = useAction();
   const editing = !!user;
-  const canWrite = can("identity:user:write");
+  const canWrite = can(P.identity.userWrite);
 
   const [email, setEmail] = useState(user?.email ?? "");
   const [name, setName] = useState(user?.name ?? "");
@@ -177,13 +227,13 @@ function Editor({ user, reload, createdNote }: { user?: User; reload: () => void
             </div>
           </CardContent>
         </Card>
-        <Can perm="identity:role:read">
+        <Can perm={P.identity.roleRead}>
           <Card>
             <CardHeader>
               <CardTitle>{t("users.roles.title")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <RoleCards selected={roles} onChange={setRoles} disabled={!canWrite || (editing && !can("identity:role:write"))} />
+              <RoleCards selected={roles} onChange={setRoles} disabled={!canWrite || (editing && !can(P.identity.roleWrite))} />
             </CardContent>
           </Card>
         </Can>
@@ -223,10 +273,10 @@ export function UserForm() {
     <div className="flex flex-col gap-6">
       <Editor key={data.id} user={data} reload={reload} createdNote={note} />
       <AccountCard user={data} onChanged={reload} />
-      <Can perm="dictionary:settings:read">
+      <Can perm={P.dictionary.settingsRead}>
         <UserStorage userId={data.id} />
       </Can>
-      <Can perm="identity:mfa:read">
+      <Can perm={P.identity.mfaRead}>
         <Card>
           <CardContent className="pt-6">
             <UserMfa user={data} onChanged={reload} />

@@ -12,6 +12,8 @@ import { Settings } from "./pages/Settings";
 import { SystemSettings } from "./pages/SystemSettings";
 import { UserForm } from "./pages/UserForm";
 import { Users } from "./pages/Users";
+import { P } from "@huponx/auth-client";
+import type { Permission } from "@huponx/auth-client";
 
 /**
  * A page of the app. This one table drives the sidebar, the breadcrumb and the permission guard, so a page is
@@ -24,7 +26,7 @@ export interface AppRoute {
   labelKey: string;
   icon: ComponentType<{ className?: string }>;
   /** Permission needed to see the page; none: every signed in user. */
-  perm?: string;
+  perm?: Permission;
   /** The home item matches only "/". */
   end?: boolean;
   element: ReactElement;
@@ -37,14 +39,14 @@ export interface AppRoute {
 /** Menu items, top to bottom. */
 export const routes: AppRoute[] = [
   { path: "/", labelKey: "nav.home", icon: LayoutDashboard, end: true, element: <Home />, testId: "nav-home" },
-  { path: "/users", labelKey: "nav.users", icon: UsersIcon, perm: "identity:user:read", element: <Users />, testId: "nav-users" },
-  { path: "/roles", labelKey: "nav.roles", icon: Shield, perm: "identity:role:read", element: <Roles />, testId: "nav-roles" },
-  { path: "/clients", labelKey: "nav.clients", icon: KeyRound, perm: "identity:client:read", element: <Clients />, testId: "nav-clients" },
+  { path: "/users", labelKey: "nav.users", icon: UsersIcon, perm: P.identity.userRead, element: <Users />, testId: "nav-users" },
+  { path: "/roles", labelKey: "nav.roles", icon: Shield, perm: P.identity.roleRead, element: <Roles />, testId: "nav-roles" },
+  { path: "/clients", labelKey: "nav.clients", icon: KeyRound, perm: P.identity.clientRead, element: <Clients />, testId: "nav-clients" },
   {
     path: "/exchange",
     labelKey: "nav.exchange",
     icon: ArrowLeftRight,
-    perm: "identity:exchange:read",
+    perm: P.identity.exchangeRead,
     element: <Exchange />,
     testId: "nav-exchange",
   },
@@ -52,7 +54,7 @@ export const routes: AppRoute[] = [
     path: "/dictionary",
     labelKey: "nav.dictionary",
     icon: BookOpen,
-    perm: "dictionary:settings:read",
+    perm: P.dictionary.settingsRead,
     element: <Dictionary />,
     testId: "nav-dictionary",
   },
@@ -60,7 +62,7 @@ export const routes: AppRoute[] = [
     path: "/system",
     labelKey: "nav.system",
     icon: SlidersHorizontal,
-    perm: "identity:settings:write",
+    perm: P.identity.settingsWrite,
     element: <SystemSettings />,
     testId: "nav-system",
   },
@@ -72,7 +74,7 @@ export const subRoutes: AppRoute[] = [
     path: "/users/new",
     labelKey: "nav.userNew",
     icon: UsersIcon,
-    perm: "identity:user:write",
+    perm: P.identity.userWrite,
     element: <UserForm />,
     testId: "nav-user-new",
     parent: "/users",
@@ -81,7 +83,7 @@ export const subRoutes: AppRoute[] = [
     path: "/users/:id",
     labelKey: "nav.userEdit",
     icon: UsersIcon,
-    perm: "identity:user:read",
+    perm: P.identity.userRead,
     element: <UserForm />,
     testId: "nav-user-edit",
     parent: "/users",
@@ -90,7 +92,7 @@ export const subRoutes: AppRoute[] = [
     path: "/roles/new",
     labelKey: "nav.roleNew",
     icon: Shield,
-    perm: "identity:role:write",
+    perm: P.identity.roleWrite,
     element: <RoleForm />,
     testId: "nav-role-new",
     parent: "/roles",
@@ -99,7 +101,7 @@ export const subRoutes: AppRoute[] = [
     path: "/roles/:name",
     labelKey: "nav.roleEdit",
     icon: Shield,
-    perm: "identity:role:read",
+    perm: P.identity.roleRead,
     element: <RoleForm />,
     testId: "nav-role-edit",
     parent: "/roles",
@@ -108,7 +110,7 @@ export const subRoutes: AppRoute[] = [
     path: "/clients/new",
     labelKey: "nav.clientNew",
     icon: KeyRound,
-    perm: "identity:client:write",
+    perm: P.identity.clientWrite,
     element: <ClientForm />,
     testId: "nav-client-new",
     parent: "/clients",
@@ -117,7 +119,7 @@ export const subRoutes: AppRoute[] = [
     path: "/clients/:id",
     labelKey: "nav.clientEdit",
     icon: KeyRound,
-    perm: "identity:client:read",
+    perm: P.identity.clientRead,
     element: <ClientForm />,
     testId: "nav-client-edit",
     parent: "/clients",
@@ -126,7 +128,7 @@ export const subRoutes: AppRoute[] = [
     path: "/exchange/new",
     labelKey: "nav.exchangeNew",
     icon: ArrowLeftRight,
-    perm: "identity:exchange:write",
+    perm: P.identity.exchangeWrite,
     element: <ExchangeForm />,
     testId: "nav-exchange-new",
     parent: "/exchange",
@@ -135,7 +137,7 @@ export const subRoutes: AppRoute[] = [
     path: "/exchange/edit",
     labelKey: "nav.exchangeEdit",
     icon: ArrowLeftRight,
-    perm: "identity:exchange:read",
+    perm: P.identity.exchangeRead,
     element: <ExchangeForm />,
     testId: "nav-exchange-edit",
     parent: "/exchange",

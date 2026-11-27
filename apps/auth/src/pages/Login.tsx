@@ -1,7 +1,7 @@
 import { applyAccountLocale, rememberLanguageChoice, useTheme } from "@huponx/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { authApi } from "../api";
 import { LANGUAGE_STORAGE_KEY, languages } from "../i18n";
 import { AuthLayout, ErrorAlert, TextField, Form, SubmitButton, go, isTheme, useSubmit } from "../components/common";
@@ -17,13 +17,12 @@ export function Login() {
   const { theme, setTheme } = useTheme();
   // the theme and the language when the page opened: a difference at submit is a choice made here, which the account takes
   const opened = useRef({ theme, language: i18n.resolvedLanguage ?? "en" });
-  const navigate = useNavigate();
   // the link to the registration shows only when the server has it open
   const [canRegister, setCanRegister] = useState(false);
   useEffect(() => {
     let live = true;
     authApi.registrationOpen().then(
-      (open) => live && setCanRegister(open),
+      (r) => live && setCanRegister(r.open),
       () => undefined,
     );
     return () => {
@@ -32,20 +31,20 @@ export function Login() {
   }, []);
   const returnTo = params.get("return_to");
 
-  // already signed in: the applications, not the form (a return_to means a flow is under way: leave it alone)
+  // already signed in: the portal, not the form (a return_to means a flow is under way: leave it alone)
   useEffect(() => {
     if (returnTo) return;
     let live = true;
-    authApi.apps().then(
+    authApi.session().then(
       (i) => {
-        if (live && Array.isArray(i.apps)) navigate("/apps", { replace: true });
+        if (live && i.redirect) window.location.assign(i.redirect); // another origin: no router navigate
       },
       () => undefined, // no session (401) or the check failed: the form is shown anyway
     );
     return () => {
       live = false;
     };
-  }, [returnTo, navigate]);
+  }, [returnTo]);
 
   async function submit() {
     const language = i18n.resolvedLanguage ?? "en";
@@ -63,7 +62,7 @@ export function Login() {
       if (pickedLanguage) rememberLanguageChoice(LANGUAGE_STORAGE_KEY, language);
       else
         applyAccountLocale(r.locale, language, languages.map((l) => l.code), (code) => void i18n.changeLanguage(code), LANGUAGE_STORAGE_KEY);
-      go(r);
+      go(r, true);
     }
   }
 

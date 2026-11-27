@@ -2,7 +2,6 @@ import { translateApiError, UiMessagesProvider, useSystemStyle } from "@huponx/u
 import { useTranslation } from "react-i18next";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { authApi } from "./api";
-import { Apps } from "./pages/Apps";
 import { AccountMfa } from "./pages/AccountMfa";
 import { ErrorPage } from "./pages/ErrorPage";
 import { Forgot } from "./pages/Forgot";
@@ -41,8 +40,8 @@ export function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/password/forgot" element={<Forgot />} />
       <Route path="/password/reset" element={<Reset />} />
+      <Route path="/password/set" element={<Reset first />} />
       <Route path="/account/mfa" element={<AccountMfa />} />
-      <Route path="/apps" element={<Apps />} />
       <Route path="/logout" element={<Logout />} />
       <Route path="/error" element={<ErrorPage />} />
       <Route path="*" element={<Navigate to="/login" replace />} />

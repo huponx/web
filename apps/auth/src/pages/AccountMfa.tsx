@@ -45,7 +45,7 @@ export function AccountMfa() {
   }
 
   // back to where the user came from (a path of this site), the list of applications otherwise
-  const backTo = returnTo.startsWith("/") && !returnTo.startsWith("//") && !returnTo.includes("\\") ? returnTo : "/apps";
+  const backTo = returnTo.startsWith("/") && !returnTo.startsWith("//") && !returnTo.includes("\\") ? returnTo : "/";
   const back = (
     <a className={buttonVariants({ variant: "ghost" })} href={backTo} data-testid="mfa-back">
       {t("common.back")}
@@ -64,7 +64,7 @@ export function AccountMfa() {
             </li>
           ))}
         </ul>
-        <Button onClick={() => go({ redirect: codes.next })}>{t("common.continue")}</Button>
+        <Button onClick={() => go({ redirect: codes.next }, true)}>{t("common.continue")}</Button>
       </AuthLayout>
     );
   if (!status) return null;

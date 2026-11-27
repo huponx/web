@@ -46,6 +46,8 @@ export type { SwitchRowProps } from "./components/switch-row";
 export { DeleteCard } from "./components/delete-card";
 export type { DeleteCardProps } from "./components/delete-card";
 export { Checkbox } from "./components/ui/checkbox";
+export { SplitButton } from "./components/split-button";
+export type { SplitButtonAction, SplitButtonProps } from "./components/split-button";
 export { Dropdown } from "./components/dropdown";
 export type { DropdownOption, DropdownProps } from "./components/dropdown";
 export { useConfirm } from "./components/confirm-dialog";

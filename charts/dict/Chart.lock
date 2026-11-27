@@ -1,0 +1,6 @@
+dependencies:
+- name: web-application
+  repository: oci://ghcr.io/huponx/charts
+  version: 1.0.0
+digest: sha256:bdb9987057d8e5353604f2a2653e40e04d9acc4baa495499268e7bc97ce80414
+generated: "2026-11-12T11:11:26.530563+07:00"

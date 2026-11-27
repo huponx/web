@@ -2,6 +2,7 @@
   "common": {
     "loading": "Đang tải...",
     "signingIn": "Đang đăng nhập...",
+    "signingOut": "Đang đăng xuất...",
     "tryAgain": "Thử lại",
     "save": "Lưu",
     "notFound": "Không tìm thấy trang.",

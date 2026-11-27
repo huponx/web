@@ -1,4 +1,4 @@
-import { useAuth } from "@huponx/auth-client";
+import { P, useAuth } from "@huponx/auth-client";
 import {
   Button,
   Dialog,
@@ -31,7 +31,7 @@ export function RemovePrompt() {
   const [error, setError] = useState<unknown>();
   const handled = useRef<string>();
 
-  const allowed = can("dictionary:word:read") && can("dictionary:word:write");
+  const allowed = can(P.dictionary.wordRead) && can(P.dictionary.wordWrite);
   const effective = removesAfterExport(settings);
   const acknowledged = settings.user.removeAcknowledged;
 

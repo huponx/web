@@ -1,4 +1,4 @@
-import { Can } from "@huponx/auth-client";
+import { Can, P } from "@huponx/auth-client";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useAction, useLoad } from "@huponx/ui-kit";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -54,7 +54,7 @@ function Editor({ userId, initial }: { userId: string; initial: UserQuota }) {
               {q.override[k] > 0 ? t("users.storage.own") : t("users.storage.default")}
             </p>
           </div>
-          <Can perm="dictionary:settings:write">
+          <Can perm={P.dictionary.settingsWrite}>
             <TextField
               label={t("users.storage.override")}
               type="number"
@@ -80,8 +80,8 @@ function Editor({ userId, initial }: { userId: string; initial: UserQuota }) {
       ))}
       <ErrorAlert error={a.error} />
       <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
-      <Can perm="dictionary:settings:write">
-        <Actions className="justify-start">
+      <Can perm={P.dictionary.settingsWrite}>
+        <Actions>
           <Button type="submit" busy={a.busy}>
             {t("users.storage.save")}
           </Button>

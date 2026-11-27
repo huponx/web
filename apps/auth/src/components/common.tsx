@@ -87,8 +87,9 @@ export function useErrorText() {
 }
 
 /**
- * Goes to the next page of the flow. Only a path of this site is followed, never a full URL, except with
- * `external` (the sign out, whose address identity only returns when it is registered for the application).
+ * Goes to the next page of the flow. Only a path of this site is followed, never a full http(s) URL, except with
+ * `external` (the sign out, whose address identity only returns when it is registered for the application, and the
+ * sign in, which ends at the portal when no application sent the user: identity sets that address, never the request).
  */
 export function go(next: Next | undefined, external = false) {
   const to = next?.redirect;

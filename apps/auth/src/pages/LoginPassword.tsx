@@ -24,7 +24,7 @@ export function LoginPassword() {
 
   async function submit() {
     try {
-      go(await authApi.changePassword(c, password, password2));
+      go(await authApi.changePassword(c, password, password2), true);
     } catch (err) {
       if (err instanceof ApiError && err.code === "challenge_expired") navigate("/login", { replace: true, state: { error: "challenge_expired" } });
       else await s.run(() => Promise.reject(err));

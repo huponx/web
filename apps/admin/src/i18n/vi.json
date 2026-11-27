@@ -2,6 +2,7 @@
   "common": {
     "loading": "Đang tải...",
     "signingIn": "Đang đăng nhập...",
+    "signingOut": "Đang đăng xuất...",
     "tryAgain": "Thử lại",
     "close": "Đóng",
     "cancel": "Hủy",
@@ -74,7 +75,9 @@
       "roles": "Vai trò",
       "permissions": "{{count}} quyền",
       "pending": "Người dùng chờ kích hoạt",
-      "pendingHint": "Chưa đặt mật khẩu"
+      "pendingHint": "Chưa đặt mật khẩu",
+      "awaitingApproval": "Chờ phê duyệt",
+      "awaitingApprovalHint": "Tự đăng ký, đang chờ quản trị viên"
     },
     "quick": {
       "title": "Thao tác nhanh",
@@ -138,6 +141,15 @@
       "mint": "Bạc hà",
       "rose": "Hồng",
       "graphite": "Than chì"
+    },
+    "registration": {
+      "title": "Đăng ký",
+      "description": "Điều gì xảy ra sau khi ai đó tạo tài khoản ở trang đăng nhập.",
+      "requiresApproval": "Đăng ký cần phê duyệt",
+      "requiresApprovalHint": "Tài khoản mới phải chờ quản trị viên phê duyệt. Tắt: email chào mừng kèm liên kết đặt mật khẩu được gửi ngay.",
+      "save": "Lưu",
+      "saved": "Đã lưu cài đặt đăng ký.",
+      "disabledNote": "Tính năng tự đăng ký đang tắt trên máy chủ (IDENTITY_REGISTRATION_ENABLED), nên cài đặt này chưa có tác dụng."
     }
   },
   "settings": {
@@ -186,7 +198,8 @@
     "status": {
       "active": "Hoạt động",
       "pending": "Chờ kích hoạt",
-      "disabled": "Đã khóa"
+      "disabled": "Đã khóa",
+      "awaiting_approval": "Chờ phê duyệt"
     },
     "mfaState": {
       "required": "bắt buộc",
@@ -224,7 +237,24 @@
       "delete": "Xóa tài khoản",
       "deleteTitle": "Xóa tài khoản",
       "confirmDelete": "Xóa tài khoản {{email}}? Người dùng bị đăng xuất ngay và không thể đăng nhập lại, dữ liệu của họ (từ đã lưu, tệp) được xóa dần ở nền. Không thể hoàn tác.",
-      "deleted": "Đã xóa tài khoản {{email}}."
+      "deleted": "Đã xóa tài khoản {{email}}.",
+      "awaitingHint": "Người này tự đăng ký và đang chờ quản trị viên. Sẽ không có email chứa liên kết nào được gửi cho đến khi bạn phê duyệt.",
+      "approve": "Phê duyệt",
+      "approved": "Đã phê duyệt. Email chào mừng kèm liên kết đặt mật khẩu đã được gửi.",
+      "reject": "Từ chối",
+      "rejected": "Đã từ chối. Yêu cầu đã bị xóa và người đăng ký đã được báo qua email.",
+      "rejectTitle": "Từ chối đăng ký",
+      "confirmReject": "Từ chối đăng ký của {{email}}? Yêu cầu sẽ bị xóa và người đăng ký nhận được email. Họ có thể đăng ký lại.",
+      "moreDecisions": "Quyết định khác",
+      "welcomeTitle": "Email chào mừng",
+      "welcomeHint": "Gửi lại liên kết đặt mật khẩu đầu tiên.",
+      "resetTitle": "Mật khẩu",
+      "resetHint": "Gửi email chứa liên kết để chọn mật khẩu mới.",
+      "accessTitle": "Đăng nhập",
+      "accessHint": "Vô hiệu hóa sẽ chặn đăng nhập và kết thúc mọi phiên.",
+      "accessHintDisabled": "Tài khoản đang bị vô hiệu hóa và không thể đăng nhập.",
+      "deleteHint": "Người dùng và dữ liệu của họ sẽ bị xóa. Không thể hoàn tác.",
+      "moreDecisionsFor": "Quyết định khác cho {{email}}"
     },
     "mfa": {
       "title": "Xác thực đa yếu tố",
@@ -286,7 +316,8 @@
       "signedIn30d": "Đăng nhập 30 ngày qua",
       "neverSignedIn": "Chưa từng đăng nhập",
       "expand": "Hiện tất cả thống kê",
-      "collapse": "Thu gọn thống kê"
+      "collapse": "Thu gọn thống kê",
+      "awaitingApproval": "Chờ phê duyệt"
     },
     "storage": {
       "title": "Dung lượng từ điển",
@@ -371,28 +402,19 @@
     },
     "perm": {
       "title": "Quyền",
-      "intro": "Danh mục các quyền có thể cấp cho vai trò. Quyền đang được vai trò sử dụng thì không thể xoá.",
+      "intro": "Các quyền của hệ thống, chỉ đọc. Mỗi dịch vụ tự khai báo quyền của mình và identity lưu lại khi dịch vụ khởi động; wildcard được sinh từ các quyền đó. Cấp quyền cho vai trò ở trang vai trò.",
       "name": "Quyền",
       "description": "Mô tả",
       "roles": "Vai trò",
-      "actions": "Thao tác",
-      "edit": "Sửa",
-      "editAria": "Sửa {{name}}",
-      "deleteAria": "Xoá {{name}}",
-      "editTitle": "Sửa {{name}}",
-      "inUse": "Đang được vai trò sử dụng",
-      "confirmDelete": "Xoá quyền {{name}}?",
-      "created": "Đã thêm quyền {{name}}.",
-      "deleted": "Đã xoá quyền {{name}}.",
-      "updated": "Đã cập nhật quyền {{name}}.",
-      "new": "Thêm quyền",
-      "nameHint": "Ví dụ bill:invoice:read, hoặc wildcard như bill:*.",
-      "add": "Thêm quyền",
       "empty": "Danh mục chưa có quyền nào.",
       "wildcards": "Wildcard",
-      "unknown": "Không có trong danh mục",
       "search": "Tìm permission",
-      "searchHint": "Tên hoặc mô tả"
+      "searchHint": "Tên hoặc mô tả",
+      "service": "Dịch vụ",
+      "wildcardBadge": "wildcard",
+      "retiredBadge": "đã ngừng",
+      "retired": "Đã ngừng",
+      "retiredHint": "Đã ngừng: không dịch vụ nào còn khai báo các quyền này và chúng không còn hiệu lực. Bỏ chọn để gỡ khỏi vai trò."
     },
     "tab": {
       "roles": "Vai trò",

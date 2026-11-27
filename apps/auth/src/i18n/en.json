@@ -22,7 +22,8 @@
     "name": "Name",
     "submit": "Create the account",
     "sentTitle": "Check your e-mail",
-    "sent": "If the address can be used, we sent a link to set your password. Open it to finish creating the account."
+    "sent": "If the address can be used, we sent a link to set your password. Open it to finish creating the account.",
+    "sentPending": "Your request was received. An administrator will review it and you will get an e-mail once it has been decided."
   },
   "mfa": {
     "title": "Verification",
@@ -50,7 +51,8 @@
     "invalid": "This link is not valid or has expired. Ask for a new one.",
     "askAgain": "Ask for a new link",
     "doneTitle": "Password changed",
-    "done": "Your password was changed and you were signed out everywhere."
+    "done": "Your password was changed and you were signed out everywhere.",
+    "repeat": "Repeat the new password"
   },
   "account": {
     "title": "Multi-factor authentication",
@@ -105,18 +107,18 @@
       "internal": "Something went wrong. Please try again."
     }
   },
-  "apps": {
-    "title": "Applications",
-    "signedInAs": "Signed in as {{who}}",
-    "none": "No application is configured.",
-    "security": "Multi-factor authentication",
-    "signOut": "Sign out"
-  },
   "preferences": {
     "group": "Theme",
     "light": "Light",
     "dark": "Dark",
     "system": "System",
     "language": "Language"
+  },
+  "setPassword": {
+    "title": "Set your password",
+    "submit": "Set the password",
+    "doneTitle": "Password set",
+    "done": "Your password is set. You can now sign in with it.",
+    "signIn": "Sign in"
   }
 }

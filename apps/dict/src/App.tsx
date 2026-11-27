@@ -1,4 +1,4 @@
-import { Can, RequireAuth, useAuth } from "@huponx/auth-client";
+import { Can, P, RequireAuth, useAuth } from "@huponx/auth-client";
 import {
   AppShell,
   Button,
@@ -52,7 +52,7 @@ function Shell() {
 
   // the menu only shows what the user may use; the gateway checks the permission again
   const items: NavItem[] = [];
-  if (can("dictionary:word:read")) {
+  if (can(P.dictionary.wordRead)) {
     items.push({
       to: "/",
       label: t("nav.lookup"),
@@ -75,7 +75,7 @@ function Shell() {
   }
 
   // pinned to the bottom of the sidebar, like the admin app
-  const bottomItems: NavItem[] = can("dictionary:word:read")
+  const bottomItems: NavItem[] = can(P.dictionary.wordRead)
     ? [
         {
           to: "/settings",
@@ -129,7 +129,7 @@ function Shell() {
             <Route
               path="/"
               element={
-                <Can perm="dictionary:word:read" fallback={denied}>
+                <Can perm={P.dictionary.wordRead} fallback={denied}>
                   <Lookup />
                 </Can>
               }
@@ -137,7 +137,7 @@ function Shell() {
             <Route
               path="/saved"
               element={
-                <Can perm="dictionary:word:read" fallback={denied}>
+                <Can perm={P.dictionary.wordRead} fallback={denied}>
                   <Saved />
                 </Can>
               }
@@ -145,7 +145,7 @@ function Shell() {
             <Route
               path="/review"
               element={
-                <Can perm="dictionary:word:read" fallback={denied}>
+                <Can perm={P.dictionary.wordRead} fallback={denied}>
                   <Review />
                 </Can>
               }
@@ -153,7 +153,7 @@ function Shell() {
             <Route
               path="/settings"
               element={
-                <Can perm="dictionary:word:read" fallback={denied}>
+                <Can perm={P.dictionary.wordRead} fallback={denied}>
                   <Settings />
                 </Can>
               }
@@ -174,6 +174,7 @@ export function App() {
   return (
     <RequireAuth
       loading={<Message>{t("common.signingIn")}</Message>}
+      signingOut={<Message>{t("common.signingOut")}</Message>}
       error={({ message, retry }) => (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
           <p>{message}</p>

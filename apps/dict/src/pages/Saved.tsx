@@ -1,4 +1,4 @@
-import { useAuth } from "@huponx/auth-client";
+import { P, useAuth } from "@huponx/auth-client";
 import {
   cn,
   Alert,
@@ -517,7 +517,7 @@ export function SavedList({
   const [link, setLink] = useState<{ url: string; expiresAt: string }>();
   const [linking, setLinking] = useState(false);
   // the export in parts of a list too long for one deck
-  const jobs = useExportJob(api, can("dictionary:word:write") && !compact);
+  const jobs = useExportJob(api, can(P.dictionary.wordWrite) && !compact);
   const [busyPart, setBusyPart] = useState<number>();
   // the links of the parts of one job: a new link replaces the one before, so each is made once and kept
   const [partLinkState, setPartLinks] = useState<{
@@ -546,7 +546,7 @@ export function SavedList({
     cancel: t("common.cancel"),
     close: t("common.close"),
   });
-  const write = can("dictionary:word:write");
+  const write = can(P.dictionary.wordWrite);
   usePreloadCardEditor(write);
   // the word whose full card is open
   const [viewing, setViewing] = useState<SavedWord>();

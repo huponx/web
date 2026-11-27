@@ -1,4 +1,4 @@
-import { Can } from "@huponx/auth-client";
+import { Can, P } from "@huponx/auth-client";
 import { Button, Card, CardContent, useAction, useFlash, usePaged } from "@huponx/ui-kit";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -41,7 +41,7 @@ export function Exchange() {
     <>
       {dialog}
       <PageTitle description={t("exchange.intro")}>{t("exchange.title")}</PageTitle>
-      <Can perm="identity:exchange:write">
+      <Can perm={P.identity.exchangeWrite}>
         <Actions>
           <Button asChild>
             <Link to="/exchange/new">
@@ -116,7 +116,7 @@ export function Exchange() {
                           <ActionLabel icon={Pencil}>{t("exchange.manage")}</ActionLabel>
                         </Link>
                       </Button>
-                      <Can perm="identity:exchange:write">
+                      <Can perm={P.identity.exchangeWrite}>
                         <Button
                           variant="destructive"
                           size="sm"

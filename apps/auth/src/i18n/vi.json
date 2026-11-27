@@ -22,7 +22,8 @@
     "name": "Tên",
     "submit": "Tạo tài khoản",
     "sentTitle": "Kiểm tra e-mail của bạn",
-    "sent": "Nếu địa chỉ dùng được, chúng tôi đã gửi liên kết để đặt mật khẩu. Hãy mở liên kết để hoàn tất việc tạo tài khoản."
+    "sent": "Nếu địa chỉ dùng được, chúng tôi đã gửi liên kết để đặt mật khẩu. Hãy mở liên kết để hoàn tất việc tạo tài khoản.",
+    "sentPending": "Chúng tôi đã nhận được yêu cầu của bạn. Quản trị viên sẽ xem xét và bạn sẽ nhận được e-mail khi có quyết định."
   },
   "mfa": {
     "title": "Xác minh",
@@ -50,7 +51,8 @@
     "invalid": "Liên kết này không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.",
     "askAgain": "Yêu cầu liên kết mới",
     "doneTitle": "Đã đổi mật khẩu",
-    "done": "Mật khẩu của bạn đã được đổi và bạn đã bị đăng xuất khỏi mọi nơi."
+    "done": "Mật khẩu của bạn đã được đổi và bạn đã bị đăng xuất khỏi mọi nơi.",
+    "repeat": "Nhập lại mật khẩu mới"
   },
   "account": {
     "title": "Xác thực nhiều yếu tố",
@@ -105,18 +107,18 @@
       "internal": "Đã xảy ra lỗi. Hãy thử lại."
     }
   },
-  "apps": {
-    "title": "Ứng dụng",
-    "signedInAs": "Đã đăng nhập: {{who}}",
-    "none": "Chưa có ứng dụng nào được cấu hình.",
-    "security": "Xác thực nhiều lớp (MFA)",
-    "signOut": "Đăng xuất"
-  },
   "preferences": {
     "group": "Giao diện",
     "light": "Sáng",
     "dark": "Tối",
     "system": "Theo hệ thống",
     "language": "Ngôn ngữ"
+  },
+  "setPassword": {
+    "title": "Đặt mật khẩu của bạn",
+    "submit": "Đặt mật khẩu",
+    "doneTitle": "Đã đặt mật khẩu",
+    "done": "Mật khẩu của bạn đã được đặt. Bây giờ bạn có thể đăng nhập.",
+    "signIn": "Đăng nhập"
   }
 }

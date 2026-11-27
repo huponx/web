@@ -1,5 +1,5 @@
-import { useAuth } from "@huponx/auth-client";
-import { Checkbox, useLoad } from "@huponx/ui-kit";
+import { P, useAuth } from "@huponx/auth-client";
+import { Badge, Checkbox, useLoad } from "@huponx/ui-kit";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -37,6 +37,7 @@ export function groupByService(catalog: Permission[]): [string, [string, Permiss
 
 function Row({ p, checked, disabled, onChange }: { p: Permission; checked: boolean; disabled?: boolean; onChange: (v: boolean) => void }) {
   const id = useId();
+  const { t } = useTranslation();
   return (
     <label
       htmlFor={id}
@@ -46,6 +47,7 @@ function Row({ p, checked, disabled, onChange }: { p: Permission; checked: boole
       <span className="flex min-w-0 flex-col">
         <span id={`${id}-name`} className="break-all font-mono text-xs">
           {p.name}
+          {p.retired ? <Badge variant="outline" className="ml-2 font-sans">{t("roles.perm.retiredBadge")}</Badge> : null}
         </span>
         {p.description ? <span className="text-xs text-muted-foreground">{p.description}</span> : null}
       </span>
@@ -86,11 +88,14 @@ export function PermissionPicker({ catalog, value, onChange, label, hint, disabl
       />
     );
   }
-  // permissions of the role that are not in the catalog (should not happen) stay visible and removable
-  const known = new Set(catalog.map((p) => p.name));
-  const extra = value.filter((v) => !known.has(v)).map((name): Permission => ({ name }));
+  // Retired permissions (no service declares them any more) and wildcards that cover nothing are not offered, but a
+  // role that holds one still shows it, marked retired, so that it can be removed.
+  const offered = catalog.filter((p) => !p.retired);
+  const known = new Set(offered.map((p) => p.name));
+  const retired = new Map(catalog.filter((p) => p.retired).map((p) => [p.name, p]));
+  const extra = value.filter((v) => !known.has(v)).map((name): Permission => retired.get(name) ?? { name, retired: true });
   const toggle = (name: string, on: boolean) => onChange(on ? [...value, name] : value.filter((v) => v !== name));
-  const services = groupByService(catalog).concat(extra.length ? [["?", [["?", extra]]]] : []);
+  const services = groupByService(offered).concat(extra.length ? [["?", [["?", extra]]]] : []);
   return (
     <fieldset className="flex flex-col gap-3" aria-label={label}>
       <legend className={hideLabel ? "sr-only" : "text-sm font-medium"}>{label}</legend>
@@ -99,14 +104,14 @@ export function PermissionPicker({ catalog, value, onChange, label, hint, disabl
       {services.map(([service, groups], i) => (
         <Service
           key={service}
-          title={service === WILDCARDS ? t("roles.perm.wildcards") : service === "?" ? t("roles.perm.unknown") : service}
+          title={service === WILDCARDS ? t("roles.perm.wildcards") : service === "?" ? t("roles.perm.retired") : service}
           groups={groups}
           value={value}
           disabled={disabled}
           // the first service is open; so is every service that already holds a chosen permission
           initiallyOpen={i === 0 || groups.some(([, items]) => items.some((p) => value.includes(p.name)))}
           onToggle={toggle}
-          groupTitle={(g) => (g === WILDCARDS ? t("roles.perm.wildcards") : g === "?" ? t("roles.perm.unknown") : g)}
+          groupTitle={(g) => (g === WILDCARDS ? t("roles.perm.wildcards") : g === "?" ? t("roles.perm.retiredHint") : g)}
         />
       ))}
     </fieldset>
@@ -174,7 +179,7 @@ function Service({
 export function usePermissionCatalog() {
   const { can } = useAuth();
   const api = useIdentity();
-  const allowed = can("identity:permission:read");
+  const allowed = can(P.identity.permissionRead);
   const catalog = useLoad(() => (allowed ? api.listPermissions() : Promise.resolve(undefined)), [api, allowed]);
   return { allowed, data: catalog.data, error: catalog.error, loading: allowed && catalog.loading, reload: catalog.reload };
 }

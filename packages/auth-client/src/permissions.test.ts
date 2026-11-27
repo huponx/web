@@ -41,3 +41,25 @@ describe("allowed", () => {
     expect(allowedAny(perms)).toBe(false);
   });
 });
+
+// The vectors are shared with gocommon/authz (authz_test.go): both matchers must agree.
+import { existsSync, readFileSync } from "node:fs";
+import vectors from "./match_vectors.json";
+
+describe("shared vectors", () => {
+  it.each(vectors.match.map((c) => [c.granted, c.required, c.want] as const))("match(%s, %s) = %s", (granted, required, want) => {
+    expect(match(granted, required)).toBe(want);
+  });
+  it.each(vectors.allowed.map((c) => [c.granted, c.required, c.want] as const))("allowed(%j, %s) = %s", (granted, required, want) => {
+    expect(allowed(granted, required)).toBe(want);
+  });
+  it.each(vectors.allowedAll.map((c) => [c.granted, c.required, c.want] as const))("allowedAll(%j, %j) = %s", (granted, required, want) => {
+    expect(allowedAll(granted, ...required)).toBe(want);
+  });
+
+  // gocommon is another repository: where the workspace has it beside web, its copy of the file must be the same
+  const gocommon = `${process.cwd()}/../../../gocommon/authz/testdata/match_vectors.json`;
+  it.skipIf(!existsSync(gocommon))("is the same file as the one of gocommon/authz", () => {
+    expect(JSON.parse(readFileSync(gocommon, "utf8"))).toEqual(vectors);
+  });
+});

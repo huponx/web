@@ -29,5 +29,10 @@
     "globals": "^15.13.0",
     "typescript": "~5.6.3",
     "typescript-eslint": "^8.18.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@huponx/protogen": "link:../protogen/ts"
+    }
   }
 }

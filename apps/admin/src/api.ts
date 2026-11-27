@@ -11,6 +11,8 @@ export interface Role {
   permissions: string[];
   /** Users and clients that hold the role (int64: a string); a role that is held cannot be deleted. */
   assignedCount?: string;
+  /** Grants that do nothing any more: a permission no service declares, a wildcard that covers none. They can be removed. */
+  retiredPermissions?: string[];
 }
 
 export type ClientType = "CLIENT_TYPE_PUBLIC" | "CLIENT_TYPE_CONFIDENTIAL";
@@ -29,11 +31,20 @@ export interface IdentityClient {
   disabled?: boolean;
 }
 
-/** An entry of the permission catalog; role_count is an int64, so it arrives as a string. */
+/**
+ * An entry of the permission catalog, read only: services declare their permissions and identity saves them at start.
+ * role_count is an int64, so it arrives as a string.
+ */
 export interface Permission {
   name: string;
   description?: string;
   roleCount?: string;
+  /** The service that declares it; empty for a wildcard. */
+  service?: string;
+  /** A generated wildcard ("identity:*:read"), not stored. */
+  wildcard?: boolean;
+  /** No service declares it any more but a role still holds it: not enforced, hidden from the picker. */
+  retired?: boolean;
 }
 
 export interface ExchangePolicy {
@@ -44,7 +55,10 @@ export interface ExchangePolicy {
 }
 
 export type UserStatus =
-  "USER_STATUS_PENDING" | "USER_STATUS_ACTIVE" | "USER_STATUS_DISABLED";
+  | "USER_STATUS_PENDING"
+  | "USER_STATUS_ACTIVE"
+  | "USER_STATUS_DISABLED"
+  | "USER_STATUS_PENDING_APPROVAL";
 
 export interface User {
   id: string;
@@ -73,7 +87,7 @@ export interface UserFilter {
   email?: string;
   /** Part of the name. */
   name?: string;
-  status?: "" | "pending" | "active" | "disabled";
+  status?: "" | "awaiting_approval" | "pending" | "active" | "disabled";
   role?: string;
 }
 
@@ -82,6 +96,8 @@ export interface UserStats {
   total?: string;
   active?: string;
   pending?: string;
+  /** Self-registered, waiting for an administrator. */
+  awaitingApproval?: string;
   disabled?: string;
   mfaEnabled?: string;
   mfaEnforced?: string;
@@ -106,10 +122,24 @@ export interface SystemApp {
 /** The status of a user, with a fallback for answers that carry only `disabled`. */
 export function statusOf(
   u: Pick<User, "status" | "disabled">,
-): "pending" | "active" | "disabled" {
-  if (u.status === "USER_STATUS_PENDING") return "pending";
+): "awaiting_approval" | "pending" | "active" | "disabled" {
   if (u.status === "USER_STATUS_DISABLED" || u.disabled) return "disabled";
+  if (u.status === "USER_STATUS_PENDING_APPROVAL") return "awaiting_approval";
+  if (u.status === "USER_STATUS_PENDING") return "pending";
   return "active";
+}
+
+interface RegistrationSettingsReply {
+  requiresApproval?: boolean;
+  registrationEnabled?: boolean;
+}
+
+/** proto3 JSON leaves a false bool out: absent means false. */
+function registrationSettingsOf(r: RegistrationSettingsReply) {
+  return {
+    requiresApproval: r.requiresApproval === true,
+    registrationEnabled: r.registrationEnabled === true,
+  };
 }
 
 export interface NewUser {
@@ -321,20 +351,6 @@ export function identityApi(c: AuthClient) {
     listPermissions: (q = "") => drain((t) => permissionsPage(q, t)),
     listPermissionsPage: (q = "", token = "") =>
       permissionsPage(q, token, String(PAGE_SIZE)),
-    createPermission: (p: { name: string; description: string }) =>
-      c
-        .api<{ permission: Permission }>("POST", "/api/permissions", {
-          permission: p,
-        })
-        .then((r) => r.permission),
-    updatePermission: (name: string, description: string) =>
-      c
-        .api<{ permission: Permission }>("PUT", `/api/permissions/${e(name)}`, {
-          description,
-        })
-        .then((r) => r.permission),
-    deletePermission: (name: string) =>
-      c.api<unknown>("DELETE", `/api/permissions/${e(name)}`),
     assignRole: (role: string, who: { user_id?: string; client_id?: string }) =>
       c.api<unknown>("POST", `/api/roles/${e(role)}/assignments`, who),
     revokeRole: (
@@ -475,6 +491,18 @@ export function identityApi(c: AuthClient) {
           uiStyle: r.uiStyle ?? v.uiStyle,
           uiPalettes: r.uiPalettes ?? v.uiPalettes,
         })),
+    // self-registration: does a new account wait for an administrator (identity:settings:read / :write); registrationEnabled is
+    // the read-only switch of the server (IDENTITY_REGISTRATION_ENABLED)
+    getRegistrationSettings: () =>
+      c
+        .api<RegistrationSettingsReply>("GET", "/api/registration-settings")
+        .then(registrationSettingsOf),
+    updateRegistrationSettings: (v: { requiresApproval: boolean }) =>
+      c
+        .api<RegistrationSettingsReply>("PUT", "/api/registration-settings", {
+          requires_approval: v.requiresApproval,
+        })
+        .then((r) => registrationSettingsOf({ registrationEnabled: r.registrationEnabled, requiresApproval: r.requiresApproval ?? v.requiresApproval })),
     // the signed in user: no permission needed, the user is the one of the session
     getMe: () => c.api<{ user: User }>("GET", "/api/me").then((r) => r.user),
     updateMe: (u: { name?: string; locale?: string; theme?: string }) =>
@@ -490,7 +518,12 @@ export function identityApi(c: AuthClient) {
       if (filter.email) q.set("query", filter.email);
       if (filter.name) q.set("name", filter.name);
       if (filter.status)
-        q.set("status", `USER_STATUS_${filter.status.toUpperCase()}`);
+        q.set(
+          "status",
+          filter.status === "awaiting_approval"
+            ? "USER_STATUS_PENDING_APPROVAL"
+            : `USER_STATUS_${filter.status.toUpperCase()}`,
+        );
       if (filter.role) q.set("role", filter.role);
       if (pageToken) q.set("page_token", pageToken);
       return c.api<{ users: User[]; nextPageToken: string }>(
@@ -529,6 +562,12 @@ export function identityApi(c: AuthClient) {
       c.api<unknown>("POST", `/api/users/${e(id)}/welcome`),
     setDisabled: (id: string, disabled: boolean) =>
       c.api<unknown>("PUT", `/api/users/${e(id)}/disabled`, { disabled }),
+    /** identity:user:approve: accepts a self-registered user; the welcome email goes out. */
+    approveUser: (id: string) =>
+      c.api<unknown>("POST", `/api/users/${e(id)}/approve`),
+    /** identity:user:approve: deletes a self-registered user and tells them by email. */
+    rejectUser: (id: string) =>
+      c.api<unknown>("POST", `/api/users/${e(id)}/reject`),
     sendReset: (id: string) =>
       c.api<unknown>("POST", `/api/users/${e(id)}/password-reset`),
     deleteUser: (id: string) =>

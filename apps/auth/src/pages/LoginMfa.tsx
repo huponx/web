@@ -23,7 +23,7 @@ export function LoginMfa() {
   async function submit() {
     try {
       const r = await authApi.verifyMfa(c, code);
-      go(r);
+      go(r, true);
     } catch (err) {
       // too many wrong codes or an expired challenge: nothing left to try here
       if (err instanceof ApiError && err.code === "challenge_expired") navigate("/login", { replace: true, state: { error: "challenge_expired" } });

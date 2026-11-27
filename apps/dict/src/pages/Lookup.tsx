@@ -1,4 +1,4 @@
-import { ApiError, useAuth } from "@huponx/auth-client";
+import { ApiError, P, useAuth } from "@huponx/auth-client";
 import {
   Alert,
   AutoAlert,
@@ -549,7 +549,7 @@ export function Lookup() {
   });
   // a card with no entry behind it: written by hand
   const isManual = (w: Word) => !entryFor(w.text);
-  const canWrite = can("dictionary:word:write");
+  const canWrite = can(P.dictionary.wordWrite);
 
   /** The words that can still get a card by hand: those not found, or all the typed ones when the lookup failed. */
   const candidates = (error ? searchedList : notFound).filter(
@@ -849,7 +849,7 @@ export function Lookup() {
                 )}
                 {t("lookup.copyAll")}
               </Button>
-              {can("dictionary:word:write") ? (
+              {can(P.dictionary.wordWrite) ? (
                 <Button
                   type="button"
                   variant="outline"

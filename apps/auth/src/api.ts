@@ -77,13 +77,18 @@ async function post<T>(path: string, body: Record<string, unknown>): Promise<T> 
 
 const q = (params: Record<string, string>) => `?${new URLSearchParams(params)}`;
 
-export type AppsInfo = { apps: { name: string; url: string; icon?: string }[]; name: string; email: string; theme?: string; mfa: boolean };
-
 export const authApi = {
   /** The look of the web apps (set by an administrator); readable before the sign in. */
   uiStyle: () => call<SystemStyleReply>("GET", "/auth-api/ui-style").then(systemStyleOf),
-  /** Self-registration is open (IDENTITY_REGISTRATION_ENABLED); readable before the sign in. */
-  registrationOpen: () => call<{ registration?: boolean }>("GET", "/auth-api/ui-style").then((r) => r.registration === true),
+  /**
+   * Self-registration is open (IDENTITY_REGISTRATION_ENABLED) and whether a new account waits for an administrator
+   * (true unless the server says otherwise); readable before the sign in.
+   */
+  registrationOpen: () =>
+    call<{ registration?: boolean; registrationApproval?: boolean }>("GET", "/auth-api/ui-style").then((r) => ({
+      open: r.registration === true,
+      approval: r.registrationApproval !== false,
+    })),
   /** Asks for an account: the answer is the same for a known address, the link to set the password comes by e-mail. */
   register: (email: string, name: string, locale: string) => post<unknown>("/auth-api/register", { email, name, locale }),
   /** `theme` and `locale` are what the user picked on the sign in page (empty: not touched); the account keeps them. */
@@ -101,7 +106,8 @@ export const authApi = {
   preferences: () => call<{ theme?: string; locale?: string }>("GET", "/auth-api/preferences"),
   /** Saves the theme and/or the language the user picked while signed in. */
   setPreferences: (p: { theme?: string; locale?: string }) => post<unknown>("/auth-api/preferences", p),
-  apps: () => call<AppsInfo>("GET", "/auth-api/apps"),
+  /** 401 without a session, else where a signed in user goes (the portal). */
+  session: () => call<{ redirect: string }>("GET", "/auth-api/session"),
   mfaStatus: () => call<MfaStatus>("GET", "/auth-api/account/mfa"),
   /** `redirect` is where the recovery codes page continues (the return_to of the sign in, checked by the server). */
   confirmMfa: (code: string, returnTo: string) => post<{ recoveryCodes: string[]; redirect: string }>("/auth-api/account/mfa", { code, return_to: returnTo }),
