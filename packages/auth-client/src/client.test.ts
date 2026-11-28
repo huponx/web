@@ -1,7 +1,7 @@
 import { ApiError, createClient } from "./client";
 import type { Me } from "./client";
 
-const me: Me = { sub: "u1", roles: ["admin"], scopes: [], perms: ["*"], amr: ["pwd"], csrf_token: "csrf-1", expires_at: "2030-01-01T00:00:00Z" };
+const me: Me = { sub: "u1", roles: ["admin"], scopes: [], perms: ["*"], allowed: [], amr: ["pwd"], csrf_token: "csrf-1", expires_at: "2030-01-01T00:00:00Z" };
 
 type Call = { url: string; init: RequestInit };
 

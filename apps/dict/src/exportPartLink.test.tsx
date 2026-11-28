@@ -19,6 +19,7 @@ describe("exportPartLink", () => {
               roles: [],
               scopes: [],
               perms: [],
+              allowed: [],
               amr: [],
               csrf_token: "c",
               expires_at: "2030-01-01T00:00:00Z",

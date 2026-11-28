@@ -31,6 +31,8 @@ export interface AppShellProps {
   labels: ShellLabels;
   /** The avatar menu (`UserMenu`). */
   userMenu: ReactNode;
+  /** The bell (`NotificationBell`) in the header; none: no bell. */
+  notifications?: ReactNode;
   children: ReactNode;
   storageKey?: string;
   /** Changes with the page (the pathname): the content then fades in, so a tab change is not a hard cut. */
@@ -50,7 +52,7 @@ function readCollapsed(key: string): boolean {
  * (breadcrumb, theme switch, avatar menu) over the page. Below the `md` breakpoint the sidebar is a drawer:
  * a swipe from the left edge opens it, a swipe to the left closes it.
  */
-export function AppShell({ brand, logo, items, bottomItems, breadcrumbs, link, labels, userMenu, children, storageKey = SIDEBAR_STORAGE_KEY, pageKey }: AppShellProps) {
+export function AppShell({ brand, logo, items, bottomItems, breadcrumbs, link, labels, userMenu, notifications, children, storageKey = SIDEBAR_STORAGE_KEY, pageKey }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(() => readCollapsed(storageKey));
   const [mobileOpen, setMobileOpen] = useState(false);
   useSwipeDrawer(mobileOpen, setMobileOpen);
@@ -134,6 +136,7 @@ export function AppShell({ brand, logo, items, bottomItems, breadcrumbs, link, l
             labels={labels}
             onOpenMobileMenu={() => setMobileOpen(true)}
             userMenu={userMenu}
+            notifications={notifications}
           />
           <main ref={mainRef} onScroll={(e) => setScrolled(e.currentTarget.scrollTop > TOP_BUTTON_AFTER)} className="flex-1 overflow-x-hidden overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6">
             <div

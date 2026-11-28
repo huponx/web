@@ -33,10 +33,22 @@
       "system": "System"
     }
   },
+  "notifications": {
+    "title": "Notifications",
+    "unread_one": "{{count}} unread notification",
+    "unread_other": "{{count}} unread notifications",
+    "empty": "Nothing new.",
+    "markAllRead": "Mark all read",
+    "archive": "Archive",
+    "loadMore": "Show more",
+    "failed": "Could not load notifications.",
+    "retry": "Try again"
+  },
   "nav": {
     "home": "Home",
     "profile": "Profile",
-    "security": "Security"
+    "security": "Security",
+    "notifications": "Notifications"
   },
   "home": {
     "greeting": "Hello, {{name}}",
@@ -149,7 +161,15 @@
       "changeConfirm": "Your current authenticator stops working now, and you set up a new one next. Until you finish, your account is protected by the password only.",
       "disableConfirm": "Turn off multi-factor authentication? Your account will be protected by the password only, and the recovery codes are deleted.",
       "reauth": "Confirm it is you: enter your password and a code from your authenticator app (or a recovery code).",
-      "continue": "Continue"
+      "continue": "Continue",
+      "regenerate": "Generate new recovery codes",
+      "regenerateShort": "Generate new codes",
+      "regenerateTitle": "Generate new recovery codes",
+      "regenerateConfirm": "Generate new recovery codes? The current ones stop working at once.",
+      "regenerateCode": "Code from your authenticator app",
+      "reauthCodes": "Confirm it is you: enter your password and a code from your authenticator app.",
+      "regeneratedText": "These are your new recovery codes. Keep them in a safe place: each works once, and they are not shown again. The old codes no longer work.",
+      "lowCodes": "Running low on recovery codes: {{count}} left."
     },
     "passkeys": {
       "title": "Passkeys",
@@ -285,6 +305,63 @@
       "invalid_passkey_name": "The name must have 1 to 60 characters.",
       "passkey_failed": "The passkey could not be created. Try again.",
       "session_not_found": "The session does not exist or has already ended."
+    }
+  },
+  "notificationSettings": {
+    "title": "Notifications",
+    "description": "Choose what reaches you and where.",
+    "saved": "Notification settings saved.",
+    "alwaysOn": "Always on",
+    "categories": {
+      "security": "Security",
+      "account": "Account",
+      "admin": "Administration",
+      "bvchain": "Attendance",
+      "system": "System"
+    },
+    "channel": {
+      "email": "E-mail",
+      "telegram": "Telegram",
+      "in_app": "In the app (the bell)",
+      "push": "Browser notifications"
+    },
+    "channels": {
+      "title": "What reaches you",
+      "description": "Turn a channel off for a category. Security and account messages cannot be turned off."
+    },
+    "quiet": {
+      "title": "Quiet hours",
+      "description": "E-mails and Telegram messages that arrive in this window wait until it ends. The bell and security messages are never held back.",
+      "enable": "Hold messages during quiet hours",
+      "from": "From",
+      "to": "To",
+      "timezone": "Time zone"
+    },
+    "telegram": {
+      "title": "Telegram",
+      "description": "Receive notifications in a Telegram chat with the bot.",
+      "linked": "Linked",
+      "notLinked": "Not linked",
+      "link": "Link Telegram",
+      "newCode": "New code",
+      "unlink": "Unlink",
+      "unlinked": "Telegram unlinked.",
+      "openLink": "Open the bot and press Start (the link is valid for 15 minutes):",
+      "open": "Open Telegram",
+      "orSend": "Or send the bot:"
+    },
+    "push": {
+      "title": "Browser notifications",
+      "description": "Get a notification on this device even when the portal is closed.",
+      "on": "On for this device",
+      "off": "Off for this device",
+      "devices_one": "{{count}} device",
+      "devices_other": "{{count}} devices",
+      "enable": "Turn on for this device",
+      "disable": "Turn off for this device",
+      "enabled": "Browser notifications are on for this device.",
+      "disabled": "Browser notifications are off for this device.",
+      "denied": "The browser blocks notifications for this site. Allow them in the site settings of the browser."
     }
   }
 }

@@ -1,4 +1,4 @@
-import { P, useAuth } from "@huponx/auth-client";
+import { useAuth } from "@huponx/auth-client";
 import {
   AccountMenuView,
   portalHref,
@@ -10,6 +10,7 @@ import {
 import type { AccountProfile } from "@huponx/ui-kit";
 import { useTranslation } from "react-i18next";
 import { LANGUAGE_STORAGE_KEY, languages } from "./i18n";
+import { ROUTES } from "./authz";
 
 /** The link back to the portal; none when PORTAL_URL is not configured. */
 function portalLink(label: string) {
@@ -53,7 +54,7 @@ export function AccountMenu() {
       label={t("shell.userMenu")}
       portal={portalLink(t("shell.portal"))}
       settings={
-        can(P.dictionary.wordRead)
+        can(ROUTES.listSaved)
           ? { to: "/settings", label: t("nav.settings") }
           : undefined
       }

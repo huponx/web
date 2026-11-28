@@ -1,4 +1,4 @@
-import { P, useAuth } from "@huponx/auth-client";
+import { useAuth } from "@huponx/auth-client";
 import {
   createContext,
   useCallback,
@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from "react";
 import { DEFAULT_SYSTEM, DEFAULT_USER, useDictionary } from "../api";
 import type { MySettings, UserSettings } from "../api";
+import { ROUTES } from "../authz";
 
 interface Value {
   settings: MySettings;
@@ -45,7 +46,7 @@ const SettingsContext = createContext<Value>({
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { can } = useAuth();
   const api = useDictionary();
-  const allowed = can(P.dictionary.wordRead);
+  const allowed = can(ROUTES.listSaved);
   const [settings, setSettings] = useState<MySettings>(DEFAULTS);
   const [loaded, setLoaded] = useState(!allowed);
   const [known, setKnown] = useState(false);

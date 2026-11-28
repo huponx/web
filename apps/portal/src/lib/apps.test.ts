@@ -11,8 +11,8 @@ describe("parseApps widget", () => {
 
 describe("parseApps", () => {
   it("reads the entries", () => {
-    expect(parseApps(raw([{ name: "Dict", url: "https://dict.example.com", icon: "book-open", perm: "dictionary:word:read" }]), false)).toEqual([
-      { name: "Dict", url: "https://dict.example.com/", icon: "book-open", perm: "dictionary:word:read" },
+    expect(parseApps(raw([{ name: "Dict", url: "https://dict.example.com", icon: "book-open", can: "dictionary:word:read" }]), false)).toEqual([
+      { name: "Dict", url: "https://dict.example.com/", icon: "book-open", can: "dictionary:word:read" },
     ]);
   });
 
@@ -45,9 +45,9 @@ describe("parseApps", () => {
     expect(parseApps(v, true).map((a) => a.name)).toEqual(["Local"]);
   });
 
-  it("ignores a permission or an icon that is not a string", () => {
-    expect(parseApps(raw([{ name: "A", url: "https://a.example.com", icon: 3, perm: 7 }]), false)).toEqual([
-      { name: "A", url: "https://a.example.com/", icon: undefined, perm: undefined },
+  it("ignores a can key or an icon that is not a string", () => {
+    expect(parseApps(raw([{ name: "A", url: "https://a.example.com", icon: 3, can: 7 }]), false)).toEqual([
+      { name: "A", url: "https://a.example.com/", icon: undefined, can: undefined },
     ]);
   });
 });
@@ -55,11 +55,11 @@ describe("parseApps", () => {
 describe("visibleApps", () => {
   const apps = [
     { name: "Open", url: "https://o.example.com/" },
-    { name: "Dict", url: "https://d.example.com/", perm: "dictionary:word:read" },
-    { name: "Bill", url: "https://b.example.com/", perm: "bill:invoice:read" },
+    { name: "Dict", url: "https://d.example.com/", can: "GET /api/dictionary/saved" },
+    { name: "Bill", url: "https://b.example.com/", can: "bill.invoices" },
   ];
-  it("keeps the apps without a permission and those the user holds", () => {
-    expect(visibleApps(apps, (p) => p === "dictionary:word:read").map((a) => a.name)).toEqual(["Open", "Dict"]);
+  it("keeps the apps without a can and those the user is allowed", () => {
+    expect(visibleApps(apps, (p) => p === "GET /api/dictionary/saved").map((a) => a.name)).toEqual(["Open", "Dict"]);
     expect(visibleApps(apps, () => false).map((a) => a.name)).toEqual(["Open"]);
   });
 });

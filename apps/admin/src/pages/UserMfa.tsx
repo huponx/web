@@ -1,10 +1,11 @@
-import { Can, P } from "@huponx/auth-client";
+import { Can } from "@huponx/auth-client";
 import { Button, useAction, useLoad } from "@huponx/ui-kit";
 import { Trans, useTranslation } from "react-i18next";
 import { useIdentity } from "../api";
 import type { User } from "../api";
 import { useConfirm } from "../components/ConfirmDialog";
 import { Actions, DoneAlert, ErrorAlert, Loading } from "../components/common";
+import { ROUTES } from "../authz";
 
 export function UserMfa({ user, onChanged }: { user: User; onChanged: () => void }) {
   const { t } = useTranslation();
@@ -41,7 +42,7 @@ export function UserMfa({ user, onChanged }: { user: User; onChanged: () => void
           />
         </p>
       ) : null}
-      <Can perm={P.identity.mfaWrite}>
+      <Can route={ROUTES.putUserMfa}>
         <Actions className="justify-start">
           <Button
             variant="outline"

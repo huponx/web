@@ -19,8 +19,9 @@ import type { UIPalette, UIStyle } from "@huponx/ui-kit";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useIdentity } from "../api";
-import { Can, P } from "@huponx/auth-client";
+import { Can } from "@huponx/auth-client";
 import { DoneAlert, ErrorAlert, PageTitle } from "../components/common";
+import { ROUTES } from "../authz";
 
 /** A miniature of one style: the tokens of `data-style` apply to this element and its children, so no copy of the colours is kept here. */
 function StylePreview({ value, palette }: { value: UIStyle; palette: UIPalette }) {
@@ -212,7 +213,7 @@ export function SystemSettings() {
     <>
       <PageTitle description={t("systemSettings.description")}>{t("systemSettings.title")}</PageTitle>
       <SystemStyle />
-      <Can perm={P.identity.settingsRead}>
+      <Can route={ROUTES.getRegistrationSettings}>
         <RegistrationSettings />
       </Can>
     </>

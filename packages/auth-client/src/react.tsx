@@ -1,8 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { AuthClient, Me } from "./client";
-import { allowed, allowedAll, allowedAny } from "./permissions";
-import type { Permission } from "@huponx/protogen";
 
 export type AuthState =
   | { status: "loading" }
@@ -18,13 +16,24 @@ export interface Auth {
   /** Why the session could not be read (only when `status` is "error"). */
   error: Error | undefined;
   /**
-   * Whether the user holds the permission (the gateway enforces it again). The names are the generated `P.*` constants
-   * of `@huponx/protogen`, so a name that no longer exists fails `tsc`.
+   * Whether the user may call the route ("GET /api/users", a key of the gateway's routes.yaml) or holds the capability
+   * ("bill.invoices"). The gateway computed the answer from the rules of the RPCs and enforces them again on every
+   * call. An unknown key is false, so a typo hides the UI.
    */
-  can: (perm: Permission) => boolean;
+  can: (route: string) => boolean;
   logout: () => Promise<void>;
   /** Asks the gateway again (after an error, or when roles changed). */
   reload: () => void;
+}
+
+const ROUTE_KEY = /^((GET|POST|PUT|PATCH|DELETE) \/\S*|[a-z][a-z0-9-]*(\.[a-z0-9-]+)+)$/;
+const warned = new Set<string>();
+
+/** In a dev build, says once about a key that is neither a route ("GET /api/users") nor a capability ("bill.invoices"). */
+function warnIfMalformed(key: string) {
+  if (!(import.meta as { env?: { DEV?: boolean } }).env?.DEV || ROUTE_KEY.test(key) || warned.has(key)) return;
+  warned.add(key);
+  console.warn(`can(${JSON.stringify(key)}): not a route key ("GET /api/users") nor a capability name ("bill.invoices")`);
 }
 
 const Ctx = createContext<Auth | null>(null);
@@ -55,12 +64,16 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
 
   const value = useMemo<Auth>(() => {
     const user = state.status === "authenticated" ? state.user : undefined;
+    const set = new Set(user?.allowed ?? []);
     return {
       client,
       status: state.status,
       user,
       error: state.status === "error" ? state.error : undefined,
-      can: (perm) => allowed(user?.perms, perm),
+      can: (route) => {
+        warnIfMalformed(route);
+        return set.has(route);
+      },
       logout: () => client.logout(),
       reload,
     };
@@ -106,23 +119,22 @@ export function RequireAuth({ children, loading = null, signingOut, error }: Req
 }
 
 export interface CanProps {
-  /** One permission (`P.identity.userRead`). */
-  perm?: Permission;
+  /** One route or capability (`ROUTES.listUsers`). */
+  route?: string;
   /** Every one of these. */
-  all?: Permission[];
+  all?: string[];
   /** At least one of these. */
-  any?: Permission[];
+  any?: string[];
   children: ReactNode;
   fallback?: ReactNode;
 }
 
-/** Renders the children only when the user holds the permission(s). */
-export function Can({ perm, all, any, children, fallback = null }: CanProps) {
-  const { user } = useAuth();
-  const perms = user?.perms;
+/** Renders the children only when the user may call the route(s). */
+export function Can({ route, all, any, children, fallback = null }: CanProps) {
+  const { can } = useAuth();
   let ok = false;
-  if (perm !== undefined) ok = allowed(perms, perm);
-  else if (all) ok = allowedAll(perms, ...all);
-  else if (any) ok = allowedAny(perms, ...any);
+  if (route !== undefined) ok = can(route);
+  else if (all) ok = all.every(can);
+  else if (any) ok = any.some(can);
   return <>{ok ? children : fallback}</>;
 }

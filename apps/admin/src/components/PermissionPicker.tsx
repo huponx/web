@@ -1,4 +1,4 @@
-import { P, useAuth } from "@huponx/auth-client";
+import { useAuth } from "@huponx/auth-client";
 import { Badge, Checkbox, useLoad } from "@huponx/ui-kit";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useId, useState } from "react";
@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { Permission } from "../api";
 import { useIdentity, words } from "../api";
 import { TextAreaField } from "./common";
+import { ROUTES } from "../authz";
 
 const WILDCARDS = "*";
 
@@ -179,7 +180,7 @@ function Service({
 export function usePermissionCatalog() {
   const { can } = useAuth();
   const api = useIdentity();
-  const allowed = can(P.identity.permissionRead);
+  const allowed = can(ROUTES.listPermissions);
   const catalog = useLoad(() => (allowed ? api.listPermissions() : Promise.resolve(undefined)), [api, allowed]);
   return { allowed, data: catalog.data, error: catalog.error, loading: allowed && catalog.loading, reload: catalog.reload };
 }

@@ -1,4 +1,4 @@
-import { Can, P, useAuth } from "@huponx/auth-client";
+import { Can, useAuth } from "@huponx/auth-client";
 import { Badge, Button, Card, CardContent, cn, iconTone, SplitButton, useAction, useFlash, useLoad, usePaged } from "@huponx/ui-kit";
 import { Check, X, ChevronDown, ChevronUp, KeyRound, Plus, ShieldCheck, UserCheck, UserMinus, UserRoundCheck, UserX, Users as UsersIcon, Clock, LogIn, Pencil } from "lucide-react";
 import { useState } from "react";
@@ -10,6 +10,7 @@ import { useConfirm } from "../components/ConfirmDialog";
 import { formatDate, formatDateTime } from "../lib/date";
 
 import { ActionLabel, Actions, BadgeList, DataTable, DoneAlert, ErrorAlert, LoadMore, Loading, PageTitle, ROW_ACTION, SelectField, TextField } from "../components/common";
+import { ROUTES } from "../authz";
 
 const ALL = "all"; // Radix Select has no empty value
 const n = (v: string | undefined) => Number(v ?? 0);
@@ -114,7 +115,7 @@ export function Users() {
   const [draft, setDraft] = useState<UserFilter>(initial);
   const [search, setSearch] = useState<UserFilter>(initial);
   const searchKey = JSON.stringify(search);
-  const roles = useLoad(() => (can(P.identity.roleRead) ? api.listRoles() : Promise.resolve(undefined)), [api, can]);
+  const roles = useLoad(() => (can(ROUTES.listRoles) ? api.listRoles() : Promise.resolve(undefined)), [api, can]);
   const set = (patch: UserFilter) => setDraft((d) => ({ ...d, ...patch }));
   const paged = usePaged(
     (token) => api.listUsers(search, token).then((r) => ({ items: r.users ?? [], next: r.nextPageToken ?? "" })),
@@ -137,7 +138,7 @@ export function Users() {
     <>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageTitle>{t("users.title")}</PageTitle>
-        <Can perm={P.identity.userWrite}>
+        <Can route={ROUTES.createUser}>
           <Button asChild>
             <Link to="/users/new">
               <Plus aria-hidden="true" />
@@ -238,7 +239,7 @@ export function Users() {
                   className: "text-right",
                   cell: (u) => (
                     <div className="flex items-center justify-end gap-2">
-                      {statusOf(u) === "awaiting_approval" && can(P.identity.userApprove) ? (
+                      {statusOf(u) === "awaiting_approval" && can(ROUTES.approveUser) ? (
                         <SplitButton
                           testId={`quick-${u.id}`}
                           busy={decide.busy}

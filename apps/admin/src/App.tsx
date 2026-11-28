@@ -4,6 +4,7 @@ import type { Crumb, SystemStyleReply, NavItem, ShellLabels, ShellLink } from "@
 import { useTranslation } from "react-i18next";
 import { matchPath, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { AccountMenu } from "./AccountMenu";
+import { Notifications } from "./Notifications";
 import { Loading } from "./components/common";
 import { allRoutes, routes, settingsRoute } from "./routes";
 import type { AppRoute } from "./routes";
@@ -18,7 +19,7 @@ function Message({ children }: { children: React.ReactNode }) {
 function Guarded({ route }: { route: AppRoute }) {
   const { can } = useAuth();
   const { t } = useTranslation();
-  if (route.perm && !can(route.perm)) return <Message>{t("common.notAllowed")}</Message>;
+  if (route.needs && !can(route.needs)) return <Message>{t("common.notAllowed")}</Message>;
   return route.element;
 }
 
@@ -35,7 +36,7 @@ function Shell() {
   const { pathname } = useLocation();
 
   const toItem = (r: AppRoute): NavItem => ({ to: r.path, label: t(r.labelKey), icon: r.icon, end: r.end, testId: r.testId });
-  const items = routes.filter((r) => !r.perm || can(r.perm)).map(toItem);
+  const items = routes.filter((r) => !r.needs || can(r.needs)).map(toItem);
 
   // Home > parent > ... > this page; every crumb but the last is a link
   const current = allRoutes.find((r) => r.path !== "/" && matchPath({ path: r.path, end: true }, pathname));
@@ -71,7 +72,7 @@ function Shell() {
       breadcrumbs={breadcrumbs}
       link={link}
       labels={labels}
-      userMenu={<AccountMenu />}
+      userMenu={<AccountMenu />} notifications={<Notifications />}
     >
       <Routes>
         {allRoutes.map((r) => (

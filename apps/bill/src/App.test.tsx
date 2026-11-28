@@ -6,9 +6,10 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { App } from "./App";
 import i18n from "./i18n";
+import { allowedOf } from "./test-rules";
 
 function renderApp(perms: string[], locale = "en") {
-  const me: Me = { sub: "ann", roles: ["user"], scopes: [], perms, amr: [], csrf_token: "c", expires_at: "2030-01-01T00:00:00Z" };
+  const me: Me = { sub: "ann", roles: ["user"], scopes: [], perms, allowed: allowedOf(perms), amr: [], csrf_token: "c", expires_at: "2030-01-01T00:00:00Z" };
   const client = createClient({
     apiBase: "https://api.example.com",
     fetch: async (url) => {

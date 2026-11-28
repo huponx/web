@@ -33,6 +33,17 @@
     },
     "portal": "Về cổng ứng dụng"
   },
+  "notifications": {
+    "title": "Thông báo",
+    "unread_one": "{{count}} thông báo chưa đọc",
+    "unread_other": "{{count}} thông báo chưa đọc",
+    "empty": "Chưa có gì mới.",
+    "markAllRead": "Đánh dấu đã đọc hết",
+    "archive": "Lưu trữ",
+    "loadMore": "Xem thêm",
+    "failed": "Không tải được thông báo.",
+    "retry": "Thử lại"
+  },
   "nav": {
     "home": "Trang chủ",
     "session": "Phiên đăng nhập",

@@ -1,4 +1,4 @@
-import { Can, P, useAuth } from "@huponx/auth-client";
+import { Can, useAuth } from "@huponx/auth-client";
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, iconTone, Tabs, TabsContent, TabsList, TabsTrigger, useAction, useFlash, usePaged } from "@huponx/ui-kit";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -9,6 +9,7 @@ import type { Role } from "../api";
 import { ActionLabel, Actions, BadgeList, ROW_ACTION, DataTable, DoneAlert, ErrorAlert, LoadMore, Loading, PageTitle } from "../components/common";
 import { useConfirm } from "../components/ConfirmDialog";
 import { SearchBar } from "../components/SearchBar";
+import { ROUTES } from "../authz";
 
 /** The catalog: what roles can be given. Read only, the services declare it; the wildcards are generated. */
 function PermissionCatalog() {
@@ -61,7 +62,7 @@ export function Roles() {
   const [query, setQuery] = useState("");
   const paged = usePaged((token) => api.listRolesPage(query, token), [api, query]);
   const { items: data, error, loading, reload } = paged;
-  const canCatalog = can(P.identity.permissionRead);
+  const canCatalog = can(ROUTES.listPermissions);
   const { confirm, dialog } = useConfirm();
   const del = useAction();
   // set by the edit page after it deleted the role
@@ -82,7 +83,7 @@ export function Roles() {
           {canCatalog ? <TabsTrigger value="permissions">{t("roles.tab.permissions")}</TabsTrigger> : null}
         </TabsList>
         <TabsContent value="roles">
-          <Can perm={P.identity.roleWrite}>
+          <Can route={ROUTES.putRole}>
             <Actions>
               <Button asChild>
                 <Link to="/roles/new">
@@ -123,7 +124,7 @@ export function Roles() {
                                 <ActionLabel icon={Pencil} iconClassName={iconTone.edit}>{t("roles.manage")}</ActionLabel>
                               </Link>
                             </Button>
-                            <Can perm={P.identity.roleWrite}>
+                            <Can route={ROUTES.createRole}>
                               <Button
                                 variant="destructive"
                                 size="sm"

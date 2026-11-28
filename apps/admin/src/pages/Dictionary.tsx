@@ -1,4 +1,4 @@
-import { Can, P, useAuth } from "@huponx/auth-client";
+import { Can, useAuth } from "@huponx/auth-client";
 import {
   Button,
   Card,
@@ -25,6 +25,7 @@ import {
   SelectField,
   TextField,
 } from "../components/common";
+import { ROUTES } from "../authz";
 
 const MAX_SAVED_LIMIT = 1_000_000;
 const MAX_RETENTION_HOURS = 8760;
@@ -61,7 +62,7 @@ function Editor({
   const { t } = useTranslation();
   const api = useIdentity();
   const { can } = useAuth();
-  const canWrite = can(P.dictionary.settingsWrite);
+  const canWrite = can(ROUTES.putDictSettings);
   const [max, setMax] = useState(String(initial.maxSavedWords));
   const [keep, setKeep] = useState(String(initial.exportedRetentionHours));
   const [maxCats, setMaxCats] = useState(String(initial.maxCategories));
@@ -329,7 +330,7 @@ function Editor({
       </Card>
       <ErrorAlert error={a.error} />
       <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
-      <Can perm={P.dictionary.settingsWrite}>
+      <Can route={ROUTES.putDictSettings}>
         <Actions>
           <Button type="submit" busy={a.busy} disabled={!oneOn}>
             {t("dictionary.save")}

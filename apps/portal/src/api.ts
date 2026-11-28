@@ -56,6 +56,8 @@ export function identityApi(c: AuthClient) {
     /** Starts the setup: the QR code and the key of the pending enrollment. */
     beginMyMfa: () => c.api<{ qr?: string; secret?: string }>("POST", "/api/me/mfa/setup", {}),
     confirmMyMfa: (code: string) => c.api<{ recoveryCodes?: string[] }>("POST", "/api/me/mfa", { code }),
+    /** Replaces the recovery codes (the old ones stop working) after the password and a code of the authenticator app. */
+    regenerateMyRecoveryCodes: (password: string, code: string) => c.api<{ recoveryCodes?: string[] }>("POST", "/api/me/mfa/recovery-codes", { password, code }),
     disableMyMfa: (password: string, code: string) => c.api<unknown>("POST", "/api/me/mfa/disable", { password, code }),
     /** The own passkeys; a 404 with the reason passkeys_off when the server has them turned off. */
     listMyPasskeys: () => c.api<{ passkeys?: MyPasskey[]; max?: number }>("GET", "/api/me/passkeys"),

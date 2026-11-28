@@ -1,4 +1,4 @@
-import { P, useAuth } from "@huponx/auth-client";
+import { useAuth } from "@huponx/auth-client";
 import {
   createContext,
   useCallback,
@@ -12,6 +12,7 @@ import type { TFunction } from "i18next";
 import { dictionaryOn, useDictionary } from "../api";
 import type { DictionaryGroup, DictionaryInfo } from "../api";
 import { useSettings } from "./settings";
+import { ROUTES } from "../authz";
 
 /** The name of a dictionary for the screen: `lookup.dictionaries.<id>`, the id itself when there is no translation. */
 export const dictionaryLabel = (t: TFunction, id: string): string =>
@@ -56,7 +57,7 @@ export function RegistryProvider({ children }: { children: ReactNode }) {
   const { can } = useAuth();
   const api = useDictionary();
   const { settings } = useSettings();
-  const allowed = can(P.dictionary.wordRead);
+  const allowed = can(ROUTES.listSaved);
   const [all, setAll] = useState<DictionaryGroup[]>([]);
   const [loaded, setLoaded] = useState(!allowed);
   const [picked, setPicked] = useState<string>();
