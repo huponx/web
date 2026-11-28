@@ -47,7 +47,7 @@ export function Templates() {
                       {(e.templates ?? []).map((x) => (
                         <Link
                           key={`${x.template ?? ""}/${x.locale}/${x.channel}`}
-                          to={templatePath(x.template ?? e.template, x.locale, x.channel)}
+                          to={templatePath(x.template || e.template, x.locale, x.channel)}
                           aria-label={t(x.template ? "templates.editDigestAria" : "templates.editAria", { type: e.type, locale: x.locale, channel: t(`templates.channel.${x.channel}`) })}
                         >
                           <Badge variant={x.customized ? "default" : "secondary"}>
