@@ -25,7 +25,8 @@ const EVENT_TYPES = {
       optional: ["link"],
       broadcast: true,
       templates: [
-        { locale: "en", channel: "email", customized: true, version: 2 },
+        // the JSON of the API sends an empty string, not a missing field, for a template that is not a digest
+        { locale: "en", channel: "email", template: "", customized: true, version: 2 },
         { locale: "en", channel: "in_app" },
         { locale: "vi", channel: "email" },
         { locale: "vi", channel: "in_app" },
