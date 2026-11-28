@@ -12,11 +12,11 @@ import {
   useLoad,
 } from "@huponx/ui-kit";
 import { Eraser } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useIdentity } from "../api";
-import type { DictionaryGroup, DictionarySettings } from "../api";
+import type { CleanupRun, DictionaryGroup, DictionarySettings } from "../api";
 import { formatBytes } from "../lib/bytes";
 import {
   ActionLabel,
@@ -354,42 +354,77 @@ function Editor({
   );
 }
 
-/** Runs the cleanup of the worker now (words that left the list, unused images and audio, files without a row). */
+/** How often the state of a cleanup is read while one is waiting or running. */
+const CLEANUP_POLL_MS = 2000;
+
+/**
+ * The cleanup of the worker (words that left the list, unused images and audio, files without a row): asks for it
+ * now, and follows the request until the worker is done.
+ */
 function Cleanup() {
   const { t } = useTranslation();
   const api = useIdentity();
   const a = useAction();
-  const [note, setNote] = useState<{ id: number; text: string }>();
-  async function run() {
+  const [run, setRun] = useState<CleanupRun>();
+  const [error, setError] = useState<unknown>();
+  const active = run?.status === "pending" || run?.status === "running";
+
+  useEffect(() => {
+    let live = true;
+    const read = () =>
+      api.getDictionaryCleanup().then(
+        (r) => live && (setRun(r), setError(undefined)),
+        (e) => live && setError(e),
+      );
+    void read();
+    if (!active) return () => void (live = false);
+    const timer = setInterval(() => void read(), CLEANUP_POLL_MS);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [api, active]);
+
+  async function ask() {
     const r = await a.run(() => api.runDictionaryCleanup());
-    if (!r) return;
-    setNote((n) => ({
-      id: (n?.id ?? 0) + 1,
-      text: t("dictionary.cleanupDone", { ...r }),
-    }));
+    if (r) setRun(r);
   }
   return (
-    <Can route={ROUTES.runDictCleanup}>
+    <Can route={ROUTES.getDictCleanup}>
       <Card>
         <CardHeader>
           <CardTitle>{t("dictionary.cleanup")}</CardTitle>
           <CardDescription>{t("dictionary.cleanupHint")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <ErrorAlert error={a.error} />
-          {note && <DoneAlert watch={note.id}>{note.text}</DoneAlert>}
-          <Actions>
-            <Button
-              type="button"
-              variant="outline"
-              busy={a.busy}
-              onClick={() => void run()}
+          <ErrorAlert error={a.error ?? error} />
+          {run?.status && (
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="cleanup-state"
             >
-              <ActionLabel icon={Eraser} iconClassName={iconTone.refresh}>
-                {t("dictionary.cleanupRun")}
-              </ActionLabel>
-            </Button>
-          </Actions>
+              {run.status === "failed"
+                ? t("dictionary.cleanupFailed", { error: run.error })
+                : run.status === "done"
+                  ? t("dictionary.cleanupDone", { ...run })
+                  : t(`dictionary.cleanup_${run.status}`)}
+            </p>
+          )}
+          <Can route={ROUTES.runDictCleanup}>
+            <Actions>
+              <Button
+                type="button"
+                variant="outline"
+                busy={a.busy}
+                disabled={active}
+                onClick={() => void ask()}
+              >
+                <ActionLabel icon={Eraser} iconClassName={iconTone.refresh}>
+                  {t("dictionary.cleanupRun")}
+                </ActionLabel>
+              </Button>
+            </Actions>
+          </Can>
         </CardContent>
       </Card>
     </Can>

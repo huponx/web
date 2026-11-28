@@ -225,17 +225,33 @@ export interface RecalculatedQuota extends UserQuota {
   previous: StorageQuota;
 }
 
-/** What a run of the cleanup of the dictionary deleted. */
-export interface CleanupResult {
+/** The latest cleanup of the dictionary an administrator asked for; the counts are what it deleted. */
+export interface CleanupRun {
+  /** "" when none was asked for yet. */
+  status: "" | "pending" | "running" | "done" | "failed";
   words: number;
   images: number;
   audio: number;
   orphanImages: number;
   orphanAudio: number;
+  error: string;
 }
 
 /** The gateway writes int64 as a JSON string (protobuf JSON). */
 type Int64 = string | number | undefined;
+
+function cleanupOf(r: Record<string, Int64 | string> = {}): CleanupRun {
+  const n = (k: string) => Number(r[k] ?? 0);
+  return {
+    status: (r.status as CleanupRun["status"] | undefined) ?? "",
+    words: n("words"),
+    images: n("images"),
+    audio: n("audio"),
+    orphanImages: n("orphanImages"),
+    orphanAudio: n("orphanAudio"),
+    error: String(r.error ?? ""),
+  };
+}
 
 function settingsOf(r: Record<string, unknown>): DictionarySettings {
   const n = (k: string) => Number(r[k] ?? 0);
@@ -518,17 +534,23 @@ export function identityApi(c: AuthClient) {
           {},
         )
         .then((r) => ({ ...userQuotaOf(r), previous: quotaOf(r.previous) })),
-    /** Runs the cleanup of the dictionary worker now; answers how much it deleted. */
-    runDictionaryCleanup: (): Promise<CleanupResult> =>
+    /** Asks the dictionary worker to run its cleanup now; answers at once with the request (pending). */
+    runDictionaryCleanup: (): Promise<CleanupRun> =>
       c
-        .api<Record<string, Int64>>("POST", "/api/dictionary/cleanup", {})
-        .then((r) => ({
-          words: Number(r.words ?? 0),
-          images: Number(r.images ?? 0),
-          audio: Number(r.audio ?? 0),
-          orphanImages: Number(r.orphanImages ?? 0),
-          orphanAudio: Number(r.orphanAudio ?? 0),
-        })),
+        .api<{ run?: Record<string, Int64 | string> }>(
+          "POST",
+          "/api/dictionary/cleanup",
+          {},
+        )
+        .then((r) => cleanupOf(r.run)),
+    /** The latest cleanup that was asked for. */
+    getDictionaryCleanup: (): Promise<CleanupRun> =>
+      c
+        .api<{ run?: Record<string, Int64 | string> }>(
+          "GET",
+          "/api/dictionary/cleanup",
+        )
+        .then((r) => cleanupOf(r.run)),
 
     // token exchange
     listPolicies: (
