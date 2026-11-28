@@ -26,6 +26,7 @@ export const ROUTES = {
   putUiStyle: "PUT /api/ui-style",
   getDictSettings: "GET /api/dictionary/settings",
   putDictSettings: "PUT /api/dictionary/settings",
+  runDictCleanup: "POST /api/dictionary/cleanup",
   courierEventTypes: "GET /api/courier/event-types",
   getTemplate: "GET /api/courier/templates/{template}/{locale}/{channel}",
   putTemplate: "PUT /api/courier/templates/{template}/{locale}/{channel}",

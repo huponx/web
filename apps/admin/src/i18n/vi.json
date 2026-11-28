@@ -375,6 +375,10 @@
     }
   },
   "dictionary": {
+    "cleanup": "Dọn dẹp",
+    "cleanupHint": "Chạy ngay việc dọn dẹp của từ điển thay vì đợi lượt chạy mỗi giờ: xóa các từ đã rời danh sách quá thời hạn lưu giữ, ảnh và audio không từ đã lưu nào dùng (khi đã cũ hơn một ngày) và các file không còn bản ghi.",
+    "cleanupRun": "Chạy dọn dẹp ngay",
+    "cleanupDone": "Đã dọn dẹp: xóa {{words}} từ, {{images}} ảnh, {{audio}} file audio, {{orphanImages}} ảnh mồ côi và {{orphanAudio}} audio mồ côi.",
     "title": "Từ điển",
     "intro": "Cài đặt của từ điển cho mọi người dùng.",
     "limits": "Giới hạn",
