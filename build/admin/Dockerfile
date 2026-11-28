@@ -11,11 +11,8 @@ FROM node:${NODE_VERSION}-alpine AS build
 WORKDIR /src
 RUN corepack enable
 # dependencies first: only the lockfile decides this layer
-# .npmrc points @huponx at GitHub Packages; the token comes from a BuildKit secret and is never stored in a layer
-COPY .npmrc pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-RUN --mount=type=secret,id=node_auth_token \
-    --mount=type=cache,target=/root/.local/share/pnpm/store \
-    NODE_AUTH_TOKEN="$(cat /run/secrets/node_auth_token)" pnpm fetch
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm fetch
 COPY . .
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --offline --frozen-lockfile
 # the app and the packages it depends on

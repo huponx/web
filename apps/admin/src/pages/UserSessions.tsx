@@ -1,4 +1,4 @@
-import { Can, P } from "@huponx/auth-client";
+import { Can } from "@huponx/auth-client";
 import { Button, SessionsPanel, useAction, useLoad } from "@huponx/ui-kit";
 import { useTranslation } from "react-i18next";
 import { useIdentity } from "../api";
@@ -6,6 +6,7 @@ import type { User } from "../api";
 import { useConfirm } from "../components/ConfirmDialog";
 import { Actions, DoneAlert, ErrorAlert, Loading } from "../components/common";
 import { sessionsLabels } from "../lib/sessionsLabels";
+import { ROUTES } from "../authz";
 
 /**
  * The sessions of a user, read-only (an administrator ends all of them, never one): the list needs
@@ -29,7 +30,7 @@ export function UserSessions({ user }: { user: User }) {
       <p className="text-sm text-muted-foreground">{t("users.sessions.description")}</p>
       <ErrorAlert error={error} />
       {data ? <SessionsPanel sessions={data} language={i18n.resolvedLanguage ?? "en"} labels={sessionsLabels(t)} /> : error ? null : <Loading />}
-      <Can perm={P.identity.userWrite}>
+      <Can route={ROUTES.putUser}>
         <Actions className="justify-start">
           <Button variant="destructive" busy={a.busy} disabled={!data?.length} onClick={() => void revokeAll()}>
             {t("users.sessions.revokeAll")}

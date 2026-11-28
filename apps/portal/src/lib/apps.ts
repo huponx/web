@@ -7,8 +7,8 @@ export interface PortalApp {
   url: string;
   /** A name of ICONS; anything else shows the first letter. */
   icon?: string;
-  /** The permission that shows the card; without one every signed in user sees it. */
-  perm?: string;
+  /** The route or capability the user must be allowed (a key of /auth/me `allowed`) to see the card; without one every signed in user sees it. */
+  can?: string;
   /** A name of WIDGETS: the card shows a panel instead of the plain card. */
   widget?: Widget;
 }
@@ -42,7 +42,7 @@ function safeUrl(raw: string, allowHttp: boolean): string | undefined {
 }
 
 /**
- * Reads APPS (a JSON string of `[{name, url, icon?, perm?, widget?}]`). It never throws: a missing or broken value is no
+ * Reads APPS (a JSON string of `[{name, url, icon?, can?, widget?}]`). It never throws: a missing or broken value is no
  * application, and an entry with a missing name or an address that is not https (http on localhost) is dropped.
  */
 export function parseApps(raw: string | undefined, allowHttp = localhost()): PortalApp[] {
@@ -57,7 +57,7 @@ export function parseApps(raw: string | undefined, allowHttp = localhost()): Por
   const apps: PortalApp[] = [];
   for (const e of data as unknown[]) {
     if (typeof e !== "object" || e === null) continue;
-    const { name, url, icon, perm, widget } = e as Record<string, unknown>;
+    const { name, url, icon, can, widget } = e as Record<string, unknown>;
     if (typeof name !== "string" || typeof url !== "string") continue;
     const n = name.trim();
     const href = safeUrl(url, allowHttp);
@@ -66,14 +66,14 @@ export function parseApps(raw: string | undefined, allowHttp = localhost()): Por
       name: n,
       url: href,
       icon: typeof icon === "string" ? icon : undefined,
-      perm: typeof perm === "string" && perm ? perm : undefined,
+      can: typeof can === "string" && can ? can : undefined,
       widget: WIDGETS.find((w) => w === widget),
     });
   }
   return apps;
 }
 
-/** The applications the user may use: those without a permission, and those whose permission the user holds. */
-export function visibleApps(apps: PortalApp[], can: (perm: string) => boolean): PortalApp[] {
-  return apps.filter((a) => !a.perm || can(a.perm));
+/** The applications the user may use: those without a `can`, and those whose `can` key the user is allowed. */
+export function visibleApps(apps: PortalApp[], allowed: (key: string) => boolean): PortalApp[] {
+  return apps.filter((a) => !a.can || allowed(a.can));
 }

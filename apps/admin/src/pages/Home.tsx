@@ -1,4 +1,4 @@
-import { P, useAuth } from "@huponx/auth-client";
+import { useAuth } from "@huponx/auth-client";
 import { Badge, Button, buttonVariants, Card, CardContent, cn, iconTone, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tip, useLoad } from "@huponx/ui-kit";
 import { Plus, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
@@ -8,6 +8,7 @@ import { useIdentity } from "../api";
 import type { SystemApp } from "../api";
 import { ErrorAlert, Loading, PageTitle } from "../components/common";
 import { formatDateTime } from "../lib/date";
+import { ROUTES } from "../authz";
 
 /** A number with a line of context under it; `to` makes the whole card a link. */
 function StatCard({ id, label, value, hint, to }: { id: string; label: string; value: ReactNode; hint?: ReactNode; to?: string }) {
@@ -44,9 +45,9 @@ function Stats() {
   const { t } = useTranslation();
   const api = useIdentity();
   const { can } = useAuth();
-  const users = useLoad(() => (can(P.identity.userRead) ? api.getUserStats() : Promise.resolve(undefined)), [api, can]);
-  const roles = useLoad(() => (can(P.identity.roleRead) ? api.countRoles() : Promise.resolve(undefined)), [api, can]);
-  const perms = useLoad(() => (can(P.identity.permissionRead) ? api.countPermissions() : Promise.resolve(undefined)), [api, can]);
+  const users = useLoad(() => (can(ROUTES.userStats) ? api.getUserStats() : Promise.resolve(undefined)), [api, can]);
+  const roles = useLoad(() => (can(ROUTES.listRoles) ? api.countRoles() : Promise.resolve(undefined)), [api, can]);
+  const perms = useLoad(() => (can(ROUTES.listPermissions) ? api.countPermissions() : Promise.resolve(undefined)), [api, can]);
   const s = users.data;
   const total = num(s?.total);
   const active = num(s?.active);
@@ -84,16 +85,16 @@ function Stats() {
 }
 
 const quick = [
-  { id: "add-user", to: "/users/new", perm: P.identity.userWrite, key: "home.quick.addUser" },
-  { id: "create-role", to: "/roles/new", perm: P.identity.roleWrite, key: "home.quick.createRole" },
-  { id: "add-client", to: "/clients/new", perm: P.identity.clientWrite, key: "home.quick.addClient" },
-  { id: "add-exchange", to: "/exchange/new", perm: P.identity.exchangeWrite, key: "home.quick.addExchange" },
+  { id: "add-user", to: "/users/new", needs: ROUTES.createUser, key: "home.quick.addUser" },
+  { id: "create-role", to: "/roles/new", needs: ROUTES.createRole, key: "home.quick.createRole" },
+  { id: "add-client", to: "/clients/new", needs: ROUTES.createClient, key: "home.quick.addClient" },
+  { id: "add-exchange", to: "/exchange/new", needs: ROUTES.putExchange, key: "home.quick.addExchange" },
 ] as const;
 
 function QuickActions() {
   const { t } = useTranslation();
   const { can } = useAuth();
-  const allowed = quick.filter((q) => can(q.perm));
+  const allowed = quick.filter((q) => can(q.needs));
   if (allowed.length === 0) return null;
   return (
     <section className="flex flex-col gap-3" aria-label={t("home.quick.title")}>
@@ -148,7 +149,7 @@ function SystemStatus() {
   const { t, i18n } = useTranslation();
   const api = useIdentity();
   const { can } = useAuth();
-  const allowed = can(P.system.statusRead);
+  const allowed = can(ROUTES.systemStatus);
   const status = useLoad(() => (allowed ? api.systemStatus() : Promise.resolve(undefined)), [api, allowed]);
   if (!allowed) return null;
   if (status.error) {

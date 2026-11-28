@@ -45,6 +45,17 @@
       "system": "System"
     }
   },
+  "notifications": {
+    "title": "Notifications",
+    "unread_one": "{{count}} unread notification",
+    "unread_other": "{{count}} unread notifications",
+    "empty": "Nothing new.",
+    "markAllRead": "Mark all read",
+    "archive": "Archive",
+    "loadMore": "Show more",
+    "failed": "Could not load notifications.",
+    "retry": "Try again"
+  },
   "nav": {
     "home": "Home",
     "users": "Users",
@@ -61,7 +72,12 @@
     "clientNew": "Add",
     "clientEdit": "Edit",
     "exchangeNew": "Add",
-    "exchangeEdit": "Edit"
+    "exchangeEdit": "Edit",
+    "templates": "Message templates",
+    "announcements": "Announcements",
+    "deliveries": "Delivery log",
+    "templateEdit": "Edit template",
+    "webhooks": "Webhooks"
   },
   "home": {
     "title": "Admin Portal",
@@ -688,5 +704,160 @@
     "confirmRevokeOthers": "Sign out of every session except this one? Those devices have to sign in again.",
     "revoked": "Session signed out.",
     "revokedOthers": "Signed out of the other sessions."
+  },
+  "templates": {
+    "title": "Message templates",
+    "intro": "The messages the system sends. Each language and channel can be edited; a built-in template is used until you save one.",
+    "mandatory": "mandatory",
+    "editAria": "Edit {{type}}, {{locale}}, {{channel}}",
+    "col": {
+      "type": "Event",
+      "templates": "Templates (language, channel)"
+    },
+    "channel": {
+      "email": "E-mail",
+      "telegram": "Telegram",
+      "in_app": "In the app"
+    },
+    "digest": "grouped within {{window}}",
+    "digestBadge": "digest",
+    "editDigestAria": "Edit the digest of {{type}}, {{locale}}, {{channel}}"
+  },
+  "templateEditor": {
+    "intro": "Changes reach the senders within half a minute.",
+    "customized": "Edited, version {{version}}",
+    "builtIn": "Built in",
+    "updatedBy": "by {{by}}, {{at}}",
+    "content": "Content",
+    "keys": "Values you can use:",
+    "title": "Title",
+    "subject": "Subject",
+    "body": "Body",
+    "text": "Text",
+    "html": "HTML",
+    "htmlHint": "Optional. It is set into the page layout of the e-mails.",
+    "preview": "Preview",
+    "previewTitle": "Preview",
+    "previewHint": "Rendered with sample values. Nothing is saved.",
+    "saved": "Template saved.",
+    "revert": "Back to built-in",
+    "confirmRevert": "Drop the edited template and use the built-in one? The versions stay in the history.",
+    "reverted": "The built-in template is used again.",
+    "versions": "Versions",
+    "noVersions": "No version yet: the built-in template is in use.",
+    "useVersion": "Use this version",
+    "revertedEntry": "back to built-in",
+    "digestIntro": "The message that replaces several events of this type that come within {{window}}. It can use count and items (one line per event)."
+  },
+  "announcements": {
+    "title": "Announcements",
+    "intro": "Send a message to everyone, a role or chosen users. It reaches them in the app and by e-mail, in their language.",
+    "new": "New announcement",
+    "newHint": "The choices of the users apply: someone who turned the e-mail or the app off for the system category does not get it there.",
+    "to": "Send to",
+    "role": "Role",
+    "userIds": "User ids",
+    "userIdsHint": "Separated by spaces, commas or new lines.",
+    "subject": "Title",
+    "message": "Message",
+    "link": "Link",
+    "linkHint": "Optional: a page to open from the notification.",
+    "send": "Send",
+    "confirm": "Send this announcement to {{who}}? It cannot be recalled.",
+    "sent": "Announcement sent.",
+    "history": "Sent announcements",
+    "skipped": "{{count}} not reached",
+    "audience": {
+      "all": "Everyone",
+      "role": "A role",
+      "users": "Chosen users",
+      "everyone": "everyone",
+      "roleOf": "role {{role}}",
+      "usersOf_one": "{{count}} user",
+      "usersOf_other": "{{count}} users"
+    },
+    "col": {
+      "when": "Sent",
+      "audience": "To",
+      "recipients": "Users",
+      "by": "By",
+      "channels": "Channels"
+    },
+    "channels": {
+      "title": "Channels",
+      "hint": "Users' own choices still apply: someone who turned a channel off for the System category does not get it there.",
+      "none": "Choose at least one channel.",
+      "all": "all",
+      "email": "E-mail",
+      "in_app": "In the app (bell)",
+      "push": "Browser notification"
+    }
+  },
+  "deliveries": {
+    "title": "Delivery log",
+    "intro": "Every e-mail and Telegram message: to whom, and how it went. A failed or dead delivery can be sent again.",
+    "retry": "Retry",
+    "retryAria": "Retry the message to {{address}}",
+    "retried": "Queued again.",
+    "filter": {
+      "status": "Status",
+      "channel": "Channel",
+      "address": "Address",
+      "user": "User id",
+      "notification": "Notification id",
+      "any": "Any"
+    },
+    "status": {
+      "DELIVERY_STATUS_PENDING": "Waiting",
+      "DELIVERY_STATUS_SENT": "Sent",
+      "DELIVERY_STATUS_FAILED": "Failed",
+      "DELIVERY_STATUS_DEAD": "Gave up",
+      "DELIVERY_STATUS_SKIPPED": "Skipped"
+    },
+    "col": {
+      "when": "When",
+      "event": "Event",
+      "to": "To",
+      "status": "Status",
+      "attempts": "Attempts",
+      "actions": "Actions",
+      "events": "Events"
+    },
+    "merged": "{{count}} events in one message"
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "intro": "Send events to Slack or to your own service. Each webhook gets the events it subscribes to, once per event.",
+    "add": "Add a webhook",
+    "new": "New webhook",
+    "edit": "Edit",
+    "name": "Name",
+    "kind": "Kind",
+    "kinds": {
+      "slack": "Slack (incoming webhook)",
+      "generic": "Signed JSON"
+    },
+    "url": "URL",
+    "urlHint": "https only. A Slack URL is a secret: only administrators see this page.",
+    "events": "Events",
+    "eventsHint": "Security and account events never go to a webhook: they carry links and codes.",
+    "eventsExamples": "One per line or separated by spaces: bvchain.failed, bvchain.*, or * for all.",
+    "enabled": "Enabled",
+    "secretTitle": "Signing secret",
+    "secretHint": "Shown once: copy it now. Each request carries X-Courier-Timestamp and X-Courier-Signature (sha256= HMAC of \"<timestamp>.<body>\").",
+    "rotate": "New secret",
+    "saved": "Webhook saved.",
+    "deleted": "Webhook deleted.",
+    "confirmDelete": "Delete the webhook {{name}}? Messages not sent yet to it fail.",
+    "status": "Status",
+    "on": "On",
+    "off": "Off",
+    "actions": "Actions",
+    "test": "Test",
+    "testAria": "Send a test to {{name}}",
+    "editAria": "Edit {{name}}",
+    "deleteAria": "Delete {{name}}",
+    "testOk": "The endpoint answered.",
+    "testFailed": "The test failed."
   }
 }

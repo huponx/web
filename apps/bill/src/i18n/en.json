@@ -33,6 +33,17 @@
     },
     "portal": "Back to the portal"
   },
+  "notifications": {
+    "title": "Notifications",
+    "unread_one": "{{count}} unread notification",
+    "unread_other": "{{count}} unread notifications",
+    "empty": "Nothing new.",
+    "markAllRead": "Mark all read",
+    "archive": "Archive",
+    "loadMore": "Show more",
+    "failed": "Could not load notifications.",
+    "retry": "Try again"
+  },
   "nav": {
     "home": "Home",
     "session": "Session",

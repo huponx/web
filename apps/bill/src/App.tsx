@@ -1,14 +1,16 @@
-import { Can, P, RequireAuth, useAuth } from "@huponx/auth-client";
+import { Can, RequireAuth, useAuth } from "@huponx/auth-client";
 import { AppShell, Button, Loading, UiMessagesProvider, systemStyleOf, translateApiError, useSystemStyle } from "@huponx/ui-kit";
 import type { Crumb, NavItem, ShellLabels, ShellLink, SystemStyleReply } from "@huponx/ui-kit";
 import { Home as HomeIcon, KeyRound, Receipt } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { AccountMenu } from "./AccountMenu";
+import { Notifications } from "./Notifications";
 import { BillLogo } from "./Logo";
 import { Home } from "./pages/Home";
 import { Invoices } from "./pages/Invoices";
 import { Session } from "./pages/Session";
+import { ROUTES } from "./authz";
 
 // NavLink of React Router fits the link of the shell
 const link = NavLink as unknown as ShellLink;
@@ -32,7 +34,7 @@ function Shell() {
   const session: NavItem = { to: "/session", label: t("nav.session"), icon: KeyRound };
   const invoices: NavItem = { to: "/invoices", label: t("nav.invoices"), icon: Receipt };
   // the menu only shows what the user may use; the gateway checks the permission again
-  const items = [home, session, ...(can(P.bill.invoiceRead) ? [invoices] : [])];
+  const items = [home, session, ...(can(ROUTES.invoices) ? [invoices] : [])];
   const current = items.find((i) => i.to !== "/" && i.to === pathname);
   const breadcrumbs: Crumb[] = [{ label: home.label, to: current ? "/" : undefined }, ...(current ? [{ label: current.label }] : [])];
   const labels: ShellLabels = {
@@ -46,14 +48,14 @@ function Shell() {
     theme: { group: t("shell.theme.group"), light: t("shell.theme.light"), dark: t("shell.theme.dark"), system: t("shell.theme.system") },
   };
   return (
-    <AppShell pageKey={pathname} logo={<BillLogo />} brand={t("shell.brand")} items={items} breadcrumbs={breadcrumbs} link={link} labels={labels} userMenu={<AccountMenu />}>
+    <AppShell pageKey={pathname} logo={<BillLogo />} brand={t("shell.brand")} items={items} breadcrumbs={breadcrumbs} link={link} labels={labels} userMenu={<AccountMenu />} notifications={<Notifications />}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/session" element={<Session />} />
         <Route
           path="/invoices"
           element={
-            <Can perm={P.bill.invoiceRead} fallback={<Message>{t("common.notAllowed")}</Message>}>
+            <Can route={ROUTES.invoices} fallback={<Message>{t("common.notAllowed")}</Message>}>
               <Invoices />
             </Can>
           }

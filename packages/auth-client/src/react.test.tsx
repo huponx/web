@@ -3,7 +3,7 @@ import { createClient } from "./client";
 import type { Me } from "./client";
 import { AuthProvider, Can, RequireAuth } from "./react";
 
-const base: Me = { sub: "u1", roles: [], scopes: [], perms: ["identity:role:read"], amr: [], csrf_token: "c", expires_at: "2030-01-01T00:00:00Z" };
+const base: Me = { sub: "u1", roles: [], scopes: [], perms: ["identity:role:read"], allowed: ["GET /api/roles", "bill.invoices"], amr: [], csrf_token: "c", expires_at: "2030-01-01T00:00:00Z" };
 
 function make(status: number, me?: Me, storedAttempt = false) {
   const navigated: string[] = [];
@@ -85,21 +85,21 @@ describe("RequireAuth", () => {
 });
 
 describe("Can", () => {
-  it("shows or hides by permission", async () => {
+  it("shows or hides by route", async () => {
     const { client } = make(200, base);
     render(
       <AuthProvider client={client}>
         <RequireAuth>
-          <Can perm="identity:role:read">
+          <Can route="GET /api/roles">
             <span>read</span>
           </Can>
-          <Can perm="identity:role:write" fallback={<span>no write</span>}>
+          <Can route="PUT /api/roles/{role}" fallback={<span>no write</span>}>
             <span>write</span>
           </Can>
-          <Can any={["identity:client:read", "identity:role:read"]}>
+          <Can any={["GET /api/clients", "GET /api/roles"]}>
             <span>any</span>
           </Can>
-          <Can all={["identity:client:read", "identity:role:read"]} fallback={<span>not all</span>}>
+          <Can all={["GET /api/clients", "GET /api/roles"]} fallback={<span>not all</span>}>
             <span>all</span>
           </Can>
         </RequireAuth>

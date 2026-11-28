@@ -11,6 +11,11 @@ export interface Me {
   roles: string[];
   scopes: string[];
   perms: string[];
+  /**
+   * What the user may call, computed by the gateway from the rule of every route: the keys of routes.yaml
+   * ("GET /api/users") and the names of its capabilities ("bill.invoices"). Ask it through `can`.
+   */
+  allowed: string[];
   amr: string[];
   csrf_token: string;
   expires_at: string;

@@ -1,0 +1,39 @@
+/**
+ * What the UI asks the gateway through `can()`: a route of the gateway's routes.yaml ("METHOD /path"), or a named
+ * capability of its `capabilities:` section. The gateway answers from the rule of the RPC, so the app knows no
+ * permission name. A key that is not in routes.yaml is never allowed (the UI hides); authz.test.ts checks them.
+ */
+export const ROUTES = {
+  listUsers: "GET /api/users",
+  getUser: "GET /api/users/{user_id}",
+  getUserSessions: "GET /api/users/{user_id}/sessions",
+  userStats: "GET /api/user-stats",
+  createUser: "POST /api/users",
+  putUser: "PUT /api/users/{user_id}",
+  approveUser: "POST /api/users/{user_id}/approve",
+  getUserMfa: "GET /api/users/{user_id}/mfa",
+  putUserMfa: "PUT /api/users/{user_id}/mfa",
+  listRoles: "GET /api/roles",
+  createRole: "POST /api/roles",
+  putRole: "PUT /api/roles/{role}",
+  listPermissions: "GET /api/permissions",
+  listClients: "GET /api/clients",
+  createClient: "POST /api/clients",
+  putClient: "PUT /api/clients/{client_id}",
+  listExchange: "GET /api/exchange-policies",
+  putExchange: "PUT /api/exchange-policies",
+  getRegistrationSettings: "GET /api/registration-settings",
+  putUiStyle: "PUT /api/ui-style",
+  getDictSettings: "GET /api/dictionary/settings",
+  putDictSettings: "PUT /api/dictionary/settings",
+  courierEventTypes: "GET /api/courier/event-types",
+  getTemplate: "GET /api/courier/templates/{template}/{locale}/{channel}",
+  putTemplate: "PUT /api/courier/templates/{template}/{locale}/{channel}",
+  listBroadcasts: "GET /api/courier/broadcasts",
+  createBroadcast: "POST /api/courier/broadcasts",
+  listWebhooks: "GET /api/courier/webhooks",
+  putWebhook: "PUT /api/courier/webhooks/{id}",
+  listDeliveries: "GET /api/courier/deliveries",
+  retryDelivery: "POST /api/courier/deliveries/{delivery_id}/retry",
+  systemStatus: "system.status",
+} as const;

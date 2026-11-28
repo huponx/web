@@ -1,4 +1,4 @@
-import { Can, P, RequireAuth, useAuth } from "@huponx/auth-client";
+import { Can, RequireAuth, useAuth } from "@huponx/auth-client";
 import {
   AppShell,
   Button,
@@ -21,6 +21,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { AccountMenu } from "./AccountMenu";
+import { Notifications } from "./Notifications";
 import { DictLogo } from "./Logo";
 import { Lookup, LookupMemoProvider } from "./pages/Lookup";
 import { RegistryProvider } from "./lib/registry";
@@ -29,6 +30,7 @@ import { RemovePrompt } from "./RemovePrompt";
 import { Review } from "./pages/Review";
 import { Saved } from "./pages/Saved";
 import { Settings } from "./pages/Settings";
+import { ROUTES } from "./authz";
 
 // NavLink of React Router fits the link of the shell
 const link = NavLink as unknown as ShellLink;
@@ -53,7 +55,7 @@ function Shell() {
 
   // the menu only shows what the user may use; the gateway checks the permission again
   const items: NavItem[] = [];
-  if (can(P.dictionary.wordRead)) {
+  if (can(ROUTES.listSaved)) {
     items.push({
       to: "/",
       label: t("nav.lookup"),
@@ -76,7 +78,7 @@ function Shell() {
   }
 
   // pinned to the bottom of the sidebar, like the admin app
-  const bottomItems: NavItem[] = can(P.dictionary.wordRead)
+  const bottomItems: NavItem[] = can(ROUTES.listSaved)
     ? [
         {
           to: "/settings",
@@ -125,13 +127,13 @@ function Shell() {
             breadcrumbs={breadcrumbs}
             link={link}
             labels={labels}
-            userMenu={<AccountMenu />}
+            userMenu={<AccountMenu />} notifications={<Notifications />}
           >
             <Routes>
               <Route
                 path="/"
                 element={
-                  <Can perm={P.dictionary.wordRead} fallback={denied}>
+                  <Can route={ROUTES.listSaved} fallback={denied}>
                     <Lookup />
                   </Can>
                 }
@@ -139,7 +141,7 @@ function Shell() {
               <Route
                 path="/saved"
                 element={
-                  <Can perm={P.dictionary.wordRead} fallback={denied}>
+                  <Can route={ROUTES.listSaved} fallback={denied}>
                     <Saved />
                   </Can>
                 }
@@ -147,7 +149,7 @@ function Shell() {
               <Route
                 path="/review"
                 element={
-                  <Can perm={P.dictionary.wordRead} fallback={denied}>
+                  <Can route={ROUTES.listSaved} fallback={denied}>
                     <Review />
                   </Can>
                 }
@@ -155,7 +157,7 @@ function Shell() {
               <Route
                 path="/settings"
                 element={
-                  <Can perm={P.dictionary.wordRead} fallback={denied}>
+                  <Can route={ROUTES.listSaved} fallback={denied}>
                     <Settings />
                   </Can>
                 }

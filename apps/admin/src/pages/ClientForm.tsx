@@ -1,4 +1,4 @@
-import { Can, P, useAuth } from "@huponx/auth-client";
+import { Can, useAuth } from "@huponx/auth-client";
 import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -10,6 +10,7 @@ import { Actions, DoneAlert, ErrorAlert, Loading, Modal, PageTitle, SelectField,
 import { useConfirm } from "../components/ConfirmDialog";
 import { GrantCards, PUBLIC_GRANTS, ScopeField } from "../components/ClientAccess";
 import { RoleCards } from "../components/RoleCards";
+import { ROUTES } from "../authz";
 
 /** The client secret is shown once: the server keeps only a hash. */
 function SecretOnce({ clientId, secret, onClose }: { clientId: string; secret: string; onClose: () => void }) {
@@ -37,7 +38,7 @@ function Editor({ client, reload, createdNote }: { client?: IdentityClient; relo
   const navigate = useNavigate();
   const { can } = useAuth();
   const editing = Boolean(client);
-  const canWrite = can(P.identity.clientWrite);
+  const canWrite = can(ROUTES.putClient);
   const [id, setId] = useState(client?.clientId ?? "");
   const [name, setName] = useState(client?.name ?? "");
   const [type, setType] = useState<ClientType>(client?.type ?? "CLIENT_TYPE_CONFIDENTIAL");
@@ -143,14 +144,14 @@ function Editor({ client, reload, createdNote }: { client?: IdentityClient; relo
             <ScopeField value={scopes} onChange={setScopes} disabled={!canWrite} />
           </CardContent>
         </Card>
-        <Can perm={P.identity.roleRead}>
+        <Can route={ROUTES.listRoles}>
           <Card>
             <CardHeader>
               <CardTitle>{t("clients.new.roles")}</CardTitle>
               <CardDescription>{t("clients.new.rolesHint")}</CardDescription>
             </CardHeader>
             <CardContent>
-              <RoleCards selected={roles} onChange={setRoles} disabled={!canWrite || (editing && !can(P.identity.roleWrite))} />
+              <RoleCards selected={roles} onChange={setRoles} disabled={!canWrite || (editing && !can(ROUTES.putRole))} />
             </CardContent>
           </Card>
         </Can>
@@ -299,7 +300,7 @@ export function ClientForm() {
         reload={clients.reload}
         createdNote={state?.created ? t("clients.form.created", { id: state.created }) : undefined}
       />
-      <Can perm={P.identity.clientWrite}>
+      <Can route={ROUTES.putClient}>
         {client.type === "CLIENT_TYPE_CONFIDENTIAL" ? <RotateCard client={client} /> : null}
         <DangerCard client={client} reload={clients.reload} />
       </Can>

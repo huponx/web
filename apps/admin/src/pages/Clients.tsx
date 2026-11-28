@@ -1,4 +1,4 @@
-import { Can, P } from "@huponx/auth-client";
+import { Can } from "@huponx/auth-client";
 import { Badge, Button, Card, CardContent, iconTone, useFlash, usePaged } from "@huponx/ui-kit";
 import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { useIdentity } from "../api";
 import type { ClientType } from "../api";
 import { ActionLabel, Actions, BadgeList, DataTable, DoneAlert, ErrorAlert, LoadMore, Loading, PageTitle, ROW_ACTION, SelectField, TextField } from "../components/common";
+import { ROUTES } from "../authz";
 
 const ALL = "all";
 
@@ -31,7 +32,7 @@ export function Clients() {
   return (
     <>
       <PageTitle>{t("clients.title")}</PageTitle>
-      <Can perm={P.identity.clientWrite}>
+      <Can route={ROUTES.createClient}>
         <Actions>
           <Button asChild>
             <Link to="/clients/new">

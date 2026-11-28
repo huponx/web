@@ -1,6 +1,6 @@
 import { ApiError } from "@huponx/auth-client";
 import { Alert, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, ErrorAlert, iconTone, Stepper, TextField, useAction } from "@huponx/ui-kit";
-import { MoreHorizontal, RefreshCw, ShieldCheck, ShieldOff } from "lucide-react";
+import { KeyRound, MoreHorizontal, RefreshCw, ShieldCheck, ShieldOff } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,8 +9,11 @@ import type { MyMfa } from "../api";
 
 type Step = 1 | 2 | 3;
 
-/** Leaving MFA or replacing the authenticator: a dialog of two steps, the password and a code only after the user went on. */
-type Action = "disable" | "change";
+/** Leaving MFA, replacing the authenticator or the recovery codes: a dialog of two steps, the password and a code only after the user went on. */
+type Action = "disable" | "change" | "codes";
+
+/** With this many recovery codes left or fewer, the row warns and offers new ones. */
+const LOW_CODES = 2;
 
 /**
  * Multi-factor authentication of the user, on the portal. Turning it on is a wizard in a dialog: connect the
@@ -102,6 +105,14 @@ export function Mfa() {
       a.clear();
       return;
     }
+    if (action === "codes") {
+      const r = await a.run(() => api.regenerateMyRecoveryCodes(password, code.trim()));
+      if (!r) return; // refused: the error is in the dialog, nothing changed
+      closeAction();
+      setCodes(r.recoveryCodes ?? []);
+      setStep(3);
+      return;
+    }
     const next = await a.run(async () => {
       await api.disableMyMfa(password, code.trim());
       return action === "change" ? await api.beginMyMfa() : null;
@@ -139,38 +150,57 @@ export function Mfa() {
   if (off) return null;
 
   const wizard = setup !== undefined || codes !== undefined;
+  const fromRegenerate = setup === undefined && codes !== undefined; // new codes only: no setup steps around them
+  const codesLeft = status?.recoveryCodesLeft ?? 0;
   let body;
   if (loadError) {
     body = <ErrorAlert error={loadError} />;
   } else if (status?.enabled && !codes) {
-    body = status.forced ? (
-      <Alert>{t("security.mfa.forced")}</Alert>
-    ) : (
-      <div className="flex items-center gap-3 rounded-md border p-3" data-testid="mfa-row">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <ShieldCheck className="size-4" aria-hidden="true" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-medium">{t("security.mfa.authenticator")}</div>
-          <div className="text-xs text-muted-foreground">{t("security.mfa.codesLeft", { count: status.recoveryCodesLeft ?? 0 })}</div>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" size="icon-sm" aria-label={t("security.mfa.actions")}>
-              <MoreHorizontal aria-hidden="true" />
+    body = (
+      <div className="flex flex-col gap-3">
+        {status.forced ? <Alert>{t("security.mfa.forced")}</Alert> : null}
+        {codesLeft <= LOW_CODES ? (
+          <Alert variant="warning" className="flex items-center justify-between gap-3">
+            <span>{t("security.mfa.lowCodes", { count: codesLeft })}</span>
+            <Button type="button" size="sm" variant="outline" onClick={() => openAction("codes")}>
+              {t("security.mfa.regenerateShort")}
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => openAction("change")}>
-              <RefreshCw aria-hidden="true" className={iconTone.refresh} />
-              {t("security.mfa.change")}
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => openAction("disable")}>
-              <ShieldOff aria-hidden="true" />
-              {t("security.mfa.disable")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </Alert>
+        ) : null}
+        <div className="flex items-center gap-3 rounded-md border p-3" data-testid="mfa-row">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <ShieldCheck className="size-4" aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate font-medium">{t("security.mfa.authenticator")}</div>
+            <div className="text-xs text-muted-foreground">{t("security.mfa.codesLeft", { count: codesLeft })}</div>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label={t("security.mfa.actions")}>
+                <MoreHorizontal aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => openAction("codes")}>
+                <KeyRound aria-hidden="true" className={iconTone.refresh} />
+                {t("security.mfa.regenerate")}
+              </DropdownMenuItem>
+              {status.forced ? null : (
+                <>
+                  <DropdownMenuItem onSelect={() => openAction("change")}>
+                    <RefreshCw aria-hidden="true" className={iconTone.refresh} />
+                    {t("security.mfa.change")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => openAction("disable")}>
+                    <ShieldOff aria-hidden="true" />
+                    {t("security.mfa.disable")}
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     );
   } else if (status && !wizard) {
@@ -200,20 +230,24 @@ export function Mfa() {
         <DialogContent closeLabel={t("common.close")}>
           <form className="flex flex-col gap-4" onSubmit={(ev) => void submitAction(ev)}>
             <DialogHeader>
-              <DialogTitle>{action === "change" ? t("security.mfa.changeTitle") : t("security.mfa.disableTitle")}</DialogTitle>
+              <DialogTitle>{action === "change" ? t("security.mfa.changeTitle") : action === "codes" ? t("security.mfa.regenerateTitle") : t("security.mfa.disableTitle")}</DialogTitle>
               <DialogDescription>
                 {astep === 1
                   ? action === "change"
                     ? t("security.mfa.changeConfirm")
-                    : t("security.mfa.disableConfirm")
-                  : t("security.mfa.reauth")}
+                    : action === "codes"
+                      ? t("security.mfa.regenerateConfirm")
+                      : t("security.mfa.disableConfirm")
+                  : action === "codes"
+                    ? t("security.mfa.reauthCodes")
+                    : t("security.mfa.reauth")}
               </DialogDescription>
             </DialogHeader>
             <ErrorAlert error={a.error} />
             {astep === 2 ? (
               <>
                 <TextField label={t("security.mfa.password")} type="password" name="mfa-password" autoComplete="current-password" required autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />
-                <TextField label={t("security.mfa.codeOrRecovery")} name="mfa-code" autoComplete="one-time-code" required value={code} onChange={(e) => setCode(e.target.value)} />
+                <TextField label={action === "codes" ? t("security.mfa.regenerateCode") : t("security.mfa.codeOrRecovery")} name="mfa-code" autoComplete="one-time-code" required value={code} onChange={(e) => setCode(e.target.value)} />
               </>
             ) : null}
             <DialogFooter>
@@ -221,7 +255,7 @@ export function Mfa() {
                 {t("common.cancel")}
               </Button>
               <Button type="submit" variant={action === "disable" ? "destructive" : "default"} busy={a.busy}>
-                {astep === 1 ? t("security.mfa.continue") : action === "change" ? t("security.mfa.change") : t("security.mfa.disable")}
+                {astep === 1 ? t("security.mfa.continue") : action === "change" ? t("security.mfa.change") : action === "codes" ? t("security.mfa.regenerateShort") : t("security.mfa.disable")}
               </Button>
             </DialogFooter>
           </form>
@@ -237,10 +271,10 @@ export function Mfa() {
           aria-describedby={undefined}
         >
           <DialogHeader>
-            <DialogTitle>{t("security.mfa.wizardTitle")}</DialogTitle>
+            <DialogTitle>{fromRegenerate ? t("security.mfa.saveTitle") : t("security.mfa.wizardTitle")}</DialogTitle>
             <DialogDescription className="sr-only">{t("security.mfa.description")}</DialogDescription>
           </DialogHeader>
-          <Stepper current={step} label={t("security.mfa.steps.label")} steps={[t("security.mfa.steps.connect"), t("security.mfa.steps.verify"), t("security.mfa.steps.save")]} />
+          {fromRegenerate ? null : <Stepper current={step} label={t("security.mfa.steps.label")} steps={[t("security.mfa.steps.connect"), t("security.mfa.steps.verify"), t("security.mfa.steps.save")]} />}
 
           {step === 1 && (
             <div className="flex flex-col gap-4">
@@ -288,8 +322,8 @@ export function Mfa() {
 
           {step === 3 && (
             <div className="flex flex-col gap-4">
-              <h3 className="font-medium">{t("security.mfa.saveTitle")}</h3>
-              <Alert variant="warning">{t("security.mfa.codesText")}</Alert>
+              {fromRegenerate ? null : <h3 className="font-medium">{t("security.mfa.saveTitle")}</h3>}
+              <Alert variant="warning">{fromRegenerate ? t("security.mfa.regeneratedText") : t("security.mfa.codesText")}</Alert>
               <ul className="grid grid-cols-2 gap-2">
                 {(codes ?? []).map((c) => (
                   <li key={c}>

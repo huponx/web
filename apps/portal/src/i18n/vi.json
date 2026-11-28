@@ -33,10 +33,22 @@
       "system": "Theo hệ thống"
     }
   },
+  "notifications": {
+    "title": "Thông báo",
+    "unread_one": "{{count}} thông báo chưa đọc",
+    "unread_other": "{{count}} thông báo chưa đọc",
+    "empty": "Chưa có gì mới.",
+    "markAllRead": "Đánh dấu đã đọc hết",
+    "archive": "Lưu trữ",
+    "loadMore": "Xem thêm",
+    "failed": "Không tải được thông báo.",
+    "retry": "Thử lại"
+  },
   "nav": {
     "home": "Trang chủ",
     "profile": "Hồ sơ",
-    "security": "Bảo mật"
+    "security": "Bảo mật",
+    "notifications": "Thông báo"
   },
   "home": {
     "greeting": "Xin chào, {{name}}",
@@ -149,7 +161,15 @@
       "changeConfirm": "Ứng dụng xác thực hiện tại sẽ ngừng hoạt động ngay, rồi bạn thiết lập ứng dụng mới. Cho đến khi xong, tài khoản chỉ được bảo vệ bằng mật khẩu.",
       "disableConfirm": "Tắt xác thực nhiều lớp? Tài khoản sẽ chỉ được bảo vệ bằng mật khẩu và các mã khôi phục sẽ bị xóa.",
       "reauth": "Xác nhận đó là bạn: nhập mật khẩu và mã từ ứng dụng xác thực (hoặc mã khôi phục).",
-      "continue": "Tiếp tục"
+      "continue": "Tiếp tục",
+      "regenerate": "Tạo mã khôi phục mới",
+      "regenerateShort": "Tạo mã mới",
+      "regenerateTitle": "Tạo mã khôi phục mới",
+      "regenerateConfirm": "Tạo mã khôi phục mới? Các mã hiện tại sẽ ngừng dùng được ngay.",
+      "regenerateCode": "Mã từ ứng dụng xác thực",
+      "reauthCodes": "Xác nhận đó là bạn: nhập mật khẩu và mã từ ứng dụng xác thực.",
+      "regeneratedText": "Đây là các mã khôi phục mới. Hãy cất ở nơi an toàn: mỗi mã chỉ dùng được một lần và sẽ không hiển thị lại. Các mã cũ không còn dùng được.",
+      "lowCodes": "Sắp hết mã khôi phục: còn {{count}}."
     },
     "passkeys": {
       "title": "Khóa truy cập",
@@ -285,6 +305,63 @@
       "invalid_passkey_name": "Tên phải dài từ 1 đến 60 ký tự.",
       "passkey_failed": "Không tạo được khóa truy cập. Hãy thử lại.",
       "session_not_found": "Phiên không tồn tại hoặc đã kết thúc."
+    }
+  },
+  "notificationSettings": {
+    "title": "Thông báo",
+    "description": "Chọn nội dung bạn nhận và nhận ở đâu.",
+    "saved": "Đã lưu cài đặt thông báo.",
+    "alwaysOn": "Luôn bật",
+    "categories": {
+      "security": "Bảo mật",
+      "account": "Tài khoản",
+      "admin": "Quản trị",
+      "bvchain": "Chấm công",
+      "system": "Hệ thống"
+    },
+    "channel": {
+      "email": "E-mail",
+      "telegram": "Telegram",
+      "in_app": "Trong ứng dụng (chuông)",
+      "push": "Thông báo trên trình duyệt"
+    },
+    "channels": {
+      "title": "Bạn nhận gì",
+      "description": "Tắt một kênh cho từng nhóm. Thông báo bảo mật và tài khoản không thể tắt."
+    },
+    "quiet": {
+      "title": "Giờ yên tĩnh",
+      "description": "E-mail và tin Telegram đến trong khoảng này sẽ chờ đến khi hết. Chuông và thông báo bảo mật không bao giờ bị giữ lại.",
+      "enable": "Giữ tin trong giờ yên tĩnh",
+      "from": "Từ",
+      "to": "Đến",
+      "timezone": "Múi giờ"
+    },
+    "telegram": {
+      "title": "Telegram",
+      "description": "Nhận thông báo trong cuộc trò chuyện Telegram với bot.",
+      "linked": "Đã liên kết",
+      "notLinked": "Chưa liên kết",
+      "link": "Liên kết Telegram",
+      "newCode": "Mã mới",
+      "unlink": "Hủy liên kết",
+      "unlinked": "Đã hủy liên kết Telegram.",
+      "openLink": "Mở bot và bấm Start (liên kết có hiệu lực 15 phút):",
+      "open": "Mở Telegram",
+      "orSend": "Hoặc gửi cho bot:"
+    },
+    "push": {
+      "title": "Thông báo trên trình duyệt",
+      "description": "Nhận thông báo trên thiết bị này kể cả khi đã đóng cổng thông tin.",
+      "on": "Đang bật trên thiết bị này",
+      "off": "Đang tắt trên thiết bị này",
+      "devices_one": "{{count}} thiết bị",
+      "devices_other": "{{count}} thiết bị",
+      "enable": "Bật cho thiết bị này",
+      "disable": "Tắt cho thiết bị này",
+      "enabled": "Đã bật thông báo trên trình duyệt cho thiết bị này.",
+      "disabled": "Đã tắt thông báo trên trình duyệt cho thiết bị này.",
+      "denied": "Trình duyệt đang chặn thông báo của trang này. Hãy cho phép trong cài đặt trang của trình duyệt."
     }
   }
 }

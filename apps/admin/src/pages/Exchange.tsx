@@ -1,4 +1,4 @@
-import { Can, P } from "@huponx/auth-client";
+import { Can } from "@huponx/auth-client";
 import { Button, Card, CardContent, iconTone, useAction, useFlash, usePaged } from "@huponx/ui-kit";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -8,6 +8,7 @@ import { useIdentity } from "../api";
 import type { ExchangePolicy } from "../api";
 import { useConfirm } from "../components/ConfirmDialog";
 import { ActionLabel, Actions, DataTable, DoneAlert, ErrorAlert, LoadMore, Loading, PageTitle, ROW_ACTION, TextField } from "../components/common";
+import { ROUTES } from "../authz";
 
 /** The page of a policy: the key is (client, audience), and an audience can hold `/` or `:`, so it goes in the query. */
 export function policyPath(p: Pick<ExchangePolicy, "clientId" | "audience">): string {
@@ -41,7 +42,7 @@ export function Exchange() {
     <>
       {dialog}
       <PageTitle description={t("exchange.intro")}>{t("exchange.title")}</PageTitle>
-      <Can perm={P.identity.exchangeWrite}>
+      <Can route={ROUTES.putExchange}>
         <Actions>
           <Button asChild>
             <Link to="/exchange/new">
@@ -116,7 +117,7 @@ export function Exchange() {
                           <ActionLabel icon={Pencil} iconClassName={iconTone.edit}>{t("exchange.manage")}</ActionLabel>
                         </Link>
                       </Button>
-                      <Can perm={P.identity.exchangeWrite}>
+                      <Can route={ROUTES.putExchange}>
                         <Button
                           variant="destructive"
                           size="sm"
