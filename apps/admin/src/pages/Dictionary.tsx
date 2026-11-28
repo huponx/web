@@ -7,9 +7,11 @@ import {
   CardHeader,
   CardTitle,
   SwitchRow,
+  iconTone,
   useAction,
   useLoad,
 } from "@huponx/ui-kit";
+import { Eraser } from "lucide-react";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,6 +19,7 @@ import { useIdentity } from "../api";
 import type { DictionaryGroup, DictionarySettings } from "../api";
 import { formatBytes } from "../lib/bytes";
 import {
+  ActionLabel,
   Actions,
   DoneAlert,
   ErrorAlert,
@@ -40,7 +43,15 @@ const GIB = 1024 * MIB;
 const EXPORT_SIZES = [1, 3, 6, 10].map((m) => m * MIB);
 const EXPORT_PART_SIZES = [3, 6, 10, 25, 50].map((m) => m * MIB);
 const CONTENT_SIZES = [16, 32, 64, 128, 256, 512].map((k) => k * KIB);
-const CONTENT_QUOTAS = [64 * KIB, 1 * MIB, 16 * MIB, 64 * MIB, 256 * MIB, 512 * MIB, GIB];
+const CONTENT_QUOTAS = [
+  64 * KIB,
+  1 * MIB,
+  16 * MIB,
+  64 * MIB,
+  256 * MIB,
+  512 * MIB,
+  GIB,
+];
 const FILE_QUOTAS = [1, 5, 10, 20, 50, 100, 250, 500, 1024].map((m) => m * MIB);
 
 /** The choices up to the ceiling; the current value stays in the list even when it is not one of the usual sizes. */
@@ -315,7 +326,9 @@ function Editor({
               {g.dictionaries.map((d) => (
                 <SwitchRow
                   key={d.id}
-                  label={t(`lookup.dictionaries.${d.id}`, { defaultValue: d.id })}
+                  label={t(`lookup.dictionaries.${d.id}`, {
+                    defaultValue: d.id,
+                  })}
                   hint={`${d.source} → ${d.target}`}
                   checked={on(d.id)}
                   onChange={(v) =>
@@ -338,6 +351,48 @@ function Editor({
         </Actions>
       </Can>
     </form>
+  );
+}
+
+/** Runs the cleanup of the worker now (words that left the list, unused images and audio, files without a row). */
+function Cleanup() {
+  const { t } = useTranslation();
+  const api = useIdentity();
+  const a = useAction();
+  const [note, setNote] = useState<{ id: number; text: string }>();
+  async function run() {
+    const r = await a.run(() => api.runDictionaryCleanup());
+    if (!r) return;
+    setNote((n) => ({
+      id: (n?.id ?? 0) + 1,
+      text: t("dictionary.cleanupDone", { ...r }),
+    }));
+  }
+  return (
+    <Can route={ROUTES.runDictCleanup}>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("dictionary.cleanup")}</CardTitle>
+          <CardDescription>{t("dictionary.cleanupHint")}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <ErrorAlert error={a.error} />
+          {note && <DoneAlert watch={note.id}>{note.text}</DoneAlert>}
+          <Actions>
+            <Button
+              type="button"
+              variant="outline"
+              busy={a.busy}
+              onClick={() => void run()}
+            >
+              <ActionLabel icon={Eraser} iconClassName={iconTone.refresh}>
+                {t("dictionary.cleanupRun")}
+              </ActionLabel>
+            </Button>
+          </Actions>
+        </CardContent>
+      </Card>
+    </Can>
   );
 }
 
@@ -365,6 +420,7 @@ export function Dictionary() {
       ) : (
         <Loading />
       )}
+      <Cleanup />
     </div>
   );
 }

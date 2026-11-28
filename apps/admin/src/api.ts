@@ -225,6 +225,15 @@ export interface RecalculatedQuota extends UserQuota {
   previous: StorageQuota;
 }
 
+/** What a run of the cleanup of the dictionary deleted. */
+export interface CleanupResult {
+  words: number;
+  images: number;
+  audio: number;
+  orphanImages: number;
+  orphanAudio: number;
+}
+
 /** The gateway writes int64 as a JSON string (protobuf JSON). */
 type Int64 = string | number | undefined;
 
@@ -509,6 +518,17 @@ export function identityApi(c: AuthClient) {
           {},
         )
         .then((r) => ({ ...userQuotaOf(r), previous: quotaOf(r.previous) })),
+    /** Runs the cleanup of the dictionary worker now; answers how much it deleted. */
+    runDictionaryCleanup: (): Promise<CleanupResult> =>
+      c
+        .api<Record<string, Int64>>("POST", "/api/dictionary/cleanup", {})
+        .then((r) => ({
+          words: Number(r.words ?? 0),
+          images: Number(r.images ?? 0),
+          audio: Number(r.audio ?? 0),
+          orphanImages: Number(r.orphanImages ?? 0),
+          orphanAudio: Number(r.orphanAudio ?? 0),
+        })),
 
     // token exchange
     listPolicies: (

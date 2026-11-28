@@ -1294,6 +1294,38 @@ describe("dictionary settings page", () => {
     expect(screen.queryByRole("link", { name: "Dictionary" })).toBeNull();
   });
 
+  it("runs the cleanup now and shows what it deleted", async () => {
+    const calls = renderApp(
+      ["dictionary:settings:*"],
+      "/dictionary",
+      (c: Call) =>
+        c.url.endsWith("/api/dictionary/cleanup")
+          ? { words: "3", images: 2, audio: 1, orphanImages: 4 }
+          : answer(c),
+    );
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Run cleanup now" }),
+    );
+    const post = calls.find(
+      (c) => c.method === "POST" && c.url.endsWith("/api/dictionary/cleanup"),
+    );
+    expect(post!.url).toBe("https://api.example.com/api/dictionary/cleanup");
+    expect(
+      await screen.findByText(
+        "Cleanup done: 3 words, 2 images, 1 audio files, 4 orphan images and 0 orphan audio files deleted.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("has no cleanup button with only the read permission", async () => {
+    renderApp(["dictionary:settings:read"], "/dictionary", answer);
+    await screen.findByLabelText("Max saved words per user");
+    expect(
+      screen.queryByRole("button", { name: "Run cleanup now" }),
+    ).toBeNull();
+  });
+
   it("saves the changed values", async () => {
     const calls = renderApp(["dictionary:settings:*"], "/dictionary", answer);
     const user = userEvent.setup();
