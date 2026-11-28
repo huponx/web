@@ -1,4 +1,4 @@
-import { Can, P } from "@huponx/auth-client";
+import { Can } from "@huponx/auth-client";
 import {
   Button,
   Card,
@@ -25,6 +25,7 @@ import {
   TextField,
 } from "../components/common";
 import { formatBytes } from "../lib/bytes";
+import { ROUTES } from "../authz";
 
 const MIB = 1024 * 1024;
 const KINDS = ["content", "image", "audio"] as const;
@@ -116,7 +117,7 @@ function Editor({ userId, initial }: { userId: string; initial: UserQuota }) {
                 : t("users.storage.default")}
             </p>
           </div>
-          <Can perm={P.dictionary.settingsWrite}>
+          <Can route={ROUTES.putDictSettings}>
             <TextField
               label={t("users.storage.override")}
               type="number"
@@ -145,7 +146,7 @@ function Editor({ userId, initial }: { userId: string; initial: UserQuota }) {
       <ErrorAlert error={a.error} />
       <DoneAlert watch={a.doneId}>{a.done}</DoneAlert>
       {note && <DoneAlert watch={note.id}>{note.text}</DoneAlert>}
-      <Can perm={P.dictionary.settingsWrite}>
+      <Can route={ROUTES.putDictSettings}>
         <Actions>
           <Button type="submit" busy={a.busy}>
             {t("users.storage.save")}

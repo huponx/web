@@ -1,4 +1,4 @@
-import { Can, P, useAuth } from "@huponx/auth-client";
+import { Can, useAuth } from "@huponx/auth-client";
 import { AvatarUpload, Badge, Button, Card, CardContent, CardHeader, CardTitle, SplitButton, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import type { AvatarChange } from "@huponx/ui-kit";
 import { Check, X } from "lucide-react";
@@ -17,6 +17,7 @@ import { RoleCards } from "../components/RoleCards";
 import { UserMfa } from "./UserMfa";
 import { UserSessions } from "./UserSessions";
 import { UserStorage } from "./UserStorage";
+import { ROUTES } from "../authz";
 
 const LOCALES = [
   { value: "en", label: "English" },
@@ -79,7 +80,7 @@ function AccountCard({ user, onChanged }: { user: User; onChanged: () => void })
         {status === "awaiting_approval" ? (
           <div className="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning/10 p-4 sm:flex-row sm:items-center sm:justify-between" data-testid="approval-panel">
             <p className="text-sm">{t("users.account.awaitingHint")}</p>
-            <Can perm={P.identity.userApprove}>
+            <Can route={ROUTES.approveUser}>
               <SplitButton
                 size="default"
                 busy={a.busy}
@@ -92,7 +93,7 @@ function AccountCard({ user, onChanged }: { user: User; onChanged: () => void })
             </Can>
           </div>
         ) : null}
-        <Can perm={P.identity.userWrite}>
+        <Can route={ROUTES.putUser}>
           <div className="divide-y rounded-lg border">
             {status === "awaiting_approval" ? null : (
               <ActionRow title={status === "pending" ? t("users.account.welcomeTitle") : t("users.account.resetTitle")} hint={status === "pending" ? t("users.account.welcomeHint") : t("users.account.resetHint")}>
@@ -158,7 +159,7 @@ function Editor({ user, reload, createdNote }: { user?: User; reload: () => void
   const navigate = useNavigate();
   const a = useAction();
   const editing = !!user;
-  const canWrite = can(P.identity.userWrite);
+  const canWrite = can(ROUTES.putUser);
 
   const [email, setEmail] = useState(user?.email ?? "");
   const [name, setName] = useState(user?.name ?? "");
@@ -228,13 +229,13 @@ function Editor({ user, reload, createdNote }: { user?: User; reload: () => void
             </div>
           </CardContent>
         </Card>
-        <Can perm={P.identity.roleRead}>
+        <Can route={ROUTES.listRoles}>
           <Card>
             <CardHeader>
               <CardTitle>{t("users.roles.title")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <RoleCards selected={roles} onChange={setRoles} disabled={!canWrite || (editing && !can(P.identity.roleWrite))} />
+              <RoleCards selected={roles} onChange={setRoles} disabled={!canWrite || (editing && !can(ROUTES.putRole))} />
             </CardContent>
           </Card>
         </Can>
@@ -274,17 +275,17 @@ export function UserForm() {
     <div className="flex flex-col gap-6">
       <Editor key={data.id} user={data} reload={reload} createdNote={note} />
       <AccountCard user={data} onChanged={reload} />
-      <Can perm={P.dictionary.settingsRead}>
+      <Can route={ROUTES.getDictSettings}>
         <UserStorage userId={data.id} />
       </Can>
-      <Can perm={P.identity.mfaRead}>
+      <Can route={ROUTES.getUserMfa}>
         <Card>
           <CardContent className="pt-6">
             <UserMfa user={data} onChanged={reload} />
           </CardContent>
         </Card>
       </Can>
-      <Can perm={P.identity.userRead}>
+      <Can route={ROUTES.getUserSessions}>
         <Card>
           <CardContent className="pt-6">
             <UserSessions user={data} />

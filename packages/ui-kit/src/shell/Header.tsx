@@ -13,10 +13,12 @@ export interface HeaderProps {
   onOpenMobileMenu: () => void;
   /** The avatar menu (`UserMenu`). */
   userMenu: ReactNode;
+  /** The bell (`NotificationBell`), left of the theme switch; none: no bell. */
+  notifications?: ReactNode;
 }
 
 /** Breadcrumb on the left; on the right the theme switch, then the avatar menu. */
-export function Header({ breadcrumbs, link: Link, labels, onOpenMobileMenu, userMenu }: HeaderProps) {
+export function Header({ breadcrumbs, link: Link, labels, onOpenMobileMenu, userMenu, notifications }: HeaderProps) {
   return (
     <header className="ui-glass flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
       <Button variant="ghost" size="icon-sm" className="md:hidden" aria-label={labels.openMenu} onClick={onOpenMobileMenu}>
@@ -46,6 +48,7 @@ export function Header({ breadcrumbs, link: Link, labels, onOpenMobileMenu, user
       </Breadcrumb>
 
       <div className="flex shrink-0 items-center gap-3">
+        {notifications}
         <ThemeSwitch labels={labels.theme} />
         {userMenu}
       </div>

@@ -13,6 +13,7 @@ import type * as AudioUrl from "./lib/audioUrl";
 import { probeAudio } from "./lib/audioUrl";
 import { fireEvent } from "@testing-library/react";
 import type { DictionaryGroup } from "./api";
+import { allowedOf } from "./test-rules";
 
 // a jsdom audio element never loads: the check of an audio address is answered by the tests
 vi.mock("./lib/audioUrl", async (orig) => ({
@@ -82,6 +83,7 @@ function setup(
     roles: [],
     scopes: [],
     perms,
+    allowed: allowedOf(perms),
     amr: [],
     csrf_token: "c",
     expires_at: "2030-01-01T00:00:00Z",

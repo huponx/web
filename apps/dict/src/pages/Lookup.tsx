@@ -1,4 +1,4 @@
-import { ApiError, P, useAuth } from "@huponx/auth-client";
+import { ApiError, useAuth } from "@huponx/auth-client";
 import { Alert, AutoAlert, Button, Card, CardContent, ClearButton, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, iconTone, Input, Label, NOTICE_MS, Tabs, TabsList, TabsTrigger, Textarea } from "@huponx/ui-kit";
 import {
   Check,
@@ -48,6 +48,7 @@ import { CategoryPicker } from "./CategoryPicker";
 import { SavedList } from "./Saved";
 import { WordCard } from "./WordCard";
 import type { CardOverride } from "./WordCard";
+import { ROUTES } from "../authz";
 
 /** `text` is an error or a `Localized`, translated when shown (WordCard), so the notice follows the language. */
 type Notice = { kind: "success" | "error"; text: unknown };
@@ -550,7 +551,7 @@ export function Lookup() {
   });
   // a card with no entry behind it: written by hand
   const isManual = (w: Word) => !entryFor(w.text);
-  const canWrite = can(P.dictionary.wordWrite);
+  const canWrite = can(ROUTES.saveWord);
 
   /** The words that can still get a card by hand: those not found, or all the typed ones when the lookup failed. */
   const candidates = (error ? searchedList : notFound).filter(
@@ -855,7 +856,7 @@ export function Lookup() {
                 )}
                 {t("lookup.copyAll")}
               </Button>
-              {can(P.dictionary.wordWrite) ? (
+              {can(ROUTES.saveWord) ? (
                 <Button
                   type="button"
                   variant="outline"

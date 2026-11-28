@@ -1,4 +1,4 @@
-import { Can, P, useAuth } from "@huponx/auth-client";
+import { Can, useAuth } from "@huponx/auth-client";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, DeleteCard, useAction, useFlash, useLoad } from "@huponx/ui-kit";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -10,6 +10,7 @@ import { ScopeField } from "../components/ClientAccess";
 import { Actions, DoneAlert, ErrorAlert, Loading, PageTitle, TextField } from "../components/common";
 import { useConfirm } from "../components/ConfirmDialog";
 import { policyPath } from "./Exchange";
+import { ROUTES } from "../authz";
 
 /** Add (no policy) or edit one: the client and the audience are the key, so they are fixed once the policy exists. */
 function Editor({ policy, reload, createdNote }: { policy?: ExchangePolicy; reload: () => void; createdNote?: string }) {
@@ -18,14 +19,14 @@ function Editor({ policy, reload, createdNote }: { policy?: ExchangePolicy; relo
   const navigate = useNavigate();
   const { can } = useAuth();
   const editing = Boolean(policy);
-  const canWrite = can(P.identity.exchangeWrite);
+  const canWrite = can(ROUTES.putExchange);
   const [clientId, setClientId] = useState(policy?.clientId ?? "");
   const [audience, setAudience] = useState(policy?.audience ?? "");
   const [maxScope, setMaxScope] = useState(policy?.maxScope ?? "");
   const [depth, setDepth] = useState(String(policy?.maxChainDepth ?? 1));
   const a = useAction();
   // the clients are offered as suggestions to whoever may read them; anything else can still be typed
-  const clients = useLoad(() => (!editing && can(P.identity.clientRead) ? api.listClients() : Promise.resolve(undefined)), [api, editing, can]);
+  const clients = useLoad(() => (!editing && can(ROUTES.listClients) ? api.listClients() : Promise.resolve(undefined)), [api, editing, can]);
 
   async function submit(ev: FormEvent) {
     ev.preventDefault();
@@ -163,7 +164,7 @@ export function ExchangeForm() {
   return (
     <div className="flex flex-col gap-6">
       <Editor key={`${policy.clientId}/${policy.audience}`} policy={policy} reload={policies.reload} createdNote={state?.created ? t("exchange.form.created") : undefined} />
-      <Can perm={P.identity.exchangeWrite}>
+      <Can route={ROUTES.putExchange}>
         <DeleteSection policy={policy} />
       </Can>
     </div>

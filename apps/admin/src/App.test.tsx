@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { App } from "./App";
+import { allowedOf } from "./test-rules";
 
 interface Call {
   method: string;
@@ -43,6 +44,7 @@ function renderApp(
     roles: ["admin"],
     scopes: [],
     perms,
+    allowed: allowedOf(perms),
     amr: [],
     csrf_token: "c",
     expires_at: "2030-01-01T00:00:00Z",

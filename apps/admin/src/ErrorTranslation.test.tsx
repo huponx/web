@@ -5,9 +5,10 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { App } from "./App";
 import i18n from "./i18n";
+import { allowedOf } from "./test-rules";
 
 function renderFailing(error: Record<string, unknown>) {
-  const me: Me = { sub: "root", roles: ["admin"], scopes: [], perms: ["identity:*"], amr: [], csrf_token: "c", expires_at: "2030-01-01T00:00:00Z" };
+  const me: Me = { sub: "root", roles: ["admin"], scopes: [], perms: ["identity:*"], allowed: allowedOf(["identity:*"]), amr: [], csrf_token: "c", expires_at: "2030-01-01T00:00:00Z" };
   const client = createClient({
     apiBase: "https://api.example.com",
     fetch: async (url) => {

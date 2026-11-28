@@ -1,4 +1,4 @@
-import { P, useAuth } from "@huponx/auth-client";
+import { useAuth } from "@huponx/auth-client";
 import { Alert, AutoAlert, Button, Card, CardContent, CardHeader, CardTitle, Checkbox, ClearButton, cn, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, iconTone, Input, Label, Loading, Progress, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, tone, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, useConfirm } from "@huponx/ui-kit";
 import {
   Check,
@@ -63,6 +63,7 @@ import { CategoryPicker } from "./CategoryPicker";
 import { CardEditor, preloadOn, usePreloadCardEditor } from "./LazyCardEditor";
 import { Play } from "./PlayButton";
 import { KIND_BADGE, KIND_LABEL, type CardKind } from "./Review";
+import { ROUTES } from "../authz";
 
 /** How long the search box waits after the last keystroke before it asks the service. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -492,7 +493,7 @@ export function SavedList({
   const [link, setLink] = useState<{ url: string; expiresAt: string }>();
   const [linking, setLinking] = useState(false);
   // the export in parts of a list too long for one deck
-  const jobs = useExportJob(api, can(P.dictionary.wordWrite) && !compact);
+  const jobs = useExportJob(api, can(ROUTES.saveWord) && !compact);
   const [busyPart, setBusyPart] = useState<number>();
   // the links of the parts of one job: a new link replaces the one before, so each is made once and kept
   const [partLinkState, setPartLinks] = useState<{
@@ -521,7 +522,7 @@ export function SavedList({
     cancel: t("common.cancel"),
     close: t("common.close"),
   });
-  const write = can(P.dictionary.wordWrite);
+  const write = can(ROUTES.saveWord);
   usePreloadCardEditor(write);
   // the word whose full card is open
   const [viewing, setViewing] = useState<SavedWord>();

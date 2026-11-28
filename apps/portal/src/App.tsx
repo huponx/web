@@ -2,12 +2,14 @@ import { RequireAuth } from "@huponx/auth-client";
 import { useAuth } from "@huponx/auth-client";
 import { AppShell, Button, Loading, UiMessagesProvider, systemStyleOf, translateApiError, useSystemStyle } from "@huponx/ui-kit";
 import type { Crumb, NavItem, ShellLabels, ShellLink, SystemStyleReply } from "@huponx/ui-kit";
-import { Home as HomeIcon, ShieldCheck, UserRound } from "lucide-react";
+import { Bell, Home as HomeIcon, ShieldCheck, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { AccountMenu } from "./AccountMenu";
+import { Notifications } from "./Notifications";
 import { PortalLogo } from "./Logo";
 import { Home } from "./pages/Home";
+import { Notifications as NotificationSettings } from "./pages/Notifications";
 import { Profile } from "./pages/Profile";
 import { Security } from "./pages/Security";
 
@@ -27,11 +29,14 @@ function SystemStyle() {
 
 function Shell() {
   const { t } = useTranslation();
+  const { can } = useAuth();
   const { pathname } = useLocation();
   const items: NavItem[] = [
     { to: "/", label: t("nav.home"), icon: HomeIcon, end: true },
     { to: "/profile", label: t("nav.profile"), icon: UserRound },
     { to: "/security", label: t("nav.security"), icon: ShieldCheck },
+    // every signed-in user holds it once the gateway has the route
+    ...(can("GET /api/notifications/preferences") ? [{ to: "/notifications", label: t("nav.notifications"), icon: Bell }] : []),
   ];
   const current = items.find((i) => i.to !== "/" && i.to === pathname);
   const breadcrumbs: Crumb[] = [{ label: t("nav.home"), to: current ? "/" : undefined }, ...(current ? [{ label: current.label }] : [])];
@@ -46,11 +51,12 @@ function Shell() {
     theme: { group: t("shell.theme.group"), light: t("shell.theme.light"), dark: t("shell.theme.dark"), system: t("shell.theme.system") },
   };
   return (
-    <AppShell pageKey={pathname} logo={<PortalLogo />} brand={t("shell.brand")} items={items} breadcrumbs={breadcrumbs} link={link} labels={labels} userMenu={<AccountMenu />}>
+    <AppShell pageKey={pathname} logo={<PortalLogo />} brand={t("shell.brand")} items={items} breadcrumbs={breadcrumbs} link={link} labels={labels} userMenu={<AccountMenu />} notifications={<Notifications />}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/security" element={<Security />} />
+        {can("GET /api/notifications/preferences") ? <Route path="/notifications" element={<NotificationSettings />} /> : null}
         <Route path="*" element={<Message>{t("common.notFound")}</Message>} />
       </Routes>
     </AppShell>

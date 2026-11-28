@@ -1,4 +1,4 @@
-import { P, useAuth } from "@huponx/auth-client";
+import { useAuth } from "@huponx/auth-client";
 import {
   Button,
   Dialog,
@@ -14,6 +14,7 @@ import { removesAfterExport, SAVED_CHANGED, useDictionary } from "./api";
 import { errorMessage } from "./lib/errors";
 import { useRegistry } from "./lib/registry";
 import { useSettings } from "./lib/settings";
+import { ROUTES } from "./authz";
 
 /**
  * Remove after export came on (the administrator or the user turned it on) while exported words are still in
@@ -33,7 +34,7 @@ export function RemovePrompt() {
   const [error, setError] = useState<unknown>();
   const handled = useRef<string>();
 
-  const allowed = can(P.dictionary.wordRead) && can(P.dictionary.wordWrite);
+  const allowed = can(ROUTES.listSaved) && can(ROUTES.saveWord);
   const effective = removesAfterExport(settings);
   const acknowledged = settings.user.removeAcknowledged;
 

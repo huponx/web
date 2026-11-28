@@ -5,6 +5,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { App } from "./App";
+import { allowedOf } from "./test-rules";
 
 interface Call {
   method: string;
@@ -35,7 +36,7 @@ function user(over: Record<string, unknown> = {}) {
 
 function renderApp(route: string, answer: (c: Call) => unknown, perms: string[] = ["identity:*"]) {
   const calls: Call[] = [];
-  const me: Me = { sub: "root", roles: ["admin"], scopes: [], perms, amr: [], csrf_token: "c", expires_at: "2030-01-01T00:00:00Z" };
+  const me: Me = { sub: "root", roles: ["admin"], scopes: [], perms, allowed: allowedOf(perms), amr: [], csrf_token: "c", expires_at: "2030-01-01T00:00:00Z" };
   const client = createClient({
     apiBase: "https://api.example.com",
     fetch: async (url, init) => {

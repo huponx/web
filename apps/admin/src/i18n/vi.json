@@ -45,6 +45,17 @@
       "system": "Theo hệ thống"
     }
   },
+  "notifications": {
+    "title": "Thông báo",
+    "unread_one": "{{count}} thông báo chưa đọc",
+    "unread_other": "{{count}} thông báo chưa đọc",
+    "empty": "Chưa có gì mới.",
+    "markAllRead": "Đánh dấu đã đọc hết",
+    "archive": "Lưu trữ",
+    "loadMore": "Xem thêm",
+    "failed": "Không tải được thông báo.",
+    "retry": "Thử lại"
+  },
   "nav": {
     "home": "Trang chủ",
     "users": "Người dùng",
@@ -61,7 +72,12 @@
     "clientNew": "Thêm",
     "clientEdit": "Sửa",
     "exchangeNew": "Thêm",
-    "exchangeEdit": "Sửa"
+    "exchangeEdit": "Sửa",
+    "templates": "Mẫu thông báo",
+    "announcements": "Thông báo chung",
+    "deliveries": "Nhật ký gửi",
+    "templateEdit": "Sửa mẫu",
+    "webhooks": "Webhook"
   },
   "home": {
     "title": "Admin Portal",
@@ -688,5 +704,160 @@
     "confirmRevokeOthers": "Đăng xuất khỏi mọi phiên trừ phiên này? Các thiết bị đó phải đăng nhập lại.",
     "revoked": "Đã đăng xuất phiên.",
     "revokedOthers": "Đã đăng xuất khỏi các phiên khác."
+  },
+  "templates": {
+    "title": "Mẫu thông báo",
+    "intro": "Các tin hệ thống gửi đi. Mỗi ngôn ngữ và kênh sửa được; chưa lưu thì dùng mẫu có sẵn.",
+    "mandatory": "bắt buộc",
+    "editAria": "Sửa {{type}}, {{locale}}, {{channel}}",
+    "col": {
+      "type": "Sự kiện",
+      "templates": "Mẫu (ngôn ngữ, kênh)"
+    },
+    "channel": {
+      "email": "E-mail",
+      "telegram": "Telegram",
+      "in_app": "Trong ứng dụng"
+    },
+    "digest": "gộp trong {{window}}",
+    "digestBadge": "gộp",
+    "editDigestAria": "Sửa tin gộp của {{type}}, {{locale}}, {{channel}}"
+  },
+  "templateEditor": {
+    "intro": "Thay đổi đến nơi gửi trong vòng nửa phút.",
+    "customized": "Đã sửa, phiên bản {{version}}",
+    "builtIn": "Có sẵn",
+    "updatedBy": "bởi {{by}}, {{at}}",
+    "content": "Nội dung",
+    "keys": "Giá trị dùng được:",
+    "title": "Tiêu đề",
+    "subject": "Tiêu đề thư",
+    "body": "Nội dung",
+    "text": "Văn bản",
+    "html": "HTML",
+    "htmlHint": "Không bắt buộc. Được đặt vào khung trang của e-mail.",
+    "preview": "Xem trước",
+    "previewTitle": "Xem trước",
+    "previewHint": "Hiển thị với giá trị mẫu. Chưa lưu gì.",
+    "saved": "Đã lưu mẫu.",
+    "revert": "Về mẫu có sẵn",
+    "confirmRevert": "Bỏ mẫu đã sửa và dùng lại mẫu có sẵn? Các phiên bản vẫn nằm trong lịch sử.",
+    "reverted": "Đã dùng lại mẫu có sẵn.",
+    "versions": "Phiên bản",
+    "noVersions": "Chưa có phiên bản: đang dùng mẫu có sẵn.",
+    "useVersion": "Dùng phiên bản này",
+    "revertedEntry": "về mẫu có sẵn",
+    "digestIntro": "Tin thay cho nhiều sự kiện loại này đến trong vòng {{window}}. Dùng được count và items (mỗi sự kiện một dòng)."
+  },
+  "announcements": {
+    "title": "Thông báo chung",
+    "intro": "Gửi tin cho mọi người, một vai trò hoặc người được chọn. Tin đến trong ứng dụng và qua e-mail, theo ngôn ngữ của từng người.",
+    "new": "Thông báo mới",
+    "newHint": "Cài đặt bắt buộc không áp dụng; người đã tắt nhóm này vẫn nhận tin trong ứng dụng nếu chưa tắt.",
+    "to": "Gửi cho",
+    "role": "Vai trò",
+    "userIds": "Mã người dùng",
+    "userIdsHint": "Cách nhau bằng khoảng trắng, dấu phẩy hoặc xuống dòng.",
+    "subject": "Tiêu đề",
+    "message": "Nội dung",
+    "link": "Liên kết",
+    "linkHint": "Không bắt buộc: trang mở ra từ thông báo.",
+    "send": "Gửi",
+    "confirm": "Gửi thông báo này cho {{who}}? Không thể thu hồi.",
+    "sent": "Đã gửi thông báo.",
+    "history": "Thông báo đã gửi",
+    "skipped": "{{count}} người chưa nhận được",
+    "audience": {
+      "all": "Mọi người",
+      "role": "Một vai trò",
+      "users": "Người được chọn",
+      "everyone": "mọi người",
+      "roleOf": "vai trò {{role}}",
+      "usersOf_one": "{{count}} người dùng",
+      "usersOf_other": "{{count}} người dùng"
+    },
+    "col": {
+      "when": "Đã gửi",
+      "audience": "Gửi cho",
+      "recipients": "Người dùng",
+      "by": "Bởi",
+      "channels": "Kênh"
+    },
+    "channels": {
+      "title": "Kênh gửi",
+      "hint": "Tùy chọn của từng người vẫn áp dụng: ai đã tắt một kênh cho nhóm Hệ thống thì không nhận ở kênh đó.",
+      "none": "Hãy chọn ít nhất một kênh.",
+      "all": "tất cả",
+      "email": "E-mail",
+      "in_app": "Trong ứng dụng (chuông)",
+      "push": "Thông báo trình duyệt"
+    }
+  },
+  "deliveries": {
+    "title": "Nhật ký gửi",
+    "intro": "Mọi e-mail và tin Telegram: gửi cho ai và kết quả ra sao. Tin lỗi hoặc bỏ cuộc có thể gửi lại.",
+    "retry": "Gửi lại",
+    "retryAria": "Gửi lại tin cho {{address}}",
+    "retried": "Đã xếp hàng gửi lại.",
+    "filter": {
+      "status": "Trạng thái",
+      "channel": "Kênh",
+      "address": "Địa chỉ",
+      "user": "Mã người dùng",
+      "notification": "Mã thông báo",
+      "any": "Tất cả"
+    },
+    "status": {
+      "DELIVERY_STATUS_PENDING": "Đang chờ",
+      "DELIVERY_STATUS_SENT": "Đã gửi",
+      "DELIVERY_STATUS_FAILED": "Lỗi",
+      "DELIVERY_STATUS_DEAD": "Bỏ cuộc",
+      "DELIVERY_STATUS_SKIPPED": "Bỏ qua"
+    },
+    "col": {
+      "when": "Lúc",
+      "event": "Sự kiện",
+      "to": "Gửi tới",
+      "status": "Trạng thái",
+      "attempts": "Lần thử",
+      "actions": "Thao tác",
+      "events": "Sự kiện"
+    },
+    "merged": "{{count}} sự kiện trong một tin"
+  },
+  "webhooks": {
+    "title": "Webhook",
+    "intro": "Gửi sự kiện tới Slack hoặc dịch vụ của bạn. Mỗi webhook nhận các sự kiện nó đăng ký, mỗi sự kiện một lần.",
+    "add": "Thêm webhook",
+    "new": "Webhook mới",
+    "edit": "Sửa",
+    "name": "Tên",
+    "kind": "Loại",
+    "kinds": {
+      "slack": "Slack (incoming webhook)",
+      "generic": "JSON có chữ ký"
+    },
+    "url": "URL",
+    "urlHint": "Chỉ https. URL Slack là bí mật: chỉ quản trị viên thấy trang này.",
+    "events": "Sự kiện",
+    "eventsHint": "Sự kiện bảo mật và tài khoản không bao giờ gửi tới webhook: chúng chứa liên kết và mã.",
+    "eventsExamples": "Mỗi dòng một mục hoặc cách nhau bằng khoảng trắng: bvchain.failed, bvchain.*, hoặc * cho tất cả.",
+    "enabled": "Đang bật",
+    "secretTitle": "Khóa ký",
+    "secretHint": "Chỉ hiện một lần: hãy sao chép ngay. Mỗi yêu cầu có X-Courier-Timestamp và X-Courier-Signature (HMAC sha256= của \"<timestamp>.<body>\").",
+    "rotate": "Khóa mới",
+    "saved": "Đã lưu webhook.",
+    "deleted": "Đã xóa webhook.",
+    "confirmDelete": "Xóa webhook {{name}}? Tin chưa gửi tới nó sẽ lỗi.",
+    "status": "Trạng thái",
+    "on": "Bật",
+    "off": "Tắt",
+    "actions": "Thao tác",
+    "test": "Thử",
+    "testAria": "Gửi thử tới {{name}}",
+    "editAria": "Sửa {{name}}",
+    "deleteAria": "Xóa {{name}}",
+    "testOk": "Điểm nhận đã phản hồi.",
+    "testFailed": "Thử không thành công."
   }
 }

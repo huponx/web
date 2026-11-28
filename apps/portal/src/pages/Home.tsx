@@ -1,4 +1,4 @@
-import { isPermission, useAuth } from "@huponx/auth-client";
+import { useAuth } from "@huponx/auth-client";
 import { Card, CardContent, PageTitle } from "@huponx/ui-kit";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,8 +10,8 @@ export function Home() {
   const { t } = useTranslation();
   const { user, can } = useAuth();
   const apps = useMemo(() => parseApps(window.__env__?.APPS), []);
-  // a permission the generated list does not know matches nothing: the card stays hidden instead of open to everybody
-  const shown = visibleApps(apps, (perm) => isPermission(perm) && can(perm));
+  // a key the gateway does not know is never allowed: the card stays hidden instead of open to everybody
+  const shown = visibleApps(apps, can);
   return (
     <>
       <PageTitle description={t("home.subtitle")}>{t("home.greeting", { name: user?.name || user?.email || user?.sub || "" })}</PageTitle>
