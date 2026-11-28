@@ -26,6 +26,7 @@ const RULES: Record<string, string[]> = {
   [R.getDictSettings]: ["dictionary:settings:read"],
   [R.putDictSettings]: ["dictionary:settings:write"],
   [R.runDictCleanup]: ["dictionary:settings:write"],
+  [R.getDictCleanup]: ["dictionary:settings:read"],
   [R.courierEventTypes]: ["courier:template:read"],
   [R.getTemplate]: ["courier:template:read"],
   [R.putTemplate]: ["courier:template:write"],

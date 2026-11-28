@@ -27,6 +27,7 @@ export const ROUTES = {
   getDictSettings: "GET /api/dictionary/settings",
   putDictSettings: "PUT /api/dictionary/settings",
   runDictCleanup: "POST /api/dictionary/cleanup",
+  getDictCleanup: "GET /api/dictionary/cleanup",
   courierEventTypes: "GET /api/courier/event-types",
   getTemplate: "GET /api/courier/templates/{template}/{locale}/{channel}",
   putTemplate: "PUT /api/courier/templates/{template}/{locale}/{channel}",

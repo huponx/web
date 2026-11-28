@@ -1294,14 +1294,30 @@ describe("dictionary settings page", () => {
     expect(screen.queryByRole("link", { name: "Dictionary" })).toBeNull();
   });
 
-  it("runs the cleanup now and shows what it deleted", async () => {
+  it("asks for the cleanup, follows it and shows what it deleted", async () => {
+    let run: Record<string, unknown> = {};
     const calls = renderApp(
       ["dictionary:settings:*"],
       "/dictionary",
-      (c: Call) =>
-        c.url.endsWith("/api/dictionary/cleanup")
-          ? { words: "3", images: 2, audio: 1, orphanImages: 4 }
-          : answer(c),
+      (c: Call) => {
+        if (!c.url.endsWith("/api/dictionary/cleanup")) return answer(c);
+        if (c.method === "POST") {
+          run = { status: "pending", requestedAt: "1000" };
+          // the worker picks it up and finishes while the page waits
+          setTimeout(
+            () =>
+              (run = {
+                status: "done",
+                words: "3",
+                images: 2,
+                audio: 1,
+                orphanImages: 4,
+              }),
+            100,
+          );
+        }
+        return { run };
+      },
     );
     const user = userEvent.setup();
     await user.click(
@@ -1312,15 +1328,34 @@ describe("dictionary settings page", () => {
     );
     expect(post!.url).toBe("https://api.example.com/api/dictionary/cleanup");
     expect(
+      await screen.findByText("Waiting for the worker to pick it up…"),
+    ).toBeTruthy();
+    // the button waits while the request is not done
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Run cleanup now",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
       await screen.findByText(
-        "Cleanup done: 3 words, 2 images, 1 audio files, 4 orphan images and 0 orphan audio files deleted.",
+        "Last cleanup done: 3 words, 2 images, 1 audio files, 4 orphan images and 0 orphan audio files deleted.",
+        {},
+        { timeout: 5000 },
       ),
     ).toBeTruthy();
-  });
+  }, 10000);
 
-  it("has no cleanup button with only the read permission", async () => {
-    renderApp(["dictionary:settings:read"], "/dictionary", answer);
-    await screen.findByLabelText("Max saved words per user");
+  it("shows the state of the cleanup but no button with only the read permission", async () => {
+    renderApp(["dictionary:settings:read"], "/dictionary", (c: Call) =>
+      c.url.endsWith("/api/dictionary/cleanup")
+        ? { run: { status: "failed", error: "disk full" } }
+        : answer(c),
+    );
+    expect(
+      await screen.findByText("The last cleanup failed: disk full"),
+    ).toBeTruthy();
     expect(
       screen.queryByRole("button", { name: "Run cleanup now" }),
     ).toBeNull();
